@@ -1,3 +1,4 @@
+API thì tôi có viết hướng dẫn trong Document_Api rồi nhes
 -   Đối với các bạn clone về cần làm các bước sau để chạy được nhé
 
 1. Chạy Composer install (để cài các thư viện)
