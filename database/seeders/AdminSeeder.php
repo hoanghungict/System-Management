@@ -14,7 +14,7 @@ class AdminSeeder extends Seeder
     public function run(): void
     {
         // Tạo đơn vị mẫu (unit)
-        $unitId = DB::table('unit')->insertGetId([
+        $unitId = DB::table('department')->insertGetId([
             'name' => 'Khoa Công nghệ Thông tin',
             'type' => 'faculty',
             'parent_id' => null,
@@ -28,7 +28,7 @@ class AdminSeeder extends Seeder
             'email' => 'admin@system.com',
             'phone' => '0123456789',
             'lecturer_code' => 'GV001',
-            'unit_id' => $unitId,
+            'department_id' => $unitId,
         ]);
 
         // Tạo tài khoản admin

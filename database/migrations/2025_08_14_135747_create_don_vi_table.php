@@ -17,13 +17,13 @@ return new class extends Migration {
 
             // Self reference (recursive)
             $table->foreign('parent_id')
-                  ->references('id')->on('unit')
+                  ->references('id')->on('department')
                   ->onDelete('cascade');
         });
     }
 
     public function down(): void
     {
-    Schema::dropIfExists('unit');
+    Schema::dropIfExists('department');
     }
 };
