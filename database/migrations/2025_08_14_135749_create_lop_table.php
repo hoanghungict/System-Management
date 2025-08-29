@@ -18,7 +18,7 @@ return new class extends Migration
             $table->timestamps();
 
             // Foreign keys
-            $table->foreign('faculty_id')->references('id')->on('unit')->onDelete('cascade');
+            $table->foreign('faculty_id')->references('id')->on('department')->onDelete('cascade');
             $table->foreign('lecturer_id')->references('id')->on('lecturer')->onDelete('set null');
         });
     }
