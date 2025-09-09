@@ -1,6 +1,5 @@
 *.log
 .DS_Store
-.env
 .env.backup
 .env.production
 .phpactor.json
@@ -22,3 +21,32 @@
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+# Ignore Student package in Task module
+Modules/Task/app/Student/
+
+# Ignore test files and API documentation
+test_common_admin_api.php
+test_lecturer_api.php
+test_specific_student_apis.php
+test_student_api.php
+test_task_creation_email.php
+api-student.html
+api-lecturer.html
+api-common.html
+api-admin.html
+
+# Ignore additional files
+.env
+.env.backup
+.env.production
+docker.txt
+db.sql
+API_TESTING_README.md
+api_error_summary.md
+TASK_MODULE_JOB_QUEUE_MAIL_SYSTEM.txt
+README-Docker.md
+storage/framework/views/*.php
+bootstrap/cache/modules.php*
+bootstrap/cache/packages.php
+bootstrap/cache/services.php

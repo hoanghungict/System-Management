@@ -25,6 +25,14 @@ class Lecturer extends Model
     }
 
     /**
+     * Get the faculty this lecturer belongs to (alias for department)
+     */
+    public function faculty()
+    {
+        return $this->belongsTo(Department::class, 'department_id');
+    }
+
+    /**
      * Get the account for this lecturer
      */
     public function account()
