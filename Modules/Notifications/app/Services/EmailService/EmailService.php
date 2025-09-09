@@ -55,7 +55,7 @@ class EmailService
             }
 
             // Gửi email
-            Mail::raw($content, function ($message) use ($userEmail, $subject) {
+            Mail::html($content, function ($message) use ($userEmail, $subject) {
                 $message->to($userEmail)
                         ->subject($subject);
             });
@@ -105,8 +105,9 @@ class EmailService
     private function getAdminEmail(int $userId): ?string
     {
         // Query từ bảng users
-        return DB::table('users')
+        return DB::table('lecturer')
             ->where('id', $userId)
+            ->where('is_admin', 1)
             ->value('email');
     }
 }

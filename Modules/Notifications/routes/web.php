@@ -1,7 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use Modules\Notifications\Http\Controllers\NotificationsController;
+use Modules\Notifications\app\Http\Controllers\NotificationsController;
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource('notifications', NotificationsController::class)->names('notifications');

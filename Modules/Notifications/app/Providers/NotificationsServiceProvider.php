@@ -3,6 +3,8 @@
 namespace Modules\Notifications\app\Providers;
 
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Facades\Broadcast;
+use Modules\Notifications\app\Console\Commands\NotificationsSubscribeCommand;
 use Modules\Notifications\app\Repositories\Interfaces\NotificationRepositoryInterface;
 use Modules\Notifications\app\Repositories\NotificationRepository\NotificationRepository;
 
@@ -29,6 +31,10 @@ class NotificationsServiceProvider extends ServiceProvider
         $this->registerConfig();
         $this->registerViews();
         $this->loadMigrationsFrom(module_path($this->moduleName, 'database/migrations'));
+
+        // Module-scoped broadcasting auth and channels
+        Broadcast::routes(['middleware' => ['web', 'jwt']]);
+        require base_path('routes/channels.php');
     }
 
     /**
@@ -42,6 +48,11 @@ class NotificationsServiceProvider extends ServiceProvider
         
         // Bind repository interface to implementation
         $this->app->bind(NotificationRepositoryInterface::class, NotificationRepository::class);
+
+        // Register console commands
+        $this->commands([
+            NotificationsSubscribeCommand::class,
+        ]);
     }
 
     /**
@@ -56,6 +67,14 @@ class NotificationsServiceProvider extends ServiceProvider
         ], 'config');
         $this->mergeConfigFrom(
             module_path($this->moduleName, 'config/config.php'), $this->moduleNameLower
+        );
+
+        // Merge events config
+        $this->publishes([
+            module_path($this->moduleName, 'config/events.php') => config_path('notifications-events.php'),
+        ], 'config');
+        $this->mergeConfigFrom(
+            module_path($this->moduleName, 'config/events.php'), 'notifications-events'
         );
     }
 

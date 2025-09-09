@@ -134,7 +134,7 @@ class StudentService
                 $notificationService = app('\Modules\Notifications\app\Services\NotificationService\NotificationService');
                 
                 $notificationService->sendNotification(
-                    'user_registered',
+                    'student_account_created',
                     [['user_id' => $student->id, 'user_type' => 'student']],
                     [
                         'user_name' => $student->full_name ?? $student->student_code,
