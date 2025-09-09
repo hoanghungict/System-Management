@@ -50,3 +50,10 @@ storage/framework/views/*.php
 bootstrap/cache/modules.php*
 bootstrap/cache/packages.php
 bootstrap/cache/services.php
+
+# Ignore documentation and test files
+*.md
+test_*.php
+EMAIL_ARCHITECTURE_README.md
+EMAIL_TEST_GUIDE.md
+test_email_system.php

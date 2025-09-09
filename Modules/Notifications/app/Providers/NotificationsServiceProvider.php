@@ -3,6 +3,8 @@
 namespace Modules\Notifications\app\Providers;
 
 use Illuminate\Support\ServiceProvider;
+use Modules\Notifications\app\Services\EmailService\EmailServiceInterface;
+use Modules\Notifications\app\Services\EmailService\EmailService;
 use Modules\Notifications\app\Repositories\Interfaces\NotificationRepositoryInterface;
 use Modules\Notifications\app\Repositories\NotificationRepository\NotificationRepository;
 
@@ -39,6 +41,14 @@ class NotificationsServiceProvider extends ServiceProvider
     public function register()
     {
         $this->app->register(RouteServiceProvider::class);
+        
+        // Bind EmailService interface to implementation
+        $this->app->bind(EmailServiceInterface::class, EmailService::class);
+        
+        // Singleton EmailService để tái sử dụng
+        $this->app->singleton(EmailService::class, function ($app) {
+            return new EmailService();
+        });
         
         // Bind repository interface to implementation
         $this->app->bind(NotificationRepositoryInterface::class, NotificationRepository::class);

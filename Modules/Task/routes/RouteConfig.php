@@ -343,24 +343,6 @@ class RouteConfig
                         'action' => 'sendNotificationEmail',
                         'name' => 'send-notification'
                     ],
-                    [
-                        'methods' => ['POST'],
-                        'uri' => 'send-template',
-                        'action' => 'sendTemplateEmail',
-                        'name' => 'send-template'
-                    ],
-                    [
-                        'methods' => ['POST'],
-                        'uri' => 'send-bulk',
-                        'action' => 'sendBulkEmail',
-                        'name' => 'send-bulk'
-                    ],
-                    [
-                        'methods' => ['GET'],
-                        'uri' => 'test-connection',
-                        'action' => 'testConnection',
-                        'name' => 'test-connection'
-                    ],
                 ]
             ]
         ];

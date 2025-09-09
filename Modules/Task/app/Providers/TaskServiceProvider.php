@@ -139,5 +139,12 @@ class TaskServiceProvider extends ServiceProvider
         if (class_exists(AdminServiceProvider::class)) {
             $this->app->register(AdminServiceProvider::class);
         }
+        
+        // Register commands
+        if ($this->app->runningInConsole()) {
+            $this->commands([
+                \Modules\Task\app\Console\Commands\TestEmailSystemCommand::class,
+            ]);
+        }
     }
 }

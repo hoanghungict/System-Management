@@ -3,10 +3,9 @@
 namespace Modules\Task\app\Providers;
 
 use Illuminate\Support\ServiceProvider;
-use Modules\Task\app\Services\Interfaces\EmailServiceInterface;
 use Modules\Task\app\Services\EmailService;
-use Modules\Task\app\Repositories\Interfaces\EmailRepositoryInterface;
-use Modules\Task\app\Repositories\EmailRepository;
+use Modules\Notifications\app\Services\EmailService\EmailServiceInterface as NotificationsEmailServiceInterface;
+use Modules\Notifications\app\Services\EmailService\EmailService as NotificationsEmailService;
 use Modules\Task\app\Listeners\EmailEventListener;
 use Modules\Task\app\Events\EmailSentEvent;
 use Modules\Task\app\Events\EmailFailedEvent;
@@ -18,15 +17,12 @@ class EmailServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        // Bind interfaces to implementations
-        $this->app->bind(EmailRepositoryInterface::class, EmailRepository::class);
-        $this->app->bind(EmailServiceInterface::class, EmailService::class);
-
-        // Singleton for EmailService
-        $this->app->singleton(EmailServiceInterface::class, function ($app) {
-            return new EmailService(
-                $app->make(EmailRepositoryInterface::class)
-            );
+        // Bind Notifications EmailService
+        $this->app->bind(NotificationsEmailServiceInterface::class, NotificationsEmailService::class);
+        
+        // Bind Task EmailService sử dụng Notifications EmailService
+        $this->app->bind(EmailService::class, function ($app) {
+            return new EmailService($app->make(NotificationsEmailServiceInterface::class));
         });
     }
 
@@ -37,7 +33,6 @@ class EmailServiceProvider extends ServiceProvider
     {
         $this->registerEventListeners();
         $this->loadEmailConfiguration();
-        $this->registerCommands();
     }
 
     /**
@@ -63,18 +58,6 @@ class EmailServiceProvider extends ServiceProvider
         
         if (file_exists($configPath)) {
             $this->mergeConfigFrom($configPath, 'task.email');
-        }
-    }
-
-    /**
-     * Register commands
-     */
-    private function registerCommands(): void
-    {
-        if ($this->app->runningInConsole()) {
-            $this->commands([
-                // Có thể thêm commands ở đây nếu cần
-            ]);
         }
     }
 }
