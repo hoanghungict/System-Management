@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('roll_calls', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('class_id')->constrained('class')->onDelete('cascade');
+            $table->foreignId('class_id')->nullable()->constrained('class')->onDelete('cascade');
             $table->string('title');
             $table->text('description')->nullable();
             $table->dateTime('date');
