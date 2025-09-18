@@ -15,7 +15,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Pagination\LengthAwarePaginator;
-
+use Modules\Notifications\app\Services\KafkaService\KafkaProducerService;
 /**
  * Service chứa business logic cho Task
  * 
@@ -29,6 +29,7 @@ class TaskService implements TaskServiceInterface
     protected $cachedUserRepository;
     protected $cachedReportRepository;
     protected $permissionService;
+    protected $kafkaProducer;
 
     /**
      * Khởi tạo service với dependency injection
@@ -38,19 +39,23 @@ class TaskService implements TaskServiceInterface
      * @param CachedUserRepositoryInterface $cachedUserRepository Repository có cache cho user data
      * @param CachedReportRepositoryInterface $cachedReportRepository Repository có cache cho reports
      * @param PermissionService $permissionService Service xử lý permissions
+     * @param KafkaProducerService $kafkaProducer Service xử lý kafka
      */
     public function __construct(
         TaskRepositoryInterface $taskRepository, 
         CachedTaskRepositoryInterface $cachedTaskRepository,
         CachedUserRepositoryInterface $cachedUserRepository,
         CachedReportRepositoryInterface $cachedReportRepository,
-        PermissionService $permissionService
+        PermissionService $permissionService,
+        KafkaProducerService $kafkaProducer
+
     ) {
         $this->taskRepository = $taskRepository;
         $this->cachedTaskRepository = $cachedTaskRepository;
         $this->cachedUserRepository = $cachedUserRepository;
         $this->cachedReportRepository = $cachedReportRepository;
         $this->permissionService = $permissionService;
+        $this->kafkaProducer = $kafkaProducer;
     }
 
     /**
@@ -98,6 +103,13 @@ class TaskService implements TaskServiceInterface
                 // ✅ Collect và invalidate affected caches
                 $affectedCacheKeys = $this->collectAffectedCacheKeys($task);
                 $this->invalidateMultipleCaches($affectedCacheKeys);
+
+                $this->kafkaProducer->send('task.assigned', [
+                    'user_id' => $task->creator_id,
+                    'name' => $task->creator_name ?? "Unknown",
+                    'user_name' =>$task->creator_name ?? "Unknown",
+                    'user_email' => $task->creator_email ?? 'no-email@example.com'
+                ]);
 
                 return $task;
             } catch (\Exception $e) {
