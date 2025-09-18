@@ -104,7 +104,7 @@ class TaskServiceProvider extends ServiceProvider
     public function boot(): void
     {
         // Load routes (check if file exists)
-        $routesPath = __DIR__ . '/../routes/api.php';
+        $routesPath = __DIR__ . '/../../routes/api.php';
         if (file_exists($routesPath)) {
             $this->loadRoutesFrom($routesPath);
         }

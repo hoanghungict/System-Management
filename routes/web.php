@@ -36,3 +36,8 @@ Route::get('/api-testing/student', function () {
 Route::get('/api-testing/lecturer', function () {
     return response()->file(public_path('../api-lecturer.html'));
 });
+
+// Task Module API Documentation
+Route::get('/api/doc', function () {
+    return view('task-api-docs');
+});
