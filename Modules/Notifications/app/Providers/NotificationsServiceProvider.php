@@ -4,11 +4,14 @@ namespace Modules\Notifications\app\Providers;
 
 use Modules\Notifications\app\Console\Commands\KafkaConsumeCommand;
 use Illuminate\Support\ServiceProvider;
+
 use Illuminate\Support\Facades\Broadcast;
 use Modules\Notifications\app\Console\Commands\KafkaProduceCommand;
 use Modules\Notifications\app\Console\Commands\NotificationsSubscribeCommand;
 use Modules\Notifications\app\Console\Commands\CreateKafkaTopicsCommand;
 use Modules\Notifications\app\Console\Commands\ListKafkaTopicsCommand;
+use Modules\Notifications\app\Services\EmailService\EmailServiceInterface;
+use Modules\Notifications\app\Services\EmailService\EmailService;
 use Modules\Notifications\app\Repositories\Interfaces\NotificationRepositoryInterface;
 use Modules\Notifications\app\Repositories\NotificationRepository\NotificationRepository;
 
@@ -49,6 +52,14 @@ class NotificationsServiceProvider extends ServiceProvider
     public function register()
     {
         $this->app->register(RouteServiceProvider::class);
+        
+        // Bind EmailService interface to implementation
+        $this->app->bind(EmailServiceInterface::class, EmailService::class);
+        
+        // Singleton EmailService để tái sử dụng
+        $this->app->singleton(EmailService::class, function ($app) {
+            return new EmailService();
+        });
         
         // Bind repository interface to implementation
         $this->app->bind(NotificationRepositoryInterface::class, NotificationRepository::class);

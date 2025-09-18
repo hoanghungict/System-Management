@@ -1,0 +1,32 @@
+{
+    "name": "nwidart/task",
+    "description": "Task Management Module",
+    "authors": [
+        {
+            "name": "Nicolas Widart",
+            "email": "n.widart@gmail.com"
+        }
+    ],
+    "extra": {
+        "laravel": {
+            "providers": [
+                 "Modules\\Task\\Providers\\TaskServiceProvider"
+            ],
+            "aliases": {
+
+            }
+        }
+    },
+    "autoload": {
+        "psr-4": {
+            "Modules\\Task\\": "app/",
+            "Modules\\Task\\Database\\Factories\\": "database/factories/",
+            "Modules\\Task\\Database\\Seeders\\": "database/seeders/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Modules\\Task\\Tests\\": "tests/"
+        }
+    }
+}

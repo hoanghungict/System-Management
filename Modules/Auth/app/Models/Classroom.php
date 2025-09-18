@@ -9,20 +9,28 @@ class Classroom extends Model
     protected $table = 'class';
 
     protected $fillable = [
-        'class_name', 'class_code', 'faculty_id', 'lecturer_id', 'school_year'
+        'class_name', 'class_code', 'department_id', 'lecturer_id', 'school_year'
     ];
 
     protected $casts = [
-        'faculty_id' => 'integer',
+        'department_id' => 'integer',
         'lecturer_id' => 'integer'
     ];
 
     /**
-     * Get the faculty this class belongs to
+     * Get the department this class belongs to
+     */
+    public function department()
+    {
+        return $this->belongsTo(Department::class, 'department_id');
+    }
+
+    /**
+     * Get the faculty this class belongs to (alias for department)
      */
     public function faculty()
     {
-        return $this->belongsTo(Department::class, 'faculty_id');
+        return $this->belongsTo(Department::class, 'department_id');
     }
 
     /**

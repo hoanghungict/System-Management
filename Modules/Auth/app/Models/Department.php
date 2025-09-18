@@ -41,10 +41,10 @@ class Department extends Model
     }
 
     /**
-     * Get the classes in this unit (faculty)
+     * Get the classes in this unit (department)
      */
     public function classes()
     {
-        return $this->hasMany(Classroom::class, 'faculty_id');
+        return $this->hasMany(Classroom::class, 'department_id');
     }
 }
