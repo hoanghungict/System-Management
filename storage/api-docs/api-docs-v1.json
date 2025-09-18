@@ -1,0 +1,871 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "HPC Project API",
+    "description": "Complete API documentation for HPC Project - Student Management System",
+    "version": "1.0.0",
+    "contact": {
+      "name": "API Support",
+      "email": "support@hpcproject.com"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8080/api",
+      "description": "Development server"
+    },
+    {
+      "url": "http://localhost:8000/api",
+      "description": "Alternative development server"
+    }
+  ],
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+  "paths": {
+    "/v1/login": {
+      "post": {
+        "tags": ["Authentication"],
+        "summary": "User login",
+        "description": "Login with username and password for students or lecturers",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              },
+              "example": {
+                "username": "student001",
+                "password": "password123",
+                "user_type": "student"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Login successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid credentials"
+          },
+          "422": {
+            "description": "Validation error"
+          }
+        }
+      }
+    },
+    "/v1/login/student": {
+      "post": {
+        "tags": ["Authentication"],
+        "summary": "Student login",
+        "description": "Login for students only",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["username", "password"],
+                "properties": {
+                  "username": {
+                    "type": "string",
+                    "maxLength": 255
+                  },
+                  "password": {
+                    "type": "string",
+                    "minLength": 6
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Login successful"
+          },
+          "401": {
+            "description": "Invalid credentials"
+          }
+        }
+      }
+    },
+    "/v1/login/lecturer": {
+      "post": {
+        "tags": ["Authentication"],
+        "summary": "Lecturer login",
+        "description": "Login for lecturers only",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["username", "password"],
+                "properties": {
+                  "username": {
+                    "type": "string",
+                    "maxLength": 255
+                  },
+                  "password": {
+                    "type": "string",
+                    "minLength": 6
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Login successful"
+          },
+          "401": {
+            "description": "Invalid credentials"
+          }
+        }
+      }
+    },
+    "/v1/logout": {
+      "post": {
+        "tags": ["Authentication"],
+        "summary": "User logout",
+        "description": "Logout and invalidate token",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Logout successful"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
+    "/v1/refresh": {
+      "post": {
+        "tags": ["Authentication"],
+        "summary": "Refresh token",
+        "description": "Refresh JWT token",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Token refreshed successfully"
+          },
+          "401": {
+            "description": "Invalid or expired token"
+          }
+        }
+      }
+    },
+    "/v1/me": {
+      "get": {
+        "tags": ["Authentication"],
+        "summary": "Get current user info",
+        "description": "Get information about the currently authenticated user",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User information retrieved successfully"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
+    "/v1/students": {
+      "get": {
+        "tags": ["Student Management"],
+        "summary": "Get all students",
+        "description": "Retrieve list of all students (Admin only)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Page number",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Students retrieved successfully"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - Admin only"
+          }
+        }
+      },
+      "post": {
+        "tags": ["Student Management"],
+        "summary": "Create new student",
+        "description": "Create a new student (Admin only)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateStudentRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Student created successfully"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - Admin only"
+          },
+          "422": {
+            "description": "Validation error"
+          }
+        }
+      }
+    },
+    "/v1/students/{id}": {
+      "get": {
+        "tags": ["Student Management"],
+        "summary": "Get student by ID",
+        "description": "Get student information by ID (Admin only)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Student ID",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Student information retrieved successfully"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - Admin only"
+          },
+          "404": {
+            "description": "Student not found"
+          }
+        }
+      },
+      "put": {
+        "tags": ["Student Management"],
+        "summary": "Update student",
+        "description": "Update student information (Admin only)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Student ID",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateStudentRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Student updated successfully"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - Admin only"
+          },
+          "404": {
+            "description": "Student not found"
+          },
+          "422": {
+            "description": "Validation error"
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Student Management"],
+        "summary": "Delete student",
+        "description": "Delete student (Admin only)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Student ID",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Student deleted successfully"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - Admin only"
+          },
+          "404": {
+            "description": "Student not found"
+          }
+        }
+      }
+    },
+    "/v1/student/profile": {
+      "get": {
+        "tags": ["Student Profile"],
+        "summary": "Get own profile",
+        "description": "Get student's own profile information",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Profile retrieved successfully"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      },
+      "put": {
+        "tags": ["Student Profile"],
+        "summary": "Update own profile",
+        "description": "Update student's own profile information",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateStudentRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Profile updated successfully"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "422": {
+            "description": "Validation error"
+          }
+        }
+      }
+    },
+    "/v1/lecturers": {
+      "get": {
+        "tags": ["Lecturer Management"],
+        "summary": "Get all lecturers",
+        "description": "Retrieve list of all lecturers (Admin only)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lecturers retrieved successfully"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - Admin only"
+          }
+        }
+      },
+      "post": {
+        "tags": ["Lecturer Management"],
+        "summary": "Create new lecturer",
+        "description": "Create a new lecturer (Admin only)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateLecturerRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Lecturer created successfully"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - Admin only"
+          },
+          "422": {
+            "description": "Validation error"
+          }
+        }
+      }
+    },
+    "/v1/lecturers/{id}": {
+      "get": {
+        "tags": ["Lecturer Management"],
+        "summary": "Get lecturer by ID",
+        "description": "Get lecturer information by ID (Admin only)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Lecturer ID",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lecturer information retrieved successfully"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - Admin only"
+          },
+          "404": {
+            "description": "Lecturer not found"
+          }
+        }
+      },
+      "put": {
+        "tags": ["Lecturer Management"],
+        "summary": "Update lecturer",
+        "description": "Update lecturer information (Admin only)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Lecturer ID",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateLecturerRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Lecturer updated successfully"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - Admin only"
+          },
+          "404": {
+            "description": "Lecturer not found"
+          },
+          "422": {
+            "description": "Validation error"
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Lecturer Management"],
+        "summary": "Delete lecturer",
+        "description": "Delete lecturer (Admin only)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Lecturer ID",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lecturer deleted successfully"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - Admin only"
+          },
+          "404": {
+            "description": "Lecturer not found"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "JWT token obtained from login endpoint"
+      }
+    },
+    "schemas": {
+      "LoginRequest": {
+        "type": "object",
+        "required": ["username", "password", "user_type"],
+        "properties": {
+          "username": {
+            "type": "string",
+            "maxLength": 255,
+            "description": "Username for login",
+            "example": "student001"
+          },
+          "password": {
+            "type": "string",
+            "minLength": 6,
+            "description": "Password for login",
+            "example": "password123"
+          },
+          "user_type": {
+            "type": "string",
+            "enum": ["student", "lecturer"],
+            "description": "Type of user logging in",
+            "example": "student"
+          }
+        }
+      },
+      "LoginResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true
+          },
+          "message": {
+            "type": "string",
+            "example": "Login successful"
+          },
+          "data": {
+            "type": "object",
+            "properties": {
+              "token": {
+                "type": "string",
+                "description": "JWT token",
+                "example": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9..."
+              },
+              "user": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "integer",
+                    "example": 1
+                  },
+                  "username": {
+                    "type": "string",
+                    "example": "student001"
+                  },
+                  "user_type": {
+                    "type": "string",
+                    "example": "student"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "CreateStudentRequest": {
+        "type": "object",
+        "required": ["full_name", "birth_date", "gender", "address", "email", "phone", "student_code", "class_id"],
+        "properties": {
+          "full_name": {
+            "type": "string",
+            "maxLength": 255,
+            "description": "Full name of the student",
+            "example": "Nguyễn Văn A"
+          },
+          "birth_date": {
+            "type": "string",
+            "format": "date",
+            "description": "Birth date of the student",
+            "example": "2000-01-15"
+          },
+          "gender": {
+            "type": "string",
+            "enum": ["Nam", "Nữ", "Khác"],
+            "description": "Gender of the student",
+            "example": "Nam"
+          },
+          "address": {
+            "type": "string",
+            "description": "Address of the student",
+            "example": "123 Đường ABC, Quận 1, TP.HCM"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 255,
+            "description": "Email address of the student",
+            "example": "nguyenvana@example.com"
+          },
+          "phone": {
+            "type": "string",
+            "maxLength": 20,
+            "description": "Phone number of the student",
+            "example": "0123456789"
+          },
+          "student_code": {
+            "type": "string",
+            "maxLength": 50,
+            "description": "Unique student code",
+            "example": "SV001"
+          },
+          "class_id": {
+            "type": "integer",
+            "description": "ID of the class the student belongs to",
+            "example": 1
+          }
+        }
+      },
+      "UpdateStudentRequest": {
+        "type": "object",
+        "properties": {
+          "full_name": {
+            "type": "string",
+            "maxLength": 255,
+            "description": "Full name of the student",
+            "example": "Nguyễn Văn A Updated"
+          },
+          "birth_date": {
+            "type": "string",
+            "format": "date",
+            "description": "Birth date of the student",
+            "example": "2000-01-15"
+          },
+          "gender": {
+            "type": "string",
+            "enum": ["Nam", "Nữ", "Khác"],
+            "description": "Gender of the student",
+            "example": "Nam"
+          },
+          "address": {
+            "type": "string",
+            "description": "Address of the student",
+            "example": "456 Đường XYZ, Quận 2, TP.HCM"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 255,
+            "description": "Email address of the student",
+            "example": "nguyenvana.updated@example.com"
+          },
+          "phone": {
+            "type": "string",
+            "maxLength": 20,
+            "description": "Phone number of the student",
+            "example": "0987654321"
+          }
+        }
+      },
+      "CreateLecturerRequest": {
+        "type": "object",
+        "required": ["full_name", "gender", "address", "email", "phone", "lecturer_code", "department_id"],
+        "properties": {
+          "full_name": {
+            "type": "string",
+            "maxLength": 255,
+            "description": "Full name of the lecturer",
+            "example": "Trần Thị B"
+          },
+          "gender": {
+            "type": "string",
+            "enum": ["Nam", "Nữ", "Khác"],
+            "description": "Gender of the lecturer",
+            "example": "Nữ"
+          },
+          "address": {
+            "type": "string",
+            "description": "Address of the lecturer",
+            "example": "789 Đường DEF, Quận 3, TP.HCM"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 255,
+            "description": "Email address of the lecturer",
+            "example": "tranthib@example.com"
+          },
+          "phone": {
+            "type": "string",
+            "maxLength": 20,
+            "description": "Phone number of the lecturer",
+            "example": "0123456789"
+          },
+          "lecturer_code": {
+            "type": "string",
+            "maxLength": 50,
+            "description": "Unique lecturer code",
+            "example": "GV001"
+          },
+          "department_id": {
+            "type": "integer",
+            "description": "ID of the department the lecturer belongs to",
+            "example": 1
+          }
+        }
+      },
+      "UpdateLecturerRequest": {
+        "type": "object",
+        "properties": {
+          "full_name": {
+            "type": "string",
+            "maxLength": 255,
+            "description": "Full name of the lecturer",
+            "example": "Trần Thị B Updated"
+          },
+          "gender": {
+            "type": "string",
+            "enum": ["Nam", "Nữ", "Khác"],
+            "description": "Gender of the lecturer",
+            "example": "Nữ"
+          },
+          "address": {
+            "type": "string",
+            "description": "Address of the lecturer",
+            "example": "999 Đường GHI, Quận 4, TP.HCM"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 255,
+            "description": "Email address of the lecturer",
+            "example": "tranthib.updated@example.com"
+          },
+          "phone": {
+            "type": "string",
+            "maxLength": 20,
+            "description": "Phone number of the lecturer",
+            "example": "0987654321"
+          }
+        }
+      }
+    }
+  }
+}

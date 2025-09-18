@@ -19,8 +19,6 @@ class PushService
         array $data = []
     ): bool {
         try {
-            // Gửi qua Redis pub/sub cho real-time
-            $this->sendRealtimeNotification($userId, $userType, $content, $data);
             
             // Broadcast qua WebSocket (Private channel)
             broadcast(new UserNotificationPushed($userId, $userType, $content, $data))->toOthers();
@@ -38,29 +36,6 @@ class PushService
 
             return false;
         }
-    }
-
-    /**
-     * Gửi real-time notification qua Redis
-     */
-    private function sendRealtimeNotification(
-        int $userId,
-        string $userType,
-        string $content,
-        array $data = []
-    ): void {
-        $notification = [
-            'user_id' => $userId,
-            'user_type' => $userType,
-            'content' => $content,
-            'data' => $data,
-            'timestamp' => now()->toISOString(),
-            'type' => 'push'
-        ];
-
-        // Publish to Redis channel
-        Redis::publish("notifications:user:{$userId}", json_encode($notification));
-        Redis::publish("notifications:{$userType}", json_encode($notification));
     }
 
     /**

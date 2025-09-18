@@ -6,6 +6,7 @@ use Modules\Auth\app\Http\Controllers\AuthUserController\StudentController;
 use Modules\Auth\app\Http\Controllers\AuthUserController\LecturerController;
 use Modules\Auth\app\Http\Controllers\DepartmentController\DepartmentController;
 use Modules\Auth\app\Http\Controllers\ClassController\ClassController;
+use Modules\Auth\app\Http\Controllers\RollCallController\RollCallController;
 
 // Auth routes (không cần authentication)
 Route::prefix('v1')->group(function () {
@@ -70,5 +71,23 @@ Route::prefix('v1')->group(function () {
         Route::get('/classes/{id}', [ClassController::class, 'show']);
         Route::put('/classes/{id}', [ClassController::class, 'update']);
         Route::delete('/classes/{id}', [ClassController::class, 'destroy']);
+    });
+
+    Route::middleware(['jwt'])->group(function () {
+        Route::get('/student/class/{classId}' , [StudentController::class,'getStudentByClassId']);
+    });
+
+    // Roll Call routes - Chỉ giảng viên mới có thể quản lý
+    Route::middleware(['jwt', 'lecturer'])->group(function () {
+        Route::get('/roll-calls/classrooms', [RollCallController::class, 'getClassrooms']);
+        Route::post('/roll-calls', [RollCallController::class, 'store']);
+        Route::get('/roll-calls/class/{classId}', [RollCallController::class, 'getRollCallsByClass']);
+        Route::get('/roll-calls/{id}', [RollCallController::class, 'getRollCallDetails']);
+        Route::put('/roll-calls/{rollCallId}/status', [RollCallController::class, 'updateStatus']);
+        Route::put('/roll-calls/{rollCallId}/bulk-status', [RollCallController::class, 'bulkUpdateStatus']);
+        Route::patch('/roll-calls/{id}/complete', [RollCallController::class, 'complete']);
+        Route::patch('/roll-calls/{id}/cancel', [RollCallController::class, 'cancel']);
+        Route::get('/roll-calls/statistics/class/{classId}', [RollCallController::class, 'statistics']);
+        Route::get('/roll-calls/students/class/{classId}', [RollCallController::class, 'getStudentsForRollCall']);
     });
 });

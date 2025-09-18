@@ -1,0 +1,1085 @@
+# ==================== CLASS MANAGEMENT APIs ====================
+/v1/classes:
+  get:
+    tags:
+      - Class Management
+    summary: Lấy danh sách lớp học
+    description: Lấy danh sách tất cả lớp học (chỉ admin)
+    security:
+      - BearerAuth: []
+    responses:
+      "200":
+        description: Danh sách lớp học
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ClassListResponse"
+      "403":
+        description: Không có quyền truy cập
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+
+  post:
+    tags:
+      - Class Management
+    summary: Tạo lớp học mới
+    description: Tạo lớp học mới (chỉ admin)
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/CreateClassRequest"
+          example:
+            class_name: "Lập trình Web"
+            class_code: "WEB101"
+            faculty_id: 1
+            lecturer_id: 1
+            school_year: "2024-2025"
+    responses:
+      "201":
+        description: Tạo lớp học thành công
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateClassResponse"
+      "422":
+        description: Validation error
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ValidationErrorResponse"
+      "403":
+        description: Không có quyền truy cập
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+
+/v1/classes/{id}:
+  get:
+    tags:
+      - Class Management
+    summary: Lấy thông tin lớp học theo ID
+    description: Lấy thông tin chi tiết của một lớp học (chỉ admin)
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+        description: ID của lớp học
+    responses:
+      "200":
+        description: Thông tin lớp học
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ClassResponse"
+      "404":
+        description: Không tìm thấy lớp học
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+      "403":
+        description: Không có quyền truy cập
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+
+  put:
+    tags:
+      - Class Management
+    summary: Cập nhật thông tin lớp học
+    description: Cập nhật thông tin lớp học (chỉ admin)
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+        description: ID của lớp học
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/UpdateClassRequest"
+          example:
+            class_name: "Lập trình Web nâng cao"
+            school_year: "2024-2025"
+    responses:
+      "200":
+        description: Cập nhật lớp học thành công
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ClassResponse"
+      "404":
+        description: Không tìm thấy lớp học
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+      "422":
+        description: Validation error
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ValidationErrorResponse"
+      "403":
+        description: Không có quyền truy cập
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+
+  delete:
+    tags:
+      - Class Management
+    summary: Xóa lớp học
+    description: Xóa lớp học (chỉ admin)
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+        description: ID của lớp học
+    responses:
+      "200":
+        description: Xóa lớp học thành công
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SuccessResponse"
+      "404":
+        description: Không tìm thấy lớp học
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+      "403":
+        description: Không có quyền truy cập
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+
+/v1/classes/faculty/{facultyId}:
+  get:
+    tags:
+      - Class Management
+    summary: Lấy danh sách lớp theo khoa
+    description: Lấy danh sách lớp học theo khoa/phòng ban
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: facultyId
+        in: path
+        required: true
+        schema:
+          type: integer
+        description: ID của khoa/phòng ban
+    responses:
+      "200":
+        description: Danh sách lớp theo khoa
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ClassListResponse"
+
+/v1/classes/lecturer/{lecturerId}:
+  get:
+    tags:
+      - Class Management
+    summary: Lấy danh sách lớp theo giảng viên
+    description: Lấy danh sách lớp học theo giảng viên
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: lecturerId
+        in: path
+        required: true
+        schema:
+          type: integer
+        description: ID của giảng viên
+    responses:
+      "200":
+        description: Danh sách lớp theo giảng viên
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ClassListResponse"
+
+# ==================== DEPARTMENT MANAGEMENT APIs ====================
+/v1/departments:
+  get:
+    tags:
+      - Department Management
+    summary: Lấy danh sách khoa/phòng ban
+    description: Lấy danh sách tất cả khoa/phòng ban (chỉ admin)
+    security:
+      - BearerAuth: []
+    responses:
+      "200":
+        description: Danh sách khoa/phòng ban
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DepartmentListResponse"
+      "403":
+        description: Không có quyền truy cập
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+
+  post:
+    tags:
+      - Department Management
+    summary: Tạo khoa/phòng ban mới
+    description: Tạo khoa/phòng ban mới (chỉ admin)
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/CreateDepartmentRequest"
+          example:
+            name: "Bộ môn Lập trình Game"
+            type: "department"
+            parent_id: 2
+    responses:
+      "201":
+        description: Tạo khoa/phòng ban thành công
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateDepartmentResponse"
+      "422":
+        description: Validation error
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ValidationErrorResponse"
+      "403":
+        description: Không có quyền truy cập
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+
+/v1/departments/tree:
+  get:
+    tags:
+      - Department Management
+    summary: Lấy cấu trúc cây khoa/phòng ban
+    description: Lấy cấu trúc cây phân cấp của khoa/phòng ban (chỉ admin)
+    security:
+      - BearerAuth: []
+    responses:
+      "200":
+        description: Cấu trúc cây khoa/phòng ban
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DepartmentTreeResponse"
+      "403":
+        description: Không có quyền truy cập
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+
+/v1/departments/{id}:
+  get:
+    tags:
+      - Department Management
+    summary: Lấy thông tin khoa/phòng ban theo ID
+    description: Lấy thông tin chi tiết của một khoa/phòng ban (chỉ admin)
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+        description: ID của khoa/phòng ban
+    responses:
+      "200":
+        description: Thông tin khoa/phòng ban
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DepartmentResponse"
+      "404":
+        description: Không tìm thấy khoa/phòng ban
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+      "403":
+        description: Không có quyền truy cập
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+
+  put:
+    tags:
+      - Department Management
+    summary: Cập nhật thông tin khoa/phòng ban
+    description: Cập nhật thông tin khoa/phòng ban (chỉ admin)
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+        description: ID của khoa/phòng ban
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/UpdateDepartmentRequest"
+          example:
+            name: "Bộ môn Lập trình Game nâng cao"
+            type: "department"
+    responses:
+      "200":
+        description: Cập nhật khoa/phòng ban thành công
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DepartmentResponse"
+      "404":
+        description: Không tìm thấy khoa/phòng ban
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+      "422":
+        description: Validation error
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ValidationErrorResponse"
+      "403":
+        description: Không có quyền truy cập
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+
+  delete:
+    tags:
+      - Department Management
+    summary: Xóa khoa/phòng ban
+    description: Xóa khoa/phòng ban (chỉ admin)
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+        description: ID của khoa/phòng ban
+    responses:
+      "200":
+        description: Xóa khoa/phòng ban thành công
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SuccessResponse"
+      "404":
+        description: Không tìm thấy khoa/phòng ban
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+      "403":
+        description: Không có quyền truy cập
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+
+# ==================== ROLL CALL MANAGEMENT APIs ====================
+/v1/roll-calls/classrooms:
+  get:
+    tags:
+      - Roll Call Management
+    summary: Lấy danh sách lớp học để tạo điểm danh
+    description: Lấy danh sách lớp học để tạo buổi điểm danh (chỉ giảng viên)
+    security:
+      - BearerAuth: []
+    responses:
+      "200":
+        description: Danh sách lớp học
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RollCallClassroomListResponse"
+      "403":
+        description: Chỉ giảng viên mới có thể truy cập chức năng này
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+
+/v1/roll-calls:
+  post:
+    tags:
+      - Roll Call Management
+    summary: Tạo buổi điểm danh mới
+    description: Tạo buổi điểm danh mới (chỉ giảng viên)
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/CreateRollCallRequest"
+          example:
+            class_id: 1
+            title: "Điểm danh buổi 1"
+            description: "Điểm danh môn Lập trình Web"
+            date: "2024-12-20"
+            created_by: 1
+    responses:
+      "201":
+        description: Tạo buổi điểm danh thành công
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateRollCallResponse"
+      "422":
+        description: Validation error
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ValidationErrorResponse"
+      "403":
+        description: Chỉ giảng viên mới có thể truy cập chức năng này
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+
+/v1/roll-calls/class/{classId}:
+  get:
+    tags:
+      - Roll Call Management
+    summary: Lấy danh sách buổi điểm danh theo lớp
+    description: Lấy danh sách buổi điểm danh theo lớp (chỉ giảng viên)
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: classId
+        in: path
+        required: true
+        schema:
+          type: integer
+        description: ID của lớp học
+      - name: per_page
+        in: query
+        required: false
+        schema:
+          type: integer
+          default: 15
+        description: Số lượng bản ghi mỗi trang
+    responses:
+      "200":
+        description: Danh sách buổi điểm danh theo lớp
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RollCallListResponse"
+      "403":
+        description: Chỉ giảng viên mới có thể truy cập chức năng này
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+
+/v1/roll-calls/{id}:
+  get:
+    tags:
+      - Roll Call Management
+    summary: Lấy chi tiết buổi điểm danh
+    description: Lấy chi tiết buổi điểm danh (chỉ giảng viên)
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+        description: ID của buổi điểm danh
+    responses:
+      "200":
+        description: Chi tiết buổi điểm danh
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RollCallDetailResponse"
+      "404":
+        description: Không tìm thấy buổi điểm danh
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+      "403":
+        description: Chỉ giảng viên mới có thể truy cập chức năng này
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+
+/v1/roll-calls/{rollCallId}/status:
+  put:
+    tags:
+      - Roll Call Management
+    summary: Cập nhật trạng thái điểm danh của 1 sinh viên
+    description: Cập nhật trạng thái điểm danh của một sinh viên (chỉ giảng viên)
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: rollCallId
+        in: path
+        required: true
+        schema:
+          type: integer
+        description: ID của buổi điểm danh
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/UpdateRollCallStatusRequest"
+          example:
+            student_id: 1
+            status: "Có Mặt"
+            note: "Đi muộn 5 phút"
+    responses:
+      "200":
+        description: Cập nhật trạng thái điểm danh thành công
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SuccessResponse"
+      "400":
+        description: Cập nhật trạng thái điểm danh thất bại
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+      "422":
+        description: Validation error
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ValidationErrorResponse"
+      "403":
+        description: Chỉ giảng viên mới có thể truy cập chức năng này
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+
+/v1/roll-calls/{rollCallId}/bulk-status:
+  put:
+    tags:
+      - Roll Call Management
+    summary: Cập nhật trạng thái điểm danh hàng loạt
+    description: Cập nhật trạng thái điểm danh của nhiều sinh viên cùng lúc (chỉ giảng viên)
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: rollCallId
+        in: path
+        required: true
+        schema:
+          type: integer
+        description: ID của buổi điểm danh
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/BulkUpdateRollCallStatusRequest"
+          example:
+            student_statuses:
+              - student_id: 1
+                status: "Có Mặt"
+                note: "Đi muộn 5 phút"
+              - student_id: 2
+                status: "Vắng Mặt"
+                note: "Không có lý do"
+    responses:
+      "200":
+        description: Cập nhật trạng thái điểm danh hàng loạt thành công
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SuccessResponse"
+      "400":
+        description: Cập nhật trạng thái điểm danh hàng loạt thất bại
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+      "422":
+        description: Validation error
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ValidationErrorResponse"
+      "403":
+        description: Chỉ giảng viên mới có thể truy cập chức năng này
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+
+/v1/roll-calls/{id}/complete:
+  patch:
+    tags:
+      - Roll Call Management
+    summary: Hoàn thành buổi điểm danh
+    description: Hoàn thành buổi điểm danh (chỉ giảng viên)
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+        description: ID của buổi điểm danh
+    responses:
+      "200":
+        description: Hoàn thành buổi điểm danh thành công
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SuccessResponse"
+      "400":
+        description: Hoàn thành buổi điểm danh thất bại
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+      "403":
+        description: Chỉ giảng viên mới có thể truy cập chức năng này
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+
+/v1/roll-calls/{id}/cancel:
+  patch:
+    tags:
+      - Roll Call Management
+    summary: Hủy buổi điểm danh
+    description: Hủy buổi điểm danh (chỉ giảng viên)
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+        description: ID của buổi điểm danh
+    responses:
+      "200":
+        description: Hủy buổi điểm danh thành công
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SuccessResponse"
+      "400":
+        description: Hủy buổi điểm danh thất bại
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+      "403":
+        description: Chỉ giảng viên mới có thể truy cập chức năng này
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+
+/v1/roll-calls/statistics/class/{classId}:
+  get:
+    tags:
+      - Roll Call Management
+    summary: Lấy thống kê điểm danh theo lớp
+    description: Lấy thống kê điểm danh theo lớp (chỉ giảng viên)
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: classId
+        in: path
+        required: true
+        schema:
+          type: integer
+        description: ID của lớp học
+      - name: start_date
+        in: query
+        required: false
+        schema:
+          type: string
+          format: date
+        description: Ngày bắt đầu thống kê
+      - name: end_date
+        in: query
+        required: false
+        schema:
+          type: string
+          format: date
+        description: Ngày kết thúc thống kê
+    responses:
+      "200":
+        description: Thống kê điểm danh theo lớp
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RollCallStatisticsResponse"
+      "403":
+        description: Chỉ giảng viên mới có thể truy cập chức năng này
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+
+/v1/roll-calls/students/class/{classId}:
+  get:
+    tags:
+      - Roll Call Management
+    summary: Lấy danh sách sinh viên trong lớp để điểm danh
+    description: Lấy danh sách sinh viên trong lớp để điểm danh (chỉ giảng viên)
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: classId
+        in: path
+        required: true
+        schema:
+          type: integer
+        description: ID của lớp học
+    responses:
+      "200":
+        description: Danh sách sinh viên trong lớp
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StudentListResponse"
+      "403":
+        description: Chỉ giảng viên mới có thể truy cập chức năng này
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+
+# ==================== NOTIFICATION APIs ====================
+/v1/notifications/send:
+  post:
+    tags:
+      - Notifications
+    summary: Gửi thông báo đơn lẻ
+    description: Gửi thông báo đơn lẻ qua các kênh khác nhau
+    security: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/SendNotificationRequest"
+          example:
+            template: "task_assigned"
+            recipients:
+              - user_id: 1
+                user_type: "student"
+                channels: ["email", "push"]
+            data:
+              user_name: "Nguyễn Văn A"
+              task_title: "Làm bài tập Laravel"
+              deadline: "2024-01-20"
+            options:
+              priority: "high"
+              sender_id: 1
+              sender_type: "lecturer"
+    responses:
+      "200":
+        description: Gửi thông báo thành công
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NotificationResponse"
+      "500":
+        description: Lỗi khi gửi thông báo
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+
+/v1/notifications/send-bulk:
+  post:
+    tags:
+      - Notifications
+    summary: Gửi thông báo hàng loạt
+    description: Gửi thông báo cho nhiều người cùng lúc
+    security: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/SendBulkNotificationRequest"
+          example:
+            template: "system_maintenance"
+            recipients:
+              - user_id: 1
+                user_type: "student"
+              - user_id: 2
+                user_type: "student"
+              - user_id: 3
+                user_type: "lecturer"
+            data:
+              start_time: "2024-01-20 22:00"
+              end_time: "2024-01-21 06:00"
+            options:
+              priority: "medium"
+    responses:
+      "200":
+        description: Gửi thông báo hàng loạt thành công
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BulkNotificationResponse"
+
+/v1/notifications/schedule:
+  post:
+    tags:
+      - Notifications
+    summary: Lên lịch gửi thông báo
+    description: Lên lịch gửi thông báo vào thời gian cụ thể
+    security: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ScheduleNotificationRequest"
+          example:
+            template: "task_reminder"
+            recipients:
+              - user_id: 1
+                user_type: "student"
+            data:
+              task_title: "Bài tập cuối kỳ"
+              deadline: "2024-01-25"
+            scheduled_at: "2024-01-20 09:00:00"
+            options:
+              priority: "high"
+    responses:
+      "200":
+        description: Lên lịch gửi thông báo thành công
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ScheduleNotificationResponse"
+      "500":
+        description: Lỗi khi lên lịch gửi thông báo
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+
+/v1/notifications/templates:
+  get:
+    tags:
+      - Notifications
+    summary: Lấy danh sách templates
+    description: Lấy danh sách các template thông báo có sẵn
+    security: []
+    parameters:
+      - name: category
+        in: query
+        required: false
+        schema:
+          type: string
+        description: Lọc theo danh mục template
+    responses:
+      "200":
+        description: Danh sách templates
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NotificationTemplatesResponse"
+
+/v1/notifications/status/{id}:
+  get:
+    tags:
+      - Notifications
+    summary: Lấy trạng thái gửi thông báo
+    description: Kiểm tra trạng thái gửi của một thông báo
+    security: []
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+        description: ID của thông báo
+    responses:
+      "200":
+        description: Trạng thái thông báo
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NotificationStatusResponse"
+      "404":
+        description: Không tìm thấy thông báo
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+
+/v1/internal/notifications/user:
+  get:
+    tags:
+      - Notifications
+    summary: Lấy thông báo của user
+    description: Lấy danh sách thông báo của user hiện tại (JWT required)
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: user_id
+        in: query
+        required: true
+        schema:
+          type: integer
+        description: ID của user
+      - name: user_type
+        in: query
+        required: true
+        schema:
+          type: string
+          enum: [student, lecturer, admin]
+        description: Loại user
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 20
+        description: Số lượng thông báo tối đa
+      - name: offset
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+        description: Vị trí bắt đầu
+    responses:
+      "200":
+        description: Danh sách thông báo của user
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserNotificationsResponse"
+
+/v1/internal/notifications/mark-read:
+  post:
+    tags:
+      - Notifications
+    summary: Đánh dấu thông báo đã đọc
+    description: Đánh dấu thông báo là đã đọc (JWT required)
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/MarkAsReadRequest"
+          example:
+            user_notification_id: 1
+    responses:
+      "200":
+        description: Đánh dấu đã đọc thành công
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SuccessResponse"
+
+/v1/events/publish:
+  post:
+    tags:
+      - Notifications
+    summary: Publish Event lên Kafka
+    description: Publish event lên Kafka topic (Single API for all business events)
+    security: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/PublishEventRequest"
+          example:
+            topic: "task.assigned"
+            payload:
+              user_id: 123
+              user_type: "student"
+              user_name: "Nguyễn Văn A"
+              task_name: "Làm bài tập Laravel"
+              task_description: "Viết API cho module Notifications"
+              assigner_name: "Thầy Nguyễn Văn B"
+              assigner_id: 456
+              assigner_type: "lecturer"
+              deadline: "2024-01-20 23:59:00"
+              task_url: "https://system.com/tasks/123"
+            priority: "high"
+            key: "task_123_20240115"
+    responses:
+      "200":
+        description: Event published successfully
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PublishEventResponse"
+      "500":
+        description: Lỗi khi publish event
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"

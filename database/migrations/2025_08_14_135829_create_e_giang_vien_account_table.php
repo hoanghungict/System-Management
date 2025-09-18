@@ -16,7 +16,8 @@ return new class extends Migration {
         $table->foreign('lecturer_id')
             ->references('id')->on('lecturer')
             ->onDelete('cascade');
-        $table->timestamps('created_at', 'updated_at');
+        $table->timestamp('created_at')->useCurrent();
+        $table->timestamp('updated_at')->useCurrent();
         $table->index('lecturer_id');
         });
     }

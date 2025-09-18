@@ -17,18 +17,19 @@ return new class extends Migration {
         $table->string('phone', 20)->nullable();
         $table->string('student_code', 50)->unique();
         $table->unsignedBigInteger('enrolled_id')->nullable();
+        $table->timestamp('created_at')->useCurrent();
+        $table->timestamp('updated_at')->useCurrent();
         // Link to class table
         $table->unsignedBigInteger('class_id')->nullable();
         $table->foreign('class_id')
             ->references('id')->on('class')
             ->onDelete('set null');
 
-        $table->timestamps();
         });
     }
 
     public function down(): void
     {
-    Schema::dropIfExists('student');
+    Schema::dropIfExists('student'); 
     }
 };

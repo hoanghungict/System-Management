@@ -1,0 +1,66 @@
+openapi: 3.0.3
+info:
+  title: HPC Project API
+  description: API documentation for HPC Project
+  version: 1.0.0
+servers:
+  - url: http://localhost:8080/api
+    description: Development server
+security:
+  - bearerAuth: []
+paths:
+  /auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: User login
+      description: Login with username and password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - username
+                - password
+                - user_type
+              properties:
+                username:
+                  type: string
+                  maxLength: 255
+                password:
+                  type: string
+                  minLength: 6
+                user_type:
+                  type: string
+                  enum: [student, lecturer]
+      responses:
+        "200":
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    type: object
+                    properties:
+                      token:
+                        type: string
+                      user:
+                        type: object
+        "401":
+          description: Invalid credentials
+        "422":
+          description: Validation error
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

@@ -8,12 +8,20 @@ RUN apt-get update && apt-get install -y \
     libfreetype6-dev \
     libonig-dev \
     libxml2-dev \
+    librdkafka-dev \
+    libssl-dev \
+    zlib1g-dev \
+    libzstd-dev \
+    pkg-config \
+    build-essential \
     zip \
     unzip \
     git \
     curl \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install pdo pdo_mysql gd mbstring exif pcntl bcmath opcache
+    && docker-php-ext-install pdo pdo_mysql gd mbstring exif pcntl bcmath opcache \
+    && yes "" | pecl install -f rdkafka \
+    && docker-php-ext-enable rdkafka
 
 # Cài Composer
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer

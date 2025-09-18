@@ -14,7 +14,8 @@ docker exec -it hpc_app php artisan route:clear
 docker exec -it hpc_app php artisan view:clear
 docker exec -it hpc_app composer install
 docker exec -it hpc_app composer update
-docker exec -it hpc_app php artisan notifications:subscribe // Để chạy subscriber lắng nghe sự kiện từ các nguồn khác để đẩy lên realitme
+docker exec -it hpc_app php artisan kafka:consume // Để chạy subscriber lắng nghe sự kiện từ các nguồn khác để đẩy lên realitme
+docker exec -it hpc_app tail -f storage/logs/laravel.log // Show Log Kafka
 
 # 🗄️ MySQL thao tác
 docker exec -it hpc_db mysql -u root -p
@@ -28,7 +29,7 @@ TRUNCATE TABLE student;
 # ⚙️ Fix quyền storage Laravel
 docker exec -it hpc_app chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
 docker exec -it hpc_app chmod -R 775 /var/www/storage /var/www/bootstrap/cache
-
+sudo chown -R $USER:$USER // Quyền Ghi
 # 📦 Quản lý Docker
 docker ps                             # Container đang chạy
 docker ps -a                          # Toàn bộ container

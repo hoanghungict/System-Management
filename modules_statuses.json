@@ -1,5 +1,7 @@
 {
     "Task": true,
     "Auth": true,
-    "Notifications": true
+    "Notifications": true,
+    "Handle": true,
+    "RollCall": true
 }
