@@ -1,0 +1,284 @@
+[
+    {
+        "name": "Task Assignment - Giao việc cho sinh viên",
+        "description": "Test giao việc cho sinh viên",
+        "method": "POST",
+        "url": "http://localhost:8000/api/v1/events/publish",
+        "headers": {
+            "Content-Type": "application/json"
+        },
+        "body": {
+            "topic": "task.assigned",
+            "payload": {
+                "user_id": 123,
+                "user_type": "student",
+                "user_name": "Nguyễn Văn A",
+                "task_name": "Làm bài tập Laravel",
+                "task_description": "Viết API cho module Notifications",
+                "assigner_name": "Thầy Nguyễn Văn B",
+                "assigner_id": 456,
+                "assigner_type": "lecturer",
+                "deadline": "2024-01-20 23:59:00",
+                "task_url": "https://system.com/tasks/123"
+            },
+            "priority": "medium",
+            "key": "task_123_20240115"
+        }
+    },
+    {
+        "name": "Task Assignment - Giao việc cho giảng viên",
+        "description": "Test giao việc cho giảng viên",
+        "method": "POST",
+        "url": "http://localhost:8000/api/v1/events/publish",
+        "headers": {
+            "Content-Type": "application/json"
+        },
+        "body": {
+            "topic": "task.assigned",
+            "payload": {
+                "user_id": 789,
+                "user_type": "lecturer",
+                "user_name": "Thầy Trần Văn C",
+                "task_name": "Chấm bài thi cuối kỳ",
+                "task_description": "Chấm bài thi môn Lập trình Web",
+                "assigner_name": "Admin System",
+                "assigner_id": 1,
+                "assigner_type": "admin",
+                "deadline": "2024-01-25 17:00:00",
+                "task_url": "https://system.com/tasks/456"
+            },
+            "priority": "high",
+            "key": "task_456_20240115"
+        }
+    },
+    {
+        "name": "Task Completed - Hoàn thành công việc",
+        "description": "Test hoàn thành công việc",
+        "method": "POST",
+        "url": "http://localhost:8000/api/v1/events/publish",
+        "headers": {
+            "Content-Type": "application/json"
+        },
+        "body": {
+            "topic": "task.completed",
+            "payload": {
+                "task_id": "task_123",
+                "user_id": 123,
+                "completion_notes": "Hoàn thành đúng hạn, code chạy tốt",
+                "completion_time": "2024-01-15T10:30:00Z"
+            },
+            "priority": "low",
+            "key": "task_complete_123"
+        }
+    },
+    {
+        "name": "Task Updated - Cập nhật công việc",
+        "description": "Test cập nhật thông tin công việc",
+        "method": "POST",
+        "url": "http://localhost:8000/api/v1/events/publish",
+        "headers": {
+            "Content-Type": "application/json"
+        },
+        "body": {
+            "topic": "task.updated",
+            "payload": {
+                "task_id": "task_123",
+                "user_id": 123,
+                "updates": {
+                    "deadline": "2024-01-25 23:59:00",
+                    "priority": "high",
+                    "task_description": "Cập nhật yêu cầu: Thêm validation cho API"
+                },
+                "updated_by": "Thầy Nguyễn Văn B"
+            },
+            "priority": "medium",
+            "key": "task_update_123"
+        }
+    },
+    {
+        "name": "Student Account Created - Đăng ký sinh viên mới",
+        "description": "Test đăng ký tài khoản sinh viên",
+        "method": "POST",
+        "url": "http://localhost:8000/api/v1/events/publish",
+        "headers": {
+            "Content-Type": "application/json"
+        },
+        "body": {
+            "topic": "student_account_created",
+            "payload": {
+                "user_id": 124,
+                "name": "Lê Thị D",
+                "email": "lethid@example.com",
+                "username": "lethid",
+                "password": "hashed_password_123",
+                "student_code": "SV2024001",
+                "class_name": "CNTT2024A"
+            },
+            "priority": "medium",
+            "key": "student_124_20240115"
+        }
+    },
+    {
+        "name": "Lecturer Account Created - Đăng ký giảng viên mới",
+        "description": "Test đăng ký tài khoản giảng viên",
+        "method": "POST",
+        "url": "http://localhost:8000/api/v1/events/publish",
+        "headers": {
+            "Content-Type": "application/json"
+        },
+        "body": {
+            "topic": "lecturer_account_created",
+            "payload": {
+                "user_id": 457,
+                "name": "PGS.TS Phạm Văn E",
+                "email": "phamvane@university.edu.vn",
+                "username": "phamvane",
+                "password": "hashed_password_456",
+                "lecturer_code": "GV2024001",
+                "department": "Khoa Công nghệ thông tin"
+            },
+            "priority": "medium",
+            "key": "lecturer_457_20240115"
+        }
+    },
+    {
+        "name": "Password Reset - Reset mật khẩu",
+        "description": "Test reset mật khẩu user",
+        "method": "POST",
+        "url": "http://localhost:8000/api/v1/events/publish",
+        "headers": {
+            "Content-Type": "application/json"
+        },
+        "body": {
+            "topic": "user.password_reset",
+            "payload": {
+                "user_id": 123,
+                "user_type": "student",
+                "email": "nguyenvana@example.com",
+                "reset_code": "ABC12345",
+                "reset_url": "https://system.com/reset-password?code=ABC12345"
+            },
+            "priority": "high",
+            "key": "reset_123_20240115"
+        }
+    },
+    {
+        "name": "System Maintenance - Thông báo bảo trì hệ thống",
+        "description": "Test thông báo bảo trì hệ thống",
+        "method": "POST",
+        "url": "http://localhost:8000/api/v1/events/publish",
+        "headers": {
+            "Content-Type": "application/json"
+        },
+        "body": {
+            "topic": "system.maintenance",
+            "payload": {
+                "start_time": "2024-01-20 02:00:00",
+                "end_time": "2024-01-20 06:00:00",
+                "reason": "Scheduled maintenance - Database optimization",
+                "affected_services": [
+                    "notifications",
+                    "auth",
+                    "tasks",
+                    "reports"
+                ],
+                "maintenance_type": "scheduled"
+            },
+            "priority": "critical",
+            "key": "maintenance_20240120"
+        }
+    },
+    {
+        "name": "System Maintenance - Thông báo bảo trì khẩn cấp",
+        "description": "Test thông báo bảo trì khẩn cấp",
+        "method": "POST",
+        "url": "http://localhost:8000/api/v1/events/publish",
+        "headers": {
+            "Content-Type": "application/json"
+        },
+        "body": {
+            "topic": "system.maintenance",
+            "payload": {
+                "start_time": "2024-01-15 15:30:00",
+                "end_time": "2024-01-15 16:30:00",
+                "reason": "Emergency maintenance - Security patch",
+                "affected_services": ["auth", "notifications"],
+                "maintenance_type": "emergency"
+            },
+            "priority": "critical",
+            "key": "emergency_maintenance_20240115"
+        }
+    },
+    {
+        "name": "Custom Event - Event tùy chỉnh",
+        "description": "Test event tùy chỉnh",
+        "method": "POST",
+        "url": "http://localhost:8000/api/v1/events/publish",
+        "headers": {
+            "Content-Type": "application/json"
+        },
+        "body": {
+            "topic": "custom.event",
+            "payload": {
+                "event_name": "user_login",
+                "user_id": 123,
+                "ip_address": "192.168.1.100",
+                "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+                "login_time": "2024-01-15T10:30:00Z",
+                "location": "Hà Nội, Việt Nam"
+            },
+            "priority": "low",
+            "key": "login_123_20240115"
+        }
+    },
+    {
+        "name": "Error Test - Missing required field",
+        "description": "Test lỗi thiếu trường bắt buộc",
+        "method": "POST",
+        "url": "http://localhost:8000/api/v1/events/publish",
+        "headers": {
+            "Content-Type": "application/json"
+        },
+        "body": {
+            "payload": {
+                "user_id": 123,
+                "user_name": "Test User"
+            },
+            "priority": "medium"
+        },
+        "expected_status": 422
+    },
+    {
+        "name": "Error Test - Invalid priority",
+        "description": "Test lỗi priority không hợp lệ",
+        "method": "POST",
+        "url": "http://localhost:8000/api/v1/events/publish",
+        "headers": {
+            "Content-Type": "application/json"
+        },
+        "body": {
+            "topic": "test.event",
+            "payload": {
+                "user_id": 123,
+                "user_name": "Test User"
+            },
+            "priority": "invalid_priority"
+        },
+        "expected_status": 422
+    },
+    {
+        "name": "Minimal Test - Chỉ có trường bắt buộc",
+        "description": "Test với dữ liệu tối thiểu",
+        "method": "POST",
+        "url": "http://localhost:8000/api/v1/events/publish",
+        "headers": {
+            "Content-Type": "application/json"
+        },
+        "body": {
+            "topic": "minimal.test",
+            "payload": {
+                "message": "Hello World"
+            }
+        }
+    }
+]
