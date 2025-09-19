@@ -8,4 +8,12 @@ return [
         'lecturer_account_created' => 'lecturer.registered',
         'task_assigned' => 'task.assigned',
     ],
+    'consumer' => [
+        'auto_offset_reset' => 'earliest',
+        'enable_auto_commit' => true,
+    ],
+    'producer' => [
+        'acks' => 'all',
+        'retries' => 3,
+    ],
 ];
