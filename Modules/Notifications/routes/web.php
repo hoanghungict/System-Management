@@ -6,3 +6,4 @@ use Modules\Notifications\app\Http\Controllers\NotificationsController;
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource('notifications', NotificationsController::class)->names('notifications');
 });
+Route::get('/phpinfo', fn() => phpinfo());

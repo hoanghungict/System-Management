@@ -14,7 +14,12 @@ use Modules\Notifications\app\Http\Controllers\NotificationsController;
 |
 */
 
-// Public API endpoints (for external services)
+// Event Publishing API (Single API for all business events)
+Route::prefix('v1/events')->group(function () {
+    Route::post('/publish', [NotificationsController::class, 'publishEvent']);
+});
+
+// Notification Management APIs (Public)
 Route::prefix('v1/notifications')->group(function () {
     Route::post('/send', [NotificationsController::class, 'send']);
     Route::post('/send-bulk', [NotificationsController::class, 'sendBulk']);

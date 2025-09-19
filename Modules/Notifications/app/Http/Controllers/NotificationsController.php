@@ -4,7 +4,9 @@ namespace Modules\Notifications\app\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Modules\Notifications\app\Services\NotificationService\NotificationService;
+use Modules\Notifications\app\Services\KafkaService\KafkaProducerService;
 use Modules\Notifications\app\Http\Requests\SendNotificationRequest;
 use Modules\Notifications\app\Http\Requests\SendBulkNotificationRequest;
 use Modules\Notifications\app\Http\Requests\ScheduleNotificationRequest;
@@ -14,10 +16,14 @@ use Modules\Notifications\app\Http\Requests\MarkAsReadRequest;
 class NotificationsController extends Controller
 {
     protected $notificationService;
+    protected $kafkaProducer;
 
-    public function __construct(NotificationService $notificationService)
-    {
+    public function __construct(
+        NotificationService $notificationService,
+        KafkaProducerService $kafkaProducer
+    ) {
         $this->notificationService = $notificationService;
+        $this->kafkaProducer = $kafkaProducer;
     }
 
     /**
@@ -134,5 +140,53 @@ class NotificationsController extends Controller
         }
 
         return response()->json($result);
+    }
+
+    /**
+     * Publish Event API - Single API for all business events
+     * 
+     * Các service bên ngoài chỉ cần gọi 1 API này để publish event
+     * Business logic sẽ được xử lý trong Handler tương ứng
+     */
+    public function publishEvent(Request $request): JsonResponse
+    {
+        $request->validate([
+            'topic' => 'required|string',
+            'payload' => 'required|array',
+            'priority' => 'nullable|string|in:low,medium,high,critical',
+            'key' => 'nullable|string'
+        ]);
+
+        try {
+            // Chuẩn bị event data
+            $eventData = array_merge($request->input('payload'), [
+                'topic' => $request->input('topic'), 
+                'priority' => $request->input('priority', 'medium'),
+                'timestamp' => now()->toISOString()
+            ]);
+
+            // Publish lên Kafka
+            $this->kafkaProducer->send(
+                $request->input('topic'),
+                $eventData,
+                $request->input('key', $request->input('topic') . '_' . time())
+            );
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Event published successfully',
+                'data' => [
+                    'event_type' => $request->input('topic'),
+                    'event_id' => $request->input('key', $request->input('topic') . '_' . time()),
+                    'timestamp' => $eventData['timestamp']
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 }

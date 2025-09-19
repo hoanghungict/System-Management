@@ -2,7 +2,14 @@
 
 namespace Modules\Notifications\app\Providers;
 
+use Modules\Notifications\app\Console\Commands\KafkaConsumeCommand;
 use Illuminate\Support\ServiceProvider;
+
+use Illuminate\Support\Facades\Broadcast;
+use Modules\Notifications\app\Console\Commands\KafkaProduceCommand;
+use Modules\Notifications\app\Console\Commands\NotificationsSubscribeCommand;
+use Modules\Notifications\app\Console\Commands\CreateKafkaTopicsCommand;
+use Modules\Notifications\app\Console\Commands\ListKafkaTopicsCommand;
 use Modules\Notifications\app\Services\EmailService\EmailServiceInterface;
 use Modules\Notifications\app\Services\EmailService\EmailService;
 use Modules\Notifications\app\Repositories\Interfaces\NotificationRepositoryInterface;
@@ -31,6 +38,10 @@ class NotificationsServiceProvider extends ServiceProvider
         $this->registerConfig();
         $this->registerViews();
         $this->loadMigrationsFrom(module_path($this->moduleName, 'database/migrations'));
+
+        // Module-scoped broadcasting auth and channels
+        Broadcast::routes(['middleware' => ['web', 'jwt']]);
+        require base_path('routes/channels.php');
     }
 
     /**
@@ -52,6 +63,15 @@ class NotificationsServiceProvider extends ServiceProvider
         
         // Bind repository interface to implementation
         $this->app->bind(NotificationRepositoryInterface::class, NotificationRepository::class);
+
+        // Register console commands
+        $this->commands([
+            NotificationsSubscribeCommand::class,
+            KafkaConsumeCommand::class,
+            KafkaProduceCommand::class,
+            CreateKafkaTopicsCommand::class,
+            ListKafkaTopicsCommand::class,
+        ]);
     }
 
     /**
@@ -62,10 +82,25 @@ class NotificationsServiceProvider extends ServiceProvider
     protected function registerConfig()
     {
         $this->publishes([
-            module_path($this->moduleName, 'config/config.php') => config_path($this->moduleNameLower . '.php'),
+            module_path($this->moduleName, 'config/kafka.php') => config_path($this->moduleNameLower . '.php'),
         ], 'config');
         $this->mergeConfigFrom(
-            module_path($this->moduleName, 'config/config.php'), $this->moduleNameLower
+            module_path($this->moduleName, 'config/kafka.php'), 'kafka'
+        );
+
+        // Merge events config
+        $this->publishes([
+            module_path($this->moduleName, 'config/kafka_handle.php') => config_path('kafka_handle.php'),
+        ], 'config');
+        $this->mergeConfigFrom(
+            module_path($this->moduleName, 'config/kafka_handle.php'), 'kafka_handle'
+        );
+
+        $this->publishes([
+            module_path($this->moduleName, 'config/notification_config.php') => config_path('notification_config.php'),
+        ], 'config');
+        $this->mergeConfigFrom(
+            module_path($this->moduleName, 'config/notification_config.php'), 'notification_config'
         );
     }
 

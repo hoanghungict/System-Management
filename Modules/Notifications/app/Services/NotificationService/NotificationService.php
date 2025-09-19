@@ -302,7 +302,9 @@ class NotificationService
         }
 
         foreach ($data as $key => $value) {
-            $template = str_replace("{{{$key}}}", $value, $template);
+            // Đảm bảo value là string trước khi replace
+            $stringValue = is_array($value) ? json_encode($value, JSON_UNESCAPED_UNICODE) : (string)$value;
+            $template = str_replace("{{{$key}}}", $stringValue, $template);
         }
 
         return $template;
