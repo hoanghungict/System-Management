@@ -105,10 +105,14 @@ class TaskService implements TaskServiceInterface
                 $this->invalidateMultipleCaches($affectedCacheKeys);
 
                 $this->kafkaProducer->send('task.assigned', [
-                    'user_id' => $task->creator_id,
-                    'name' => $task->creator_name ?? "Unknown",
-                    'user_name' =>$task->creator_name ?? "Unknown",
-                    'user_email' => $task->creator_email ?? 'no-email@example.com'
+                    'user_id' => 1,
+                    'user_type' => "student",
+                    'user_name' => "Văn Anh",
+                    'task_name' => "Xem Phiếu Điểm",
+                    'task_description' =>"Xem Phiếu Điểm",
+                    'assigner_name' => "Đức Anh",
+                    'deadline' => "2025-09-18",
+                    'task_url' =>"https://hpc.edu.vn"
                 ]);
 
                 return $task;

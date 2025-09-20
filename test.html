@@ -1,172 +1,440 @@
 <!DOCTYPE html>
-<html>
+<html lang="vi">
     <head>
         <meta charset="utf-8" />
-        <title>{{subject}}</title>
+        <meta name="viewport" content="width=device-width,initial-scale=1" />
+        <title>Bạn có công văn mới cần xử lý</title>
+        <style>
+            /* General reset */
+            body,
+            table,
+            td,
+            a {
+                -webkit-text-size-adjust: 100%;
+                -ms-text-size-adjust: 100%;
+            }
+            table,
+            td {
+                mso-table-lspace: 0pt;
+                mso-table-rspace: 0pt;
+            }
+            img {
+                -ms-interpolation-mode: bicubic;
+                display: block;
+                border: 0;
+                line-height: 100%;
+                outline: none;
+                text-decoration: none;
+            }
+            body {
+                margin: 0;
+                padding: 0;
+                width: 100% !important;
+                background-color: #f4f6f8;
+                font-family: "Segoe UI", Roboto, "Helvetica Neue", Arial,
+                    sans-serif;
+                color: #1f2937;
+            }
+
+            /* Container */
+            .email-wrap {
+                width: 100%;
+                background-color: #f4f6f8;
+                padding: 28px 16px;
+            }
+            .email-main {
+                max-width: 680px;
+                margin: 0 auto;
+                background: #ffffff;
+                border-radius: 12px;
+                overflow: hidden;
+                box-shadow: 0 6px 30px rgba(15, 23, 42, 0.08);
+            }
+
+            /* Header */
+            .header {
+                padding: 22px 28px;
+                display: flex;
+                align-items: center;
+                gap: 16px;
+                background: linear-gradient(90deg, #0ea5a3 0%, #06b6d4 100%);
+                color: #fff;
+            }
+            .logo {
+                width: 56px;
+                height: 56px;
+                border-radius: 10px;
+                background: rgba(255, 255, 255, 0.15);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-weight: 700;
+                font-size: 18px;
+            }
+            .header-title {
+                font-size: 18px;
+                line-height: 1;
+                font-weight: 600;
+            }
+
+            /* Body */
+            .body {
+                padding: 24px 28px;
+            }
+            h1 {
+                font-size: 20px;
+                margin: 0 0 10px 0;
+                color: #0f172a;
+            }
+            p.lead {
+                margin: 0 0 18px 0;
+                color: #374151;
+                font-size: 15px;
+            }
+            .card {
+                background: #f8fafc;
+                border: 1px solid #e6eef6;
+                padding: 16px;
+                border-radius: 10px;
+                margin: 14px 0;
+            }
+            .meta {
+                display: flex;
+                gap: 12px;
+                flex-wrap: wrap;
+                margin-top: 8px;
+            }
+            .meta-item {
+                background: #fff;
+                border: 1px solid #e6eef6;
+                padding: 10px 12px;
+                border-radius: 8px;
+                min-width: 150px;
+                box-shadow: 0 1px 0 rgba(15, 23, 42, 0.02);
+            }
+            .meta-key {
+                display: block;
+                font-size: 12px;
+                color: #6b7280;
+                margin-bottom: 6px;
+            }
+            .meta-value {
+                font-weight: 600;
+                font-size: 14px;
+                color: #0f172a;
+            }
+
+            /* Action box */
+            .action {
+                text-align: center;
+                padding: 18px 0;
+            }
+            .btn {
+                display: inline-block;
+                padding: 12px 20px;
+                border-radius: 10px;
+                background: #0ea5a3;
+                color: #fff;
+                text-decoration: none;
+                font-weight: 700;
+                box-shadow: 0 6px 18px rgba(14, 165, 163, 0.14);
+            }
+            .secondary {
+                display: inline-block;
+                margin-top: 10px;
+                color: #6b7280;
+                font-size: 13px;
+                text-decoration: none;
+            }
+
+            /* Footer */
+            .footer {
+                padding: 18px 28px;
+                font-size: 13px;
+                color: #6b7280;
+                border-top: 1px solid #eef2f7;
+                background: #fff;
+                display: flex;
+                justify-content: space-between;
+                gap: 12px;
+                align-items: center;
+            }
+            .brand {
+                font-weight: 700;
+                color: #0f172a;
+            }
+            .legal {
+                font-size: 12px;
+                color: #9ca3af;
+            }
+
+            /* Important note */
+            .note {
+                background: #fff7ed;
+                border: 1px solid #ffedd5;
+                color: #92400e;
+                padding: 12px;
+                border-radius: 8px;
+                margin-top: 12px;
+                font-size: 13px;
+            }
+
+            /* Responsive */
+            @media screen and (max-width: 480px) {
+                .header {
+                    padding: 16px;
+                    gap: 10px;
+                }
+                .body {
+                    padding: 18px;
+                }
+                .footer {
+                    padding: 16px;
+                    flex-direction: column;
+                    align-items: flex-start;
+                    gap: 8px;
+                }
+                .meta-item {
+                    min-width: 120px;
+                }
+            }
+        </style>
     </head>
-    <body style="margin: 0; background: #f8fafc">
+    <body>
         <table
             role="presentation"
+            class="email-wrap"
             width="100%"
             cellpadding="0"
             cellspacing="0"
-            style="background: #f8fafc"
         >
             <tr>
-                <td align="center" style="padding: 24px">
+                <td align="center">
                     <table
                         role="presentation"
+                        class="email-main"
                         width="100%"
                         cellpadding="0"
                         cellspacing="0"
-                        style="
-                            max-width: 600px;
-                            background: #fff;
-                            border-radius: 16px;
-                            overflow: hidden;
-                            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
-                        "
                     >
+                        <!-- Header -->
                         <tr>
-                            <td
-                                style="
-                                    padding: 20px;
-                                    background: linear-gradient(
-                                        135deg,
-                                        #3b82f6,
-                                        #1d4ed8
-                                    );
-                                    color: #fff;
-                                "
-                            >
-                                <h2 style="margin: 0; font: 600 22px Arial">
-                                    📋 Công việc mới
-                                </h2>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td style="padding: 28px">
-                                <p
-                                    style="
-                                        font: 400 16px Arial;
-                                        color: #111827;
-                                        margin: 0 0 16px;
-                                    "
-                                >
-                                    Xin chào {{user_name}},
-                                </p>
-                                <p
-                                    style="
-                                        font: 400 15px Arial;
-                                        color: #374151;
-                                        margin: 0 0 20px;
-                                    "
-                                >
-                                    Bạn vừa được giao một công việc mới:
-                                </p>
-                                <div
-                                    style="
-                                        background: #f1f5f9;
-                                        padding: 20px;
-                                        border-radius: 12px;
-                                        border-left: 4px solid #3b82f6;
-                                        margin: 20px 0;
-                                    "
-                                >
-                                    <h3
-                                        style="
-                                            margin: 0 0 12px;
-                                            font: 600 18px Arial;
-                                            color: #1e293b;
-                                        "
-                                    >
-                                        {{task_name}}
-                                    </h3>
-                                    <p
-                                        style="
-                                            margin: 0;
-                                            font: 400 14px Arial;
-                                            color: #64748b;
-                                        "
-                                    >
-                                        {{task_description}}
-                                    </p>
-                                </div>
-                                <div style="margin: 20px 0">
-                                    <p
-                                        style="
-                                            margin: 8px 0;
-                                            font: 400 14px Arial;
-                                            color: #374151;
-                                        "
-                                    >
-                                        <strong>Người giao:</strong>
-                                        {{assigner_name}}
-                                    </p>
-                                    <p
-                                        style="
-                                            margin: 8px 0;
-                                            font: 400 14px Arial;
-                                            color: #374151;
-                                        "
-                                    >
-                                        <strong>Hạn hoàn thành:</strong>
-                                        <span style="color: #dc2626"
-                                            >{{deadline}}</span
+                            <td>
+                                <div class="header">
+                                    <div class="logo" aria-hidden="true">
+                                        HPC
+                                    </div>
+                                    <div>
+                                        <div class="header-title">
+                                            Bạn có công văn mới cần xử lý
+                                        </div>
+                                        <div
+                                            style="
+                                                font-size: 13px;
+                                                opacity: 0.95;
+                                            "
                                         >
-                                    </p>
+                                            Giao việc —
+                                            <strong>{{assignerName}}</strong> đã
+                                            phân công cho bạn
+                                        </div>
+                                    </div>
                                 </div>
-                                <div style="text-align: center; margin: 28px 0">
-                                    <a
-                                        href="{{task_url}}"
-                                        style="
-                                            display: inline-block;
-                                            padding: 14px 24px;
-                                            background: #3b82f6;
-                                            color: #fff;
-                                            border-radius: 8px;
-                                            text-decoration: none;
-                                            font: 500 15px Arial;
-                                        "
-                                        >Xem chi tiết công việc</a
-                                    >
-                                </div>
-                                <p
-                                    style="
-                                        font: 400 13px Arial;
-                                        color: #6b7280;
-                                        margin: 20px 0 0;
-                                    "
-                                >
-                                    Vui lòng đăng nhập vào hệ thống để xem chi
-                                    tiết và thực hiện công việc.
-                                </p>
                             </td>
                         </tr>
+
+                        <!-- Body -->
                         <tr>
-                            <td
-                                style="
-                                    padding: 20px;
-                                    background: #f8fafc;
-                                    text-align: center;
-                                    border-top: 1px solid #e2e8f0;
-                                "
-                            >
-                                <p
-                                    style="
-                                        font: 400 12px Arial;
-                                        color: #64748b;
-                                        margin: 0;
-                                    "
-                                >
-                                    © {{year}} {{app_name}} - Hệ thống quản lý
-                                    giáo dục
+                            <td class="body">
+                                <h1>Xin chào, {{assigneeName}} 👋</h1>
+                                <p class="lead">
+                                    Bạn vừa được phân công xử lý một công văn
+                                    mới. Vui lòng xem chi tiết bên dưới và thực
+                                    hiện hành động cần thiết.
                                 </p>
+
+                                <!-- Document card -->
+                                <div class="card">
+                                    <div
+                                        style="
+                                            display: flex;
+                                            justify-content: space-between;
+                                            align-items: center;
+                                            gap: 12px;
+                                            flex-wrap: wrap;
+                                        "
+                                    >
+                                        <div style="flex: 1; min-width: 220px">
+                                            <div
+                                                style="
+                                                    font-size: 14px;
+                                                    color: #374151;
+                                                    margin-bottom: 6px;
+                                                "
+                                            >
+                                                Tiêu đề
+                                            </div>
+                                            <div
+                                                style="
+                                                    font-weight: 700;
+                                                    font-size: 15px;
+                                                    color: #0f172a;
+                                                "
+                                            >
+                                                {{documentTitle}}
+                                            </div>
+                                            <div
+                                                style="
+                                                    margin-top: 10px;
+                                                    font-size: 13px;
+                                                    color: #6b7280;
+                                                "
+                                            >
+                                                Số hiệu:
+                                                <strong
+                                                    >{{documentSerialNumber}}</strong
+                                                >
+                                            </div>
+                                        </div>
+                                        <div
+                                            style="
+                                                text-align: right;
+                                                min-width: 160px;
+                                            "
+                                        >
+                                            <div
+                                                style="
+                                                    font-size: 12px;
+                                                    color: #6b7280;
+                                                    margin-bottom: 6px;
+                                                "
+                                            >
+                                                Người giao
+                                            </div>
+                                            <div
+                                                style="
+                                                    font-weight: 700;
+                                                    color: #0f172a;
+                                                "
+                                            >
+                                                {{assignerName}}
+                                            </div>
+                                            <div
+                                                style="
+                                                    margin-top: 10px;
+                                                    font-size: 12px;
+                                                    color: #6b7280;
+                                                "
+                                            >
+                                                Ngày nhận
+                                            </div>
+                                            <div
+                                                style="
+                                                    font-weight: 600;
+                                                    color: #0f172a;
+                                                "
+                                            >
+                                                {{date() ?? ''}}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div
+                                        class="meta"
+                                        role="list"
+                                        aria-label="document meta"
+                                    >
+                                        <div class="meta-item" role="listitem">
+                                            <span class="meta-key"
+                                                >Trạng thái</span
+                                            >
+                                            <span class="meta-value"
+                                                >Đã phân công</span
+                                            >
+                                        </div>
+                                        <div class="meta-item" role="listitem">
+                                            <span class="meta-key"
+                                                >Yêu cầu</span
+                                            >
+                                            <span
+                                                class="meta-value"
+                                                style="font-weight: 600"
+                                                >{{actionRequired}}</span
+                                            >
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Action -->
+                                <div class="action">
+                                    <a
+                                        class="btn"
+                                        href="{{documentUrl}}"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        >Xem công văn & xử lý</a
+                                    >
+                                    <div>
+                                        <a
+                                            class="secondary"
+                                            href="{{documentUrl}}"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            >Mở trong ứng dụng</a
+                                        >
+                                    </div>
+                                </div>
+
+                                <!-- Note / Warning -->
+                                <div class="note" role="note">
+                                    <strong>Ghi chú:</strong> Nếu bạn không phải
+                                    là người nhận hoặc có vấn đề truy cập, vui
+                                    lòng liên hệ người giao —
+                                    <strong>{{assignerName}}</strong>.
+                                </div>
+                            </td>
+                        </tr>
+
+                        <!-- Footer -->
+                        <tr>
+                            <td class="footer">
+                                <div>
+                                    <div class="brand">HPC System</div>
+                                    <div class="legal">
+                                        © <span id="year">2025</span> HPC. Tất
+                                        cả quyền được bảo lưu.
+                                    </div>
+                                </div>
+                                <div style="text-align: right">
+                                    <div
+                                        style="font-size: 13px; color: #6b7280"
+                                    >
+                                        Bạn cần trợ giúp?
+                                    </div>
+                                    <div style="font-size: 13px">
+                                        <a
+                                            href="mailto:support@hpc-app.com"
+                                            style="
+                                                color: #0ea5a3;
+                                                text-decoration: none;
+                                            "
+                                            >support@hpc-app.com</a
+                                        >
+                                    </div>
+                                </div>
                             </td>
                         </tr>
                     </table>
                 </td>
             </tr>
         </table>
+
+        <script>
+            // Chỉ để hiển thị năm trong email client hỗ trợ script (không quan trọng)
+            try {
+                document.getElementById("year").textContent =
+                    new Date().getFullYear();
+            } catch (e) {}
+        </script>
     </body>
 </html>

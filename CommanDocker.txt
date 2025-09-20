@@ -40,3 +40,4 @@ docker image prune -a -f              # Xóa image không dùng
 docker volume prune -f                # Xóa volume không dùng
 
 
+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
