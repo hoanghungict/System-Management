@@ -15,6 +15,8 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Modules\Auth\app\Models\Lecturer;
+use Modules\Auth\app\Models\Student;
 use Modules\Notifications\app\Services\KafkaService\KafkaProducerService;
 /**
  * Service chứa business logic cho Task
@@ -104,12 +106,26 @@ class TaskService implements TaskServiceInterface
                 $affectedCacheKeys = $this->collectAffectedCacheKeys($task);
                 $this->invalidateMultipleCaches($affectedCacheKeys);
 
-                $this->kafkaProducer->send('task.assigned', [
-                    'user_id' => $task->creator_id,
-                    'name' => $task->creator_name ?? "Unknown",
-                    'user_name' =>$task->creator_name ?? "Unknown",
-                    'user_email' => $task->creator_email ?? 'no-email@example.com'
-                ]);
+                // ✅ Send Kafka notification for each receiver
+                foreach ($receivers as $receiver) {
+                    $user = null;
+                    if ($receiver['receiver_type'] === 'student') {
+                        $user = Student::find($receiver['receiver_id']);
+                    } elseif ($receiver['receiver_type'] === 'lecturer') {
+                        $user = Lecturer::find($receiver['receiver_id']);
+                    }
+
+                    $this->kafkaProducer->send('task.assigned', [
+                        'user_id' => $receiver['receiver_id'],
+                        'user_type' => $receiver['receiver_type'],
+                        'user_name' => $user->full_name ?? "Unknown",
+                        'task_name' => $task->title,
+                        'task_description' => $task->description,
+                        'deadline' => $task->dateline,
+                        'task_url' => route('tasks.show', $task->id),
+                        'assigner_name' => $userContext->full_name ?? "Unknown",
+                    ]);
+                }
 
                 return $task;
             } catch (\Exception $e) {

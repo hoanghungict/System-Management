@@ -74,7 +74,7 @@ class StudentService
             'user_id' => $student->id,
             'name' => $dataStudent->full_name ?? "Unknown",
             'user_name' =>$dataStudent->full_name ?? "Unknown",
-            'user_email' => $student->email ?? 'no-email@example.com'
+            'password' => $password
         ]);
         // Gửi notification thông báo tài khoản mới
         // $this->sendRegistrationNotification($student, $username, $password);

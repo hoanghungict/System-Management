@@ -35,6 +35,7 @@
     31 => 'Termwind\\Laravel\\TermwindServiceProvider',
     32 => 'Nwidart\\Modules\\LaravelModulesServiceProvider',
     33 => 'App\\Providers\\AppServiceProvider',
+    34 => 'Modules\\Task\\Providers\\TaskServiceProvider',
   ),
   'eager' => 
   array (
@@ -56,6 +57,7 @@
     15 => 'Termwind\\Laravel\\TermwindServiceProvider',
     16 => 'Nwidart\\Modules\\LaravelModulesServiceProvider',
     17 => 'App\\Providers\\AppServiceProvider',
+    18 => 'Modules\\Task\\Providers\\TaskServiceProvider',
   ),
   'deferred' => 
   array (
