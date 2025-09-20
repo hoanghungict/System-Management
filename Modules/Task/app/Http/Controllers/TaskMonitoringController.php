@@ -57,16 +57,22 @@ class TaskMonitoringController extends Controller
      */
     public function getDashboardData(): JsonResponse
     {
+        // Đếm task thực tế từ database
+        $totalTasks = \Modules\Task\app\Models\Task::count();
+        $completedTasks = \Modules\Task\app\Models\Task::where('status', 'completed')->count();
+        $pendingTasks = \Modules\Task\app\Models\Task::where('status', 'pending')->count();
+        $overdueTasks = \Modules\Task\app\Models\Task::where('status', 'overdue')->count();
+
         return response()->json([
             'success' => true,
             'message' => 'Dashboard data retrieved successfully',
             'data' => [
                 'timestamp' => now()->toISOString(),
                 'summary' => [
-                    'total_tasks' => 0,
-                    'completed_tasks' => 0,
-                    'pending_tasks' => 0,
-                    'overdue_tasks' => 0
+                    'total_tasks' => $totalTasks,
+                    'completed_tasks' => $completedTasks,
+                    'pending_tasks' => $pendingTasks,
+                    'overdue_tasks' => $overdueTasks
                 ],
                 'charts' => [
                     'completion_trend' => [],
@@ -99,7 +105,7 @@ class TaskMonitoringController extends Controller
     public function getLogs(Request $request): JsonResponse
     {
         $limit = $request->get('limit', 50);
-        
+
         return response()->json([
             'success' => true,
             'message' => 'Logs retrieved successfully',

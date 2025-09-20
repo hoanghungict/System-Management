@@ -38,5 +38,3 @@ docker volume ls                      # Danh sách volume
 docker container prune -f             # Xóa container dừng
 docker image prune -a -f              # Xóa image không dùng
 docker volume prune -f                # Xóa volume không dùng
-
-

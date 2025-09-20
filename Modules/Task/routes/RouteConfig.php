@@ -214,6 +214,48 @@ class RouteConfig
                         'name' => 'events'
                     ],
                     [
+                        'methods' => ['GET'],
+                        'uri' => 'events/by-date',
+                        'action' => 'getEventsByDate',
+                        'name' => 'events.by-date'
+                    ],
+                    [
+                        'methods' => ['GET'],
+                        'uri' => 'events/by-range',
+                        'action' => 'getEventsByRange',
+                        'name' => 'events.by-range'
+                    ],
+                    [
+                        'methods' => ['GET'],
+                        'uri' => 'events/upcoming',
+                        'action' => 'getUpcomingEvents',
+                        'name' => 'events.upcoming'
+                    ],
+                    [
+                        'methods' => ['GET'],
+                        'uri' => 'events/overdue',
+                        'action' => 'getOverdueEvents',
+                        'name' => 'events.overdue'
+                    ],
+                    [
+                        'methods' => ['GET'],
+                        'uri' => 'events/count-by-status',
+                        'action' => 'getEventsCountByStatus',
+                        'name' => 'events.count-by-status'
+                    ],
+                    [
+                        'methods' => ['GET'],
+                        'uri' => 'reminders',
+                        'action' => 'getReminders',
+                        'name' => 'reminders'
+                    ],
+                    [
+                        'methods' => ['POST'],
+                        'uri' => 'reminders',
+                        'action' => 'setReminder',
+                        'name' => 'reminders.store'
+                    ],
+                    [
                         'methods' => ['POST'],
                         'uri' => 'events',
                         'action' => 'createEvent',
