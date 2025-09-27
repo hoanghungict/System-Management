@@ -21,7 +21,7 @@ class UpdateLecturerRequest extends FormRequest
     public function rules(): array
     {
         $lecturerId = $this->route('id');
-        
+
         return [
             'full_name' => 'sometimes|string|max:255',
             'gender' => 'sometimes|in:male,female,other',
@@ -32,7 +32,7 @@ class UpdateLecturerRequest extends FormRequest
                 Rule::unique('lecturer', 'email')->ignore($lecturerId)
             ],
             'phone' => 'sometimes|string|max:20',
-            'unit_id' => 'sometimes|exists:unit,id'
+            'department_id' => 'sometimes|exists:department,id'
         ];
     }
 
@@ -50,7 +50,7 @@ class UpdateLecturerRequest extends FormRequest
             'email.unique' => 'Email đã tồn tại',
             'phone.string' => 'Số điện thoại phải là chuỗi',
             'phone.max' => 'Số điện thoại không được vượt quá 20 ký tự',
-            'unit_id.exists' => 'Đơn vị không tồn tại'
+            'department_id.exists' => 'Đơn vị không tồn tại'
         ];
     }
 }

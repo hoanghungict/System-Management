@@ -22,21 +22,21 @@ class StudentService
      */
     public function getAllStudents()
     {
-        return Cache::remember('students:all', 1800, function() {
+        // return Cache::remember('students:all', 1800, function() {
             return Student::with('account', 'classroom')->get();
-        });
+        // });
     }
-    
+
     /**
      * Lấy sinh viên theo ID
      */
     public function getStudentById(int $id)
     {
-        return Cache::remember("students:{$id}", 1800, function() use ($id) {
+        // return Cache::remember("students:{$id}", 1800, function() use ($id) {
             return Student::with('account', 'classroom')->find($id);
-        });
+        // });
     }
-    
+
     /**
      * Tạo sinh viên mới và tự động tạo tài khoản
      */
@@ -44,16 +44,16 @@ class StudentService
     {
         // Tạo sinh viên mới
         $student = Student::create($studentData);
-        
+
         // Tự động tạo tài khoản
         $this->createStudentAccount($student);
-        
+
         // Xóa cache students
-        $this->clearStudentsCache();
-        
+        // $this->clearStudentsCache(); phần này tôi dùng redis máy b k có serve redia nên nó lôiz
+
         return $student;
     }
-    
+
     /**
      * Tự động tạo tài khoản cho sinh viên
      */
@@ -61,17 +61,17 @@ class StudentService
     {
         $username = $this->generateUsername($student->student_code);
         $password = $this->generateDefaultPassword();
-        
+
         $this->authRepository->createStudentAccount([
             'username' => $username,
             'password' => $password,
             'student_id' => $student->id
         ]);
-        
+
         // Gửi notification thông báo tài khoản mới
         $this->sendRegistrationNotification($student, $username, $password);
     }
-    
+
     /**
      * Tạo username từ mã sinh viên
      */
@@ -79,7 +79,7 @@ class StudentService
     {
         return 'sv_' . $studentCode;
     }
-    
+
     /**
      * Tạo mật khẩu mặc định
      */
@@ -88,20 +88,20 @@ class StudentService
         // Mật khẩu mặc định: ngày sinh (YYYYMMDD)
         return '123456';
     }
-    
+
     /**
      * Cập nhật thông tin sinh viên
      */
     public function updateStudent(Student $student, array $data): Student
     {
         $student->update($data);
-        
+
         // Xóa cache students
-        $this->clearStudentsCache();
-        
+        // $this->clearStudentsCache();
+
         return $student;
     }
-    
+
     /**
      * Xóa sinh viên và tài khoản liên quan
      */
@@ -111,18 +111,18 @@ class StudentService
         if ($student->account) {
             $student->account->delete();
         }
-        
+
         // Xóa sinh viên
         $deleted = $student->delete();
-        
-        if ($deleted) {
-            // Xóa cache students
-            $this->clearStudentsCache();
-        }
-        
+
+        // if ($deleted) {
+        //     // Xóa cache students
+        //     $this->clearStudentsCache();
+        // }
+
         return $deleted;
     }
-    
+
     /**
      * Gửi notification thông báo tài khoản mới
      */
@@ -132,7 +132,7 @@ class StudentService
             // Gọi notification service để gửi thông báo
             if (class_exists('\Modules\Notifications\app\Services\NotificationService\NotificationService')) {
                 $notificationService = app('\Modules\Notifications\app\Services\NotificationService\NotificationService');
-                
+
                 $notificationService->sendNotification(
                     'user_registered',
                     [['user_id' => $student->id, 'user_type' => 'student']],
@@ -143,7 +143,7 @@ class StudentService
                         'user_email' => $student->email ?? 'no-email@example.com'
                     ]
                 );
-                
+
                 Log::info('Notification sent for new student account', [
                     'student_id' => $student->id,
                     'username' => $username
@@ -158,14 +158,14 @@ class StudentService
             ]);
         }
     }
-    
+
     /**
      * Xóa tất cả cache students
      */
     private function clearStudentsCache(): void
     {
         Cache::forget('students:all');
-        
+
         // Xóa cache individual students
         $students = Student::pluck('id');
         foreach ($students as $id) {

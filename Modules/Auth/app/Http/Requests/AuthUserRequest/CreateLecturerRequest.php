@@ -26,7 +26,7 @@ class CreateLecturerRequest extends FormRequest
             'email' => 'required|email|unique:lecturer,email',
             'phone' => 'required|string|max:20',
             'lecturer_code' => 'required|string|unique:lecturer,lecturer_code',
-            'unit_id' => 'required|exists:unit,id'
+            'department_id' => 'required|exists:department,id'
         ];
     }
 
@@ -52,8 +52,8 @@ class CreateLecturerRequest extends FormRequest
             'lecturer_code.required' => 'Mã giảng viên là bắt buộc',
             'lecturer_code.string' => 'Mã giảng viên phải là chuỗi',
             'lecturer_code.unique' => 'Mã giảng viên đã tồn tại',
-            'unit_id.required' => 'Đơn vị là bắt buộc',
-            'unit_id.exists' => 'Đơn vị không tồn tại'
+            'department_id.required' => 'Đơn vị là bắt buộc',
+            'department_id.exists' => 'Đơn vị không tồn tại'
         ];
     }
 }

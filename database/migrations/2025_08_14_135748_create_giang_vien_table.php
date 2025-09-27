@@ -19,7 +19,8 @@ return new class extends Migration {
             $table->string('lecturer_code', 50)->unique();
             $table->unsignedBigInteger('department_id')->nullable();
             $table->unsignedBigInteger('assignes_id')->nullable();
-
+            $table->timestamp('created_at')->nullable();
+            $table->timestamp('updated_at')->nullable();
             $table->foreign('department_id')
                   ->references('id')->on('department')
                   ->onDelete('set null');
