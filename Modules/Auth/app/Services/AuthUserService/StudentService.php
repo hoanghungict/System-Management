@@ -73,13 +73,9 @@ class StudentService
         $this->kafkaProducer->send('student.registered', [
             'user_id' => $student->id,
             'name' => $dataStudent->full_name ?? "Unknown",
-<<<<<<< Updated upstream
-            'user_name' =>$dataStudent->full_name ?? "Unknown",
             'user_email' => $student->email ?? 'no-email@example.com'
-=======
             'user_name' =>$username ?? "Unknown",
             'password' => $password
->>>>>>> Stashed changes
         ]);
         // Gửi notification thông báo tài khoản mới
         // $this->sendRegistrationNotification($student, $username, $password);
