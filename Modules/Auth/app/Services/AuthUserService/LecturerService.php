@@ -6,14 +6,18 @@ use Modules\Auth\app\Repositories\Interfaces\AuthRepositoryInterface;
 use Modules\Auth\app\Models\Lecturer;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Cache;
+use Modules\Auth\app\Models\Student;
+use Modules\Notifications\app\Services\KafkaService\KafkaProducerService;
 
 class LecturerService
 {
     protected $authRepository;
+    protected $producerService;
 
-    public function __construct(AuthRepositoryInterface $authRepository)
+    public function __construct(AuthRepositoryInterface $authRepository , KafkaProducerService $producerService)
     {
         $this->authRepository = $authRepository;
+        $this->producerService = $producerService;
     }
 
     /**
@@ -47,6 +51,7 @@ class LecturerService
         // Tự động tạo tài khoản
         $this->createLecturerAccount($lecturer);
         
+        
         // Xóa cache lecturers
         $this->clearLecturersCache();
         
@@ -67,9 +72,17 @@ class LecturerService
             'lecturer_id' => $lecturer->id,
             'is_admin' => false // Mặc định không phải admin
         ]);
+
+        $dataLecturer = Lecturer::find($lecturer->id);
+        $this->producerService->send('lecturer.registered', [
+            'user_id' => $lecturer->id,
+            'name' => $dataLecturer->full_name ?? "Unknown",
+            'user_name' =>$username ?? "Unknown",
+            'password' => $password
+        ]);
         
         // Gửi notification thông báo tài khoản mới
-        $this->sendRegistrationNotification($lecturer, $username, $password);
+        // $this->sendRegistrationNotification($lecturer, $username, $password);
     }
     
     /**

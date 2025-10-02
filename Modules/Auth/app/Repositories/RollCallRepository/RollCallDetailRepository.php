@@ -98,6 +98,16 @@ class RollCallDetailRepository implements RollCallDetailRepositoryInterface
     }
 
     /**
+     * Xóa chi tiết điểm danh theo sinh viên và buổi điểm danh
+     */
+    public function deleteByStudentAndRollCall(int $studentId, int $rollCallId): bool
+    {
+        return $this->model->where('student_id', $studentId)
+            ->where('roll_call_id', $rollCallId)
+            ->delete() > 0;
+    }
+
+    /**
      * Lấy chi tiết điểm danh theo trạng thái
      */
     public function getByStatus(string $status): Collection

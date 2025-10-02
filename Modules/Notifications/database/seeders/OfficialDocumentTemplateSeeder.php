@@ -1,7 +1,25 @@
+<?php
+
+namespace Modules\Notifications\database\seeders;
+
+use Illuminate\Database\Seeder;
+use Modules\Notifications\app\Models\NotificationTemplate;
+use Illuminate\Support\Facades\DB;
+
+class OfficialDocumentTemplateSeeder extends Seeder
+{
+    /**
+     * Run the database seeds.
+     */
+    public function run(): void
+    {
+        // Xóa template cũ nếu có
+        NotificationTemplate::where('name', 'official_document_assigned')->delete();
+
+        $emailTemplate = <<<HTML
 <!DOCTYPE html>
 <html lang="vi">
     <head>
-<<<<<<< Updated upstream
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width,initial-scale=1" />
         <title>Bạn có công văn mới cần xử lý</title>
@@ -58,7 +76,7 @@
                 display: flex;
                 align-items: center;
                 gap: 16px;
-                background: linear-gradient(90deg, #0ea5a3 0%, #06b6d4 100%);
+                background: linear-gradient(90deg, #0c60b9 0%, #063970 100%);
                 color: #fff;
             }
             .logo {
@@ -134,7 +152,7 @@
                 display: inline-block;
                 padding: 12px 20px;
                 border-radius: 10px;
-                background: #0ea5a3;
+                background: #063970;
                 color: #fff;
                 text-decoration: none;
                 font-weight: 700;
@@ -208,30 +226,10 @@
             width="100%"
             cellpadding="0"
             cellspacing="0"
-=======
-        <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>Yêu Cầu Phê Duyệt Khóa Học</title>
-    </head>
-    <body
-        style="
-            margin: 0;
-            padding: 0;
-            background-color: #f4f6f8;
-            font-family: Arial, sans-serif;
-        "
-    >
-        <table
-            width="100%"
-            cellpadding="0"
-            cellspacing="0"
-            style="background-color: #f4f6f8; padding: 30px 0"
->>>>>>> Stashed changes
         >
             <tr>
                 <td align="center">
                     <table
-<<<<<<< Updated upstream
                         role="presentation"
                         class="email-main"
                         width="100%"
@@ -261,42 +259,11 @@
                                         </div>
                                     </div>
                                 </div>
-=======
-                        width="600"
-                        cellpadding="0"
-                        cellspacing="0"
-                        style="
-                            background: #ffffff;
-                            border-radius: 12px;
-                            overflow: hidden;
-                            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-                        "
-                    >
-                        <!-- Header -->
-                        <tr>
-                            <td
-                                style="
-                                    background: #063970;
-                                    padding: 20px;
-                                    text-align: center;
-                                "
-                            >
-                                <h1
-                                    style="
-                                        margin: 0;
-                                        font-size: 22px;
-                                        color: #ffffff;
-                                    "
-                                >
-                                    📚 Yêu cầu phê duyệt khóa học mới
-                                </h1>
->>>>>>> Stashed changes
                             </td>
                         </tr>
 
                         <!-- Body -->
                         <tr>
-<<<<<<< Updated upstream
                             <td class="body">
                                 <h1>Xin chào, {{assigneeName}} 👋</h1>
                                 <p class="lead">
@@ -386,7 +353,7 @@
                                                     color: #0f172a;
                                                 "
                                             >
-                                                {{date() ?? ''}}
+                                                {{assignedDate}}
                                             </div>
                                         </div>
                                     </div>
@@ -444,94 +411,16 @@
                                     lòng liên hệ người giao —
                                     <strong>{{assignerName}}</strong>.
                                 </div>
-=======
-                            <td
-                                style="
-                                    padding: 30px 40px;
-                                    color: #333;
-                                    font-size: 15px;
-                                    line-height: 1.6;
-                                "
-                            >
-                                <p>Kính gửi <strong>Quản trị viên</strong>,</p>
-                                <p>
-                                    Giảng viên
-                                    <strong>{{lecturer_name}}</strong> vừa tạo
-                                    một khóa học mới:
-                                    <strong>"{{title}}"</strong>.
-                                </p>
-
-                                <!-- Box thông tin -->
-                                <table
-                                    cellpadding="0"
-                                    cellspacing="0"
-                                    width="100%"
-                                    style="
-                                        margin: 20px 0;
-                                        background: #f9fafb;
-                                        border: 1px solid #e5e7eb;
-                                        border-radius: 8px;
-                                    "
-                                >
-                                    <tr>
-                                        <td
-                                            style="
-                                                padding: 15px;
-                                                color: #111;
-                                                font-size: 14px;
-                                            "
-                                        >
-                                            <strong>Người tạo:</strong>
-                                            {{lecturer_name}} <br />
-                                            <strong>Tên khóa học:</strong>
-                                            {{title}}
-                                        </td>
-                                    </tr>
-                                </table>
-
-                                <p>
-                                    Vui lòng xem xét và phê duyệt khóa học này
-                                    để nó có thể được mở cho sinh viên đăng ký.
-                                </p>
-
-                                <!-- CTA Button -->
-                                <p style="text-align: center; margin: 30px 0">
-                                    <a
-                                        href="{{course_review_url}}"
-                                        style="
-                                            background: #063970;
-                                            color: #ffffff;
-                                            text-decoration: none;
-                                            padding: 12px 24px;
-                                            border-radius: 6px;
-                                            font-weight: bold;
-                                            display: inline-block;
-                                        "
-                                    >
-                                        Xem chi tiết & Phê duyệt
-                                    </a>
-                                </p>
-
-                                <p style="margin-top: 30px">
-                                    Thời gian tạo: <strong>{{date}}</strong
-                                    ><br />
-                                    Trân trọng,<br />
-                                    <strong
-                                        >Hệ thống Quản lý Khóa học HPC</strong
-                                    >
-                                </p>
->>>>>>> Stashed changes
                             </td>
                         </tr>
 
                         <!-- Footer -->
                         <tr>
-<<<<<<< Updated upstream
                             <td class="footer">
                                 <div>
                                     <div class="brand">HPC System</div>
                                     <div class="legal">
-                                        © <span id="year">2025</span> HPC. Tất
+                                        © {{year}} HPC. Tất
                                         cả quyền được bảo lưu.
                                     </div>
                                 </div>
@@ -545,27 +434,13 @@
                                         <a
                                             href="mailto:support@hpc-app.com"
                                             style="
-                                                color: #0ea5a3;
+                                                color: #063970;
                                                 text-decoration: none;
                                             "
                                             >support@hpc-app.com</a
                                         >
                                     </div>
                                 </div>
-=======
-                            <td
-                                style="
-                                    background: #f9fafb;
-                                    padding: 15px;
-                                    text-align: center;
-                                    font-size: 12px;
-                                    color: #888;
-                                "
-                            >
-                                Đây là email tự động, vui lòng không trả lời
-                                trực tiếp.<br />
-                                © {{year}} HPC Corp. All rights reserved.
->>>>>>> Stashed changes
                             </td>
                         </tr>
                     </table>
@@ -582,3 +457,36 @@
         </script>
     </body>
 </html>
+HTML;
+
+        // Tạo template mới
+        NotificationTemplate::create([
+            'name' => 'official_dispatch',
+            'title' => 'Công văn mới cần xử lý',
+            'subject' => 'Bạn có công văn mới cần xử lý: {{documentTitle}}',
+            'email_template' => $emailTemplate,
+            'sms_template' => 'Công văn mới: {{documentTitle}} từ {{assignerName}}. Vui lòng xem chi tiết.',
+            'push_template' => 'Bạn có công văn mới từ {{assignerName}}: {{documentTitle}}',
+            'in_app_template' => 'Bạn được phân công xử lý công văn "{{documentTitle}}" bởi {{assignerName}}',
+            'channels' => ['email', 'push', 'in_app', 'sms'],
+            'priority' => 'high',
+            'category' => 'official_dispatch',
+            'description' => 'Template thông báo công văn chính thức được phân công - Thiết kế chuyên nghiệp với brand HPC',
+            'is_active' => true,
+        ]);
+
+        $this->command->info('✅ Official Document Template đã được tạo thành công!');
+        $this->command->info('📧 Template name: official_document_assigned');
+        $this->command->info('🎨 Thiết kế: Professional HPC Brand với color scheme xanh navy');
+        $this->command->info('📱 Channels: Email, Push, In-app, SMS');
+        $this->command->info('🔧 Variables hỗ trợ:');
+        $this->command->info('   - {{assignerName}} - Tên người giao');
+        $this->command->info('   - {{assigneeName}} - Tên người nhận');
+        $this->command->info('   - {{documentTitle}} - Tiêu đề công văn');
+        $this->command->info('   - {{documentSerialNumber}} - Số hiệu');
+        $this->command->info('   - {{assignedDate}} - Ngày nhận');
+        $this->command->info('   - {{actionRequired}} - Yêu cầu hành động');
+        $this->command->info('   - {{documentUrl}} - Link xem công văn');
+        $this->command->info('   - {{year}} - Năm hiện tại');
+    }
+}

@@ -461,7 +461,7 @@ HTML,
             [
                 'name' => 'task_assigned',
                 'title' => 'Công việc mới được giao',
-                'subject' => 'Công việc mới: {{task_name}}',
+                'subject' => 'Bạn có công việc mới được giao',
                 'email_template' => <<<HTML
 <!doctype html>
 <html>
@@ -472,7 +472,7 @@ HTML,
         <td align="center" style="padding:24px;">
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 10px 25px rgba(0,0,0,.08);">
             <tr>
-              <td style="padding:20px;background:linear-gradient(135deg, #3b82f6, #1d4ed8);color:#fff;">
+              <td style="padding:20px;background:linear-gradient(135deg, #0c60b9, #063970);color:#fff;">
                 <h2 style="margin:0;font:600 22px Arial;">📋 Công việc mới</h2>
               </td>
             </tr>
@@ -482,7 +482,7 @@ HTML,
                 <p style="font:400 15px Arial;color:#374151;margin:0 0 20px;">
                   Bạn vừa được giao một công việc mới:
                 </p>
-                <div style="background:#f1f5f9;padding:20px;border-radius:12px;border-left:4px solid #3b82f6;margin:20px 0;">
+                <div style="background:#f1f5f9;padding:20px;border-radius:12px;border-left:4px solid #063970;margin:20px 0;">
                   <h3 style="margin:0 0 12px;font:600 18px Arial;color:#1e293b;">{{task_name}}</h3>
                   <p style="margin:0;font:400 14px Arial;color:#64748b;">{{task_description}}</p>
                 </div>
@@ -495,7 +495,7 @@ HTML,
                   </p>
                 </div>
                 <div style="text-align:center;margin:28px 0;">
-                  <a href="{{task_url}}" style="display:inline-block;padding:14px 24px;background:#3b82f6;color:#fff;border-radius:8px;text-decoration:none;font:500 15px Arial;">Xem chi tiết công việc</a>
+                  <a href="{{task_url}}" style="display:inline-block;padding:14px 24px;background:#063970;color:#fff;border-radius:8px;text-decoration:none;font:500 15px Arial;">Xem chi tiết công việc</a>
                 </div>
                 <p style="font:400 13px Arial;color:#6b7280;margin:20px 0 0;">
                   Vui lòng đăng nhập vào hệ thống để xem chi tiết và thực hiện công việc.

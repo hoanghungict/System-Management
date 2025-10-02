@@ -32,7 +32,7 @@ class TaskAssignedHandler implements NotificationEventHandler
             'user_type' => $userType,
             'task_name' => $taskName
         ]);
-
+        
         try {
             // Chuẩn bị data cho template từ Kafka message
             $templateData = $this->prepareTemplateData($data);
