@@ -79,15 +79,29 @@ Route::prefix('v1')->group(function () {
 
     // Roll Call routes - Chỉ giảng viên mới có thể quản lý
     Route::middleware(['jwt', 'lecturer'])->group(function () {
+        // Quản lý lớp học và sinh viên
         Route::get('/roll-calls/classrooms', [RollCallController::class, 'getClassrooms']);
-        Route::post('/roll-calls', [RollCallController::class, 'store']);
+        Route::get('/roll-calls/students/class/{classId}', [RollCallController::class, 'getStudentsForRollCall']);
+        Route::get('/roll-calls/all-students', [RollCallController::class, 'getAllStudents']); // NEW: Lấy tất cả sinh viên
+        
+        // Tạo và quản lý buổi điểm danh
+        Route::post('/roll-calls', [RollCallController::class, 'store']); // Support cả class_based và manual
         Route::get('/roll-calls/class/{classId}', [RollCallController::class, 'getRollCallsByClass']);
         Route::get('/roll-calls/{id}', [RollCallController::class, 'getRollCallDetails']);
+        
+        // Cập nhật trạng thái điểm danh
         Route::put('/roll-calls/{rollCallId}/status', [RollCallController::class, 'updateStatus']);
         Route::put('/roll-calls/{rollCallId}/bulk-status', [RollCallController::class, 'bulkUpdateStatus']);
+        
+        // Quản lý participants cho manual roll call
+        Route::post('/roll-calls/{rollCallId}/participants', [RollCallController::class, 'addParticipants']); // NEW: Thêm sinh viên
+        Route::delete('/roll-calls/{rollCallId}/participants/{studentId}', [RollCallController::class, 'removeParticipant']); // NEW: Xóa sinh viên
+        
+        // Hoàn thành và hủy buổi điểm danh
         Route::patch('/roll-calls/{id}/complete', [RollCallController::class, 'complete']);
         Route::patch('/roll-calls/{id}/cancel', [RollCallController::class, 'cancel']);
+        
+        // Thống kê
         Route::get('/roll-calls/statistics/class/{classId}', [RollCallController::class, 'statistics']);
-        Route::get('/roll-calls/students/class/{classId}', [RollCallController::class, 'getStudentsForRollCall']);
     });
 });

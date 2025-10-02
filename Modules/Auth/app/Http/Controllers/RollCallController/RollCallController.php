@@ -345,4 +345,106 @@ class RollCallController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * API: Lấy tất cả sinh viên để chọn cho manual roll call
+     */
+    public function getAllStudents(): JsonResponse
+    {
+        try {
+            $students = $this->rollCallService->getAllStudentsForSelection();
+            
+            return response()->json([
+                'success' => true,
+                'data' => $students,
+                'message' => 'Lấy danh sách sinh viên thành công.'
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Failed to get all students', [
+                'error' => $e->getMessage()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Có lỗi xảy ra khi lấy danh sách sinh viên.',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * API: Thêm sinh viên vào buổi điểm danh manual
+     */
+    public function addParticipants(Request $request, int $rollCallId): JsonResponse
+    {
+        try {
+            $request->validate([
+                'student_ids' => 'required|array|min:1',
+                'student_ids.*' => 'integer|exists:student,id'
+            ]);
+            
+            $success = $this->rollCallService->addParticipants($rollCallId, $request->student_ids);
+            
+            if ($success) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Thêm sinh viên vào buổi điểm danh thành công.'
+                ]);
+            } else {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Thêm sinh viên vào buổi điểm danh thất bại.'
+                ], 400);
+            }
+            
+        } catch (\Exception $e) {
+            Log::error('Failed to add participants', [
+                'error' => $e->getMessage(),
+                'roll_call_id' => $rollCallId,
+                'request' => $request->all()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Có lỗi xảy ra khi thêm sinh viên.',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * API: Xóa sinh viên khỏi buổi điểm danh manual
+     */
+    public function removeParticipant(int $rollCallId, int $studentId): JsonResponse
+    {
+        try {
+            $success = $this->rollCallService->removeParticipant($rollCallId, $studentId);
+            
+            if ($success) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Xóa sinh viên khỏi buổi điểm danh thành công.'
+                ]);
+            } else {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Xóa sinh viên khỏi buổi điểm danh thất bại.'
+                ], 400);
+            }
+            
+        } catch (\Exception $e) {
+            Log::error('Failed to remove participant', [
+                'error' => $e->getMessage(),
+                'roll_call_id' => $rollCallId,
+                'student_id' => $studentId
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Có lỗi xảy ra khi xóa sinh viên.',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
 }

@@ -68,6 +68,11 @@ interface RollCallDetailRepositoryInterface
     public function countByStatusInRollCall(int $rollCallId, string $status): int;
 
     /**
+     * Xóa chi tiết điểm danh theo sinh viên và buổi điểm danh
+     */
+    public function deleteByStudentAndRollCall(int $studentId, int $rollCallId): bool;
+
+    /**
      * Lấy thống kê điểm danh của sinh viên
      */
     public function getStudentStatistics(int $studentId, ?string $startDate = null, ?string $endDate = null): array;
