@@ -16,12 +16,14 @@ class PushService
         int $userId,
         string $userType,
         string $content,
-        array $data = []
+        array $data = [],
+        int $notificationId = 0,
+        int $userNotificationId = 0
     ): bool {
         try {
             
             // Broadcast qua WebSocket (Private channel)
-            broadcast(new UserNotificationPushed($userId, $userType, $content, $data))->toOthers();
+            broadcast(new UserNotificationPushed($userId, $userType, $content, $data, $notificationId, $userNotificationId))->toOthers();
 
             // Gửi push notification thật (implement sau)
             $this->sendActualPushNotification($userId, $userType, $content, $data);
@@ -56,4 +58,3 @@ class PushService
         ]);
     }
 }
-

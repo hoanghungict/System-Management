@@ -18,13 +18,17 @@ class UserNotificationPushed implements ShouldBroadcast
     public array $data;
     public string $timestamp;
     public string $channelName;
+    public int $notificationId;
+    public int $userNotificationId;
 
-    public function __construct(int $userId, string $userType, string $content, array $data = [])
+    public function __construct(int $userId, string $userType, string $content, array $data = [], int $notificationId = 0, int $userNotificationId = 0)
     {
         $this->userId = $userId;
         $this->userType = $userType;
         $this->content = $content;
         $this->data = $data;
+        $this->notificationId = $notificationId;
+        $this->userNotificationId = $userNotificationId;
         $this->timestamp = now()->toISOString();
         $this->channelName = "notifications.user.{$userId}";
     }
@@ -45,7 +49,10 @@ class UserNotificationPushed implements ShouldBroadcast
             'user_id' => $this->userId,
             'user_type' => $this->userType,
             'content' => $this->content,
-            'data' => $this->data,
+            'data' => array_merge($this->data, [
+                'notification_id' => $this->notificationId,
+                'user_notification_id' => $this->userNotificationId,
+            ]),
             'timestamp' => $this->timestamp,
             'type' => 'push'
         ];

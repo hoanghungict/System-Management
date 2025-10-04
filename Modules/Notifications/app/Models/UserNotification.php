@@ -117,4 +117,15 @@ class UserNotification extends Model
             'sms_sent_at' => now()
         ]);
     }
+
+    /**
+     * Mark in-app notification as sent
+     */
+    public function markInAppAsSent(): void
+    {
+        $this->update([
+            'in_app_sent' => true,
+            'in_app_sent_at' => now()
+        ]);
+    }
 }

@@ -179,6 +179,34 @@ class NotificationService
     }
 
     /**
+     * Đánh dấu user notification đã đọc dựa trên notification_id
+     */
+    public function markUserNotificationAsRead(int $userId, string $userType, int $notificationId): array
+    {
+        $userNotification = $this->notificationRepository->findUserNotificationByNotificationId(
+            $userId, 
+            $userType, 
+            $notificationId
+        );
+        
+        if (!$userNotification) {
+            return [
+                'success' => false,
+                'message' => 'User notification not found'
+            ];
+        }
+        
+        $success = $this->notificationRepository->markNotificationAsRead($userNotification->id);
+        
+        return [
+            'success' => $success,
+            'message' => $success ? 'Notification marked as read' : 'Failed to mark as read',
+            'user_notification_id' => $userNotification->id,
+            'notification_id' => $notificationId
+        ];
+    }
+
+    /**
      * Lấy trạng thái notification
      */
     public function getNotificationStatus(int $notificationId): array
@@ -266,7 +294,13 @@ class NotificationService
                             $this->pushService->send(
                                 $userNotification->user_id,
                                 $userNotification->user_type,
-                                $this->renderTemplate($template->push_template, $data)
+                                $this->renderTemplate($template->push_template, $data),
+                                array_merge($data, [
+                                    'notification_id' => $userNotification->notification_id,
+                                    'user_notification_id' => $userNotification->id,
+                                ]),
+                                $userNotification->notification_id,
+                                $userNotification->id
                             );
                             $userNotification->markPushAsSent();
                         }
@@ -281,6 +315,24 @@ class NotificationService
                             );
                             $userNotification->markSmsAsSent();
                         }
+                        break;
+
+                    case 'in_app':
+                        // Always send in-app notifications via real-time WebSocket
+                        $this->pushService->send(
+                            $userNotification->user_id,
+                            $userNotification->user_type,
+                            $this->renderTemplate($template->in_app_template ?? $template->title, $data),
+                            array_merge($data, [
+                                'notification_id' => $userNotification->notification_id,
+                                'user_notification_id' => $userNotification->id,
+                                'type' => $template->category ?? 'system',
+                                'priority' => $template->priority ?? 'medium'
+                            ]),
+                            $userNotification->notification_id,
+                            $userNotification->id
+                        );
+                        $userNotification->markInAppAsSent();
                         break;
                 }
             } catch (\Exception $e) {
@@ -310,4 +362,3 @@ class NotificationService
         return $template;
     }
 }
-

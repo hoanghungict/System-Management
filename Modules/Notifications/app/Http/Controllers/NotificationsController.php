@@ -10,7 +10,6 @@ use Modules\Notifications\app\Services\KafkaService\KafkaProducerService;
 use Modules\Notifications\app\Http\Requests\SendNotificationRequest;
 use Modules\Notifications\app\Http\Requests\SendBulkNotificationRequest;
 use Modules\Notifications\app\Http\Requests\ScheduleNotificationRequest;
-use Modules\Notifications\app\Http\Requests\GetUserNotificationsRequest;
 use Modules\Notifications\app\Http\Requests\MarkAsReadRequest;
 
 class NotificationsController extends Controller
@@ -97,14 +96,30 @@ class NotificationsController extends Controller
     /**
      * Lấy thông báo của user
      */
-    public function userNotifications(GetUserNotificationsRequest $request): JsonResponse
+    public function userNotifications(Request $request): JsonResponse
     {
-        $limit = $request->validated('limit', 20);
-        $offset = $request->validated('offset', 0);
+        // Lấy user info từ JWT middleware thay vì request parameters
+        $userId = $request->attributes->get('jwt_user_id');
+        $userType = $request->attributes->get('jwt_user_type');
+        
+        if (!$userId || !$userType) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Thông tin user không hợp lệ'
+            ], 401);
+        }
+
+        // Lấy pagination parameters từ query string
+        $limit = (int) $request->query('limit', 20);
+        $offset = (int) $request->query('offset', 0);
+        
+        // Validate pagination params
+        $limit = max(1, min(100, $limit)); // Between 1-100
+        $offset = max(0, $offset); // >= 0
 
         $result = $this->notificationService->getUserNotifications(
-            $request->validated('user_id'),
-            $request->validated('user_type'),
+            $userId,
+            $userType,
             $limit,
             $offset
         );
@@ -119,13 +134,55 @@ class NotificationsController extends Controller
     /**
      * Đánh dấu notification đã đọc
      */
-    public function markAsRead(MarkAsReadRequest $request): JsonResponse
+    public function markAsRead(Request $request): JsonResponse
     {
-        $result = $this->notificationService->markNotificationAsRead(
-            $request->validated('user_notification_id')
-        );
+        // Lấy user info từ JWT middleware
+        $userId = $request->attributes->get('jwt_user_id');
+        $userType = $request->attributes->get('jwt_user_type');
+        
+        if (!$userId || !$userType) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Thông tin user không hợp lệ'
+            ], 401);
+        }
 
-        return response()->json($result);
+        // Lấy notification IDs từ request body
+        $notificationIds = $request->input('notification_ids', []);
+        
+        if (empty($notificationIds)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Không có thông báo nào được chọn'
+            ], 400);
+        }
+
+        $results = [];
+        $successCount = 0;
+        
+        foreach ($notificationIds as $notificationId) {
+            // Tìm user_notification dựa trên notification_id và user info
+            $result = $this->notificationService->markUserNotificationAsRead(
+                $userId,
+                $userType,
+                (int) $notificationId
+            );
+            
+            $results[] = $result;
+            if ($result['success']) {
+                $successCount++;
+            }
+        }
+
+        return response()->json([
+            'success' => $successCount > 0,
+            'message' => $successCount === count($notificationIds) 
+                ? 'Tất cả thông báo đã được đánh dấu đã đọc'
+                : "Đã đánh dấu {$successCount}/{" . count($notificationIds) . "} thông báo",
+            'results' => $results,
+            'processed' => count($notificationIds),
+            'success_count' => $successCount
+        ]);
     }
 
     /**
