@@ -40,6 +40,11 @@ interface NotificationRepositoryInterface
     public function markNotificationAsRead(int $userNotificationId): bool;
 
     /**
+     * Tìm user notification dựa trên notification_id và user info
+     */
+    public function findUserNotificationByNotificationId(int $userId, string $userType, int $notificationId): ?UserNotification;
+
+    /**
      * Lấy notifications pending
      */
     public function getPendingNotifications(): Collection;

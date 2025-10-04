@@ -71,6 +71,16 @@ class NotificationRepository implements NotificationRepositoryInterface
     }
 
     /**
+     * Tìm user notification dựa trên notification_id và user info
+     */
+    public function findUserNotificationByNotificationId(int $userId, string $userType, int $notificationId): ?UserNotification
+    {
+        return UserNotification::byUser($userId, $userType)
+            ->where('notification_id', $notificationId)
+            ->first();
+    }
+
+    /**
      * Lấy notifications pending
      */
     public function getPendingNotifications(): Collection
