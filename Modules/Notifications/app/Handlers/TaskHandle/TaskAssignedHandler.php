@@ -143,5 +143,3 @@ class TaskAssignedHandler implements NotificationEventHandler
         return (string)$value;
     }
 }
-
-

@@ -113,3 +113,4 @@ try {
     echo "❌ Error: " . $e->getMessage() . "\n";
     echo "📍 Trace: " . $e->getTraceAsString() . "\n";
 }
+

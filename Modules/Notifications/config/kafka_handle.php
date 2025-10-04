@@ -32,5 +32,3 @@ return [
         // 'system.announcement' => Modules\Notifications\app\Handlers\SystemAnnouncementHandler::class,
     ],
 ];
-
-

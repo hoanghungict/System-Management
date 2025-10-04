@@ -12,5 +12,3 @@ interface NotificationEventHandler
      */
     public function handle(string $channel, array $data): void;
 }
-
-

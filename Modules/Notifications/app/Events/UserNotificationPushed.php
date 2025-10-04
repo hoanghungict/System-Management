@@ -52,4 +52,3 @@ class UserNotificationPushed implements ShouldBroadcast
     }
 }
 
-

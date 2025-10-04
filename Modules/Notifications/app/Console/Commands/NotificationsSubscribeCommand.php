@@ -74,4 +74,3 @@ class NotificationsSubscribeCommand extends Command
     }
 }
 
-

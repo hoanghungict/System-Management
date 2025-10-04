@@ -310,3 +310,4 @@ class NotificationService
         return $template;
     }
 }
+
