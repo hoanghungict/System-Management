@@ -18,11 +18,15 @@ class RollCall extends Model
         'description',
         'date',
         'status',
-        'created_by'
+        'created_by',
+        'type',
+        'expected_participants',
+        'metadata'
     ];
 
     protected $casts = [
         'date' => 'datetime',
+        'metadata' => 'array',
     ];
 
     /**
@@ -71,5 +75,45 @@ class RollCall extends Model
     public function scopeActive($query)
     {
         return $query->where('status', 'active');
+    }
+
+    /**
+     * Scope: Lấy điểm danh theo type
+     */
+    public function scopeByType($query, $type)
+    {
+        return $query->where('type', $type);
+    }
+
+    /**
+     * Scope: Lấy điểm danh theo lớp (class-based)
+     */
+    public function scopeClassBased($query)
+    {
+        return $query->where('type', 'class_based');
+    }
+
+    /**
+     * Scope: Lấy điểm danh manual
+     */
+    public function scopeManual($query)
+    {
+        return $query->where('type', 'manual');
+    }
+
+    /**
+     * Check if roll call is class-based
+     */
+    public function isClassBased(): bool
+    {
+        return $this->type === 'class_based';
+    }
+
+    /**
+     * Check if roll call is manual
+     */
+    public function isManual(): bool
+    {
+        return $this->type === 'manual';
     }
 }

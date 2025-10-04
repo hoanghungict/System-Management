@@ -255,7 +255,7 @@ class NotificationService
                                 $userNotification->user_id,
                                 $userNotification->user_type,
                                 $this->renderTemplate($template->email_template, $data),
-                                $template->subject ?? 'Notification'
+                                $this->renderTemplate($template->subject, $data) ?? 'Notification'
                             );
                             $userNotification->markEmailAsSent();
                         }
@@ -310,3 +310,4 @@ class NotificationService
         return $template;
     }
 }
+

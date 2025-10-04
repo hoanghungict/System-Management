@@ -7,14 +7,16 @@ use Modules\Auth\app\Models\Student;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Cache;
+use Modules\Notifications\app\Services\KafkaService\KafkaProducerService;
 
 class StudentService
 {
     protected $authRepository;
-
-    public function __construct(AuthRepositoryInterface $authRepository)
+    protected $kafkaProducer;
+    public function __construct(AuthRepositoryInterface $authRepository, KafkaProducerService $kafkaProducer)
     {
         $this->authRepository = $authRepository;
+        $this->kafkaProducer = $kafkaProducer;
     }
 
     /**
@@ -67,9 +69,16 @@ class StudentService
             'password' => $password,
             'student_id' => $student->id
         ]);
-        
+        $dataStudent = Student::find($student->id);
+        $this->kafkaProducer->send('student.registered', [
+            'user_id' => $student->id,
+            'name' => $dataStudent->full_name ?? "Unknown",
+            'user_email' => $student->email ?? 'no-email@example.com'
+            'user_name' =>$username ?? "Unknown",
+            'password' => $password
+        ]);
         // Gửi notification thông báo tài khoản mới
-        $this->sendRegistrationNotification($student, $username, $password);
+        // $this->sendRegistrationNotification($student, $username, $password);
     }
     
     /**
@@ -134,7 +143,7 @@ class StudentService
                 $notificationService = app('\Modules\Notifications\app\Services\NotificationService\NotificationService');
                 
                 $notificationService->sendNotification(
-                    'user_registered',
+                    'student_account_created',
                     [['user_id' => $student->id, 'user_type' => 'student']],
                     [
                         'user_name' => $student->full_name ?? $student->student_code,
@@ -165,11 +174,35 @@ class StudentService
     private function clearStudentsCache(): void
     {
         Cache::forget('students:all');
-        
+
+        // Xóa cache cho GetStudentByClassId
+        $classIds = Student::distinct()->pluck('class_id')->filter();
+        foreach ($classIds as $classId) {
+            Cache::forget("students:class:{$classId}");
+        }
+
         // Xóa cache individual students
         $students = Student::pluck('id');
         foreach ($students as $id) {
             Cache::forget("students:{$id}");
         }
+    }
+
+    /**
+     * Xóa cache danh sách sinh viên theo lớp
+     */
+    private function clearStudentsByClassCache(int $classId): void
+    {
+        Cache::forget("students:class:{$classId}");
+    }
+
+    /**
+     * Lấy sinh viên theo ID lớp
+     */
+    public function getStudentByClassId(int $classId)
+    {
+        return Cache::remember("students:class:{$classId}", 1800, function () use ($classId) {
+            return Student::where('class_id', $classId)->get();
+        });
     }
 }

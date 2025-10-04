@@ -17,7 +17,7 @@ return new class extends Migration
             $table->unsignedBigInteger('receiver_id');
             $table->enum('receiver_type', ['lecturer', 'student', 'all_students', 'all_lecturers', 'classes', 'department'])->nullable();
             $table->timestamp('created_at')->useCurrent();
-            
+            $table->timestamp('updated_at')->useCurrent();
             $table->foreign('task_id')->references('id')->on('task')->onDelete('cascade');
             $table->index(['receiver_type', 'receiver_id']);
             $table->index(['task_id', 'receiver_type']);

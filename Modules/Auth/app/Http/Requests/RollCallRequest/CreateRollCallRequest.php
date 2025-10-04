@@ -20,11 +20,11 @@ class CreateRollCallRequest extends FormRequest
      */
     public function rules(): array
     {
-        return [
-            'class_id' => [
+        $rules = [
+            'type' => [
                 'required',
-                'integer',
-                'exists:class,id'
+                'string',
+                'in:class_based,manual'
             ],
             'title' => [
                 'required',
@@ -47,6 +47,33 @@ class CreateRollCallRequest extends FormRequest
                 'exists:lecturer,id'
             ]
         ];
+
+        // Conditional validation based on type
+        if ($this->input('type') === 'class_based') {
+            $rules['class_id'] = [
+                'required',
+                'integer',
+                'exists:class,id'
+            ];
+        } else if ($this->input('type') === 'manual') {
+            $rules['class_id'] = ['nullable'];
+            $rules['participants'] = [
+                'required',
+                'array',
+                'min:1'
+            ];
+            $rules['participants.*'] = [
+                'integer',
+                'exists:student,id'
+            ];
+            $rules['expected_participants'] = [
+                'nullable',
+                'integer',
+                'min:1'
+            ];
+        }
+
+        return $rules;
     }
 
     /**
@@ -55,6 +82,8 @@ class CreateRollCallRequest extends FormRequest
     public function messages(): array
     {
         return [
+            'type.required' => 'Vui lòng chọn loại điểm danh.',
+            'type.in' => 'Loại điểm danh không hợp lệ.',
             'class_id.required' => 'Vui lòng chọn lớp học.',
             'class_id.exists' => 'Lớp học không tồn tại.',
             'title.required' => 'Vui lòng nhập tiêu đề buổi điểm danh.',
@@ -63,7 +92,13 @@ class CreateRollCallRequest extends FormRequest
             'date.required' => 'Vui lòng chọn ngày điểm danh.',
             'date.after_or_equal' => 'Ngày điểm danh phải từ hôm nay trở đi.',
             'created_by.required' => 'Thiếu thông tin người tạo.',
-            'created_by.exists' => 'Người tạo không tồn tại.'
+            'created_by.exists' => 'Người tạo không tồn tại.',
+            'participants.required' => 'Vui lòng chọn sinh viên tham gia.',
+            'participants.array' => 'Danh sách sinh viên phải là mảng.',
+            'participants.min' => 'Phải có ít nhất 1 sinh viên.',
+            'participants.*.exists' => 'Có sinh viên không tồn tại.',
+            'expected_participants.integer' => 'Số lượng sinh viên dự kiến phải là số nguyên.',
+            'expected_participants.min' => 'Số lượng sinh viên dự kiến phải lớn hơn 0.'
         ];
     }
 
@@ -73,11 +108,14 @@ class CreateRollCallRequest extends FormRequest
     public function attributes(): array
     {
         return [
+            'type' => 'loại điểm danh',
             'class_id' => 'lớp học',
             'title' => 'tiêu đề',
             'description' => 'mô tả',
             'date' => 'ngày điểm danh',
-            'created_by' => 'người tạo'
+            'created_by' => 'người tạo',
+            'participants' => 'danh sách sinh viên',
+            'expected_participants' => 'số lượng sinh viên dự kiến'
         ];
     }
 }

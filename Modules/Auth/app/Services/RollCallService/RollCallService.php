@@ -38,38 +38,37 @@ class RollCallService
     }
 
     /**
-     * Tạo buổi điểm danh mới cho lớp
+     * Tạo buổi điểm danh mới
      */
     public function createRollCall(array $data): RollCall
     {
         DB::beginTransaction();
         
         try {
+            $type = $data['type'] ?? 'class_based';
+            
             // Tạo buổi điểm danh
             $rollCall = $this->rollCallRepository->create($data);
             
-            // Lấy danh sách sinh viên trong lớp
-            $students = Student::where('class_id', $data['class_id'])->get();
-            
-            // Tạo chi tiết điểm danh cho từng sinh viên
-            foreach ($students as $student) {
-                $this->rollCallDetailRepository->create([
-                    'roll_call_id' => $rollCall->id,
-                    'student_id' => $student->id,
-                    'status' => 'Vắng Mặt', // Mặc định là vắng mặt
-                    'checked_at' => null
-                ]);
+            // Xử lý theo loại điểm danh
+            switch ($type) {
+                case 'class_based':
+                    $this->createClassBasedRollCall($rollCall, $data);
+                    break;
+                case 'manual':
+                    $this->createManualRollCall($rollCall, $data);
+                    break;
             }
             
             // Xóa cache liên quan
-            $this->clearRollCallCache($data['class_id']);
+            $this->clearRollCallCache($data['class_id'] ?? null);
             
             DB::commit();
             
             Log::info('Roll call created successfully', [
                 'roll_call_id' => $rollCall->id,
-                'class_id' => $data['class_id'],
-                'students_count' => $students->count()
+                'type' => $type,
+                'class_id' => $data['class_id'] ?? null
             ]);
             
             return $this->rollCallRepository->findById($rollCall->id);
@@ -82,6 +81,162 @@ class RollCallService
             ]);
             throw $e;
         }
+    }
+
+    /**
+     * Tạo buổi điểm danh cho lớp cơ bản
+     */
+    private function createClassBasedRollCall(RollCall $rollCall, array $data): void
+    {
+        // Lấy danh sách sinh viên trong lớp
+        $students = Student::where('class_id', $data['class_id'])->get();
+        
+        // Tạo chi tiết điểm danh cho từng sinh viên
+        foreach ($students as $student) {
+            $this->rollCallDetailRepository->create([
+                'roll_call_id' => $rollCall->id,
+                'student_id' => $student->id,
+                'status' => 'Vắng Mặt', // Mặc định là vắng mặt
+                'checked_at' => null
+            ]);
+        }
+
+        Log::info('Class-based roll call created', [
+            'roll_call_id' => $rollCall->id,
+            'class_id' => $data['class_id'],
+            'students_count' => $students->count()
+        ]);
+    }
+
+    /**
+     * Tạo buổi điểm danh manual (tự chọn sinh viên)
+     */
+    private function createManualRollCall(RollCall $rollCall, array $data): void
+    {
+        $participants = $data['participants'] ?? [];
+        
+        // Tạo chi tiết điểm danh cho từng sinh viên được chọn
+        foreach ($participants as $studentId) {
+            $this->rollCallDetailRepository->create([
+                'roll_call_id' => $rollCall->id,
+                'student_id' => $studentId,
+                'status' => 'Vắng Mặt', // Mặc định là vắng mặt
+                'checked_at' => null
+            ]);
+        }
+
+        // Update expected_participants nếu không có
+        if (!isset($data['expected_participants'])) {
+            $this->rollCallRepository->update($rollCall->id, [
+                'expected_participants' => count($participants)
+            ]);
+        }
+
+        Log::info('Manual roll call created', [
+            'roll_call_id' => $rollCall->id,
+            'participants_count' => count($participants),
+            'expected_participants' => $data['expected_participants'] ?? count($participants)
+        ]);
+    }
+
+    /**
+     * Thêm sinh viên vào buổi điểm danh manual
+     */
+    public function addParticipants(int $rollCallId, array $studentIds): bool
+    {
+        try {
+            $rollCall = $this->rollCallRepository->findById($rollCallId);
+            
+            if (!$rollCall || !$rollCall->isManual()) {
+                throw new \Exception('Roll call không tồn tại hoặc không phải loại manual');
+            }
+
+            // Lấy danh sách sinh viên đã có
+            $existingStudentIds = $rollCall->rollCallDetails->pluck('student_id')->toArray();
+            
+            // Chỉ thêm những sinh viên chưa có
+            $newStudentIds = array_diff($studentIds, $existingStudentIds);
+            
+            foreach ($newStudentIds as $studentId) {
+                $this->rollCallDetailRepository->create([
+                    'roll_call_id' => $rollCall->id,
+                    'student_id' => $studentId,
+                    'status' => 'Vắng Mặt',
+                    'checked_at' => null
+                ]);
+            }
+
+            // Clear cache
+            $this->clearRollCallCache($rollCall->class_id);
+            Cache::forget("roll_call_details:{$rollCallId}");
+
+            Log::info('Participants added to manual roll call', [
+                'roll_call_id' => $rollCallId,
+                'new_participants' => count($newStudentIds),
+                'total_participants' => count($existingStudentIds) + count($newStudentIds)
+            ]);
+
+            return true;
+
+        } catch (\Exception $e) {
+            Log::error('Failed to add participants', [
+                'roll_call_id' => $rollCallId,
+                'error' => $e->getMessage()
+            ]);
+            return false;
+        }
+    }
+
+    /**
+     * Xóa sinh viên khỏi buổi điểm danh manual
+     */
+    public function removeParticipant(int $rollCallId, int $studentId): bool
+    {
+        try {
+            $rollCall = $this->rollCallRepository->findById($rollCallId);
+            
+            if (!$rollCall || !$rollCall->isManual()) {
+                throw new \Exception('Roll call không tồn tại hoặc không phải loại manual');
+            }
+
+            // Xóa chi tiết điểm danh
+            $deleted = $this->rollCallDetailRepository->deleteByStudentAndRollCall($studentId, $rollCallId);
+            
+            if ($deleted) {
+                // Clear cache
+                $this->clearRollCallCache($rollCall->class_id);
+                Cache::forget("roll_call_details:{$rollCallId}");
+
+                Log::info('Participant removed from manual roll call', [
+                    'roll_call_id' => $rollCallId,
+                    'student_id' => $studentId
+                ]);
+            }
+
+            return $deleted;
+
+        } catch (\Exception $e) {
+            Log::error('Failed to remove participant', [
+                'roll_call_id' => $rollCallId,
+                'student_id' => $studentId,
+                'error' => $e->getMessage()
+            ]);
+            return false;
+        }
+    }
+
+    /**
+     * Lấy danh sách tất cả sinh viên để chọn cho manual roll call
+     */
+    public function getAllStudentsForSelection()
+    {
+        $cacheKey = 'all_students_for_roll_call';
+        
+        return Cache::remember($cacheKey, 1800, function() {
+            return Student::with('account')
+                ->orderBy('full_name')
+                ->get();
+        });
     }
     
     /**
@@ -245,7 +400,89 @@ class RollCallService
         $cacheKey = "roll_call_stats:class:{$classId}:" . ($startDate ?? 'all') . ':' . ($endDate ?? 'all');
         
         return Cache::remember($cacheKey, 3600, function() use ($classId, $startDate, $endDate) {
-            return $this->rollCallRepository->getStatisticsByClass($classId, $startDate, $endDate);
+            // Lấy danh sách buổi điểm danh theo lớp và thời gian
+            $rollCallsQuery = RollCall::where('class_id', $classId);
+            
+            if ($startDate) {
+                $rollCallsQuery->whereDate('date', '>=', $startDate);
+            }
+            
+            if ($endDate) {
+                $rollCallsQuery->whereDate('date', '<=', $endDate);
+            }
+            
+            $rollCalls = $rollCallsQuery->with(['rollCallDetails'])->get();
+            
+            // Khởi tạo thống kê
+            $stats = [
+                'total_roll_calls' => $rollCalls->count(),
+                'roll_call_sessions' => [],
+                'summary' => [
+                    'total_students_checked' => 0,
+                    'total_present' => 0,
+                    'total_absent' => 0,
+                    'total_late' => 0,
+                    'total_excused' => 0,
+                    'average_attendance_rate' => 0
+                ]
+            ];
+            
+            $totalChecked = 0;
+            $totalPresent = 0;
+            $totalAbsent = 0;
+            $totalLate = 0;
+            $totalExcused = 0;
+            
+            // Thống kê từng buổi điểm danh
+            foreach ($rollCalls as $rollCall) {
+                $details = $rollCall->rollCallDetails;
+                
+                $sessionStats = [
+                    'roll_call_id' => $rollCall->id,
+                    'title' => $rollCall->title,
+                    'date' => $rollCall->date->format('Y-m-d H:i:s'),
+                    'status' => $rollCall->status,
+                    'type' => $rollCall->type ?? 'class_based',
+                    'students' => [
+                        'total' => $details->count(),
+                        'present' => $details->where('status', 'Có Mặt')->count(),
+                        'absent' => $details->where('status', 'Vắng Mặt')->count(),
+                        'late' => $details->where('status', 'Muộn')->count(),
+                        'excused' => $details->where('status', 'Có Phép')->count()
+                    ],
+                    'attendance_rate' => 0
+                ];
+                
+                // Tính tỷ lệ điểm danh cho buổi này
+                if ($sessionStats['students']['total'] > 0) {
+                    $attendedCount = $sessionStats['students']['present'] + $sessionStats['students']['late'];
+                    $sessionStats['attendance_rate'] = round(($attendedCount / $sessionStats['students']['total']) * 100, 2);
+                }
+                
+                $stats['roll_call_sessions'][] = $sessionStats;
+                
+                // Cộng dồn cho tổng kết
+                $totalChecked += $sessionStats['students']['total'];
+                $totalPresent += $sessionStats['students']['present'];
+                $totalAbsent += $sessionStats['students']['absent'];
+                $totalLate += $sessionStats['students']['late'];
+                $totalExcused += $sessionStats['students']['excused'];
+            }
+            
+            // Tính toán tổng kết
+            $stats['summary']['total_students_checked'] = $totalChecked;
+            $stats['summary']['total_present'] = $totalPresent;
+            $stats['summary']['total_absent'] = $totalAbsent;
+            $stats['summary']['total_late'] = $totalLate;
+            $stats['summary']['total_excused'] = $totalExcused;
+            
+            // Tính tỷ lệ điểm danh trung bình
+            if ($totalChecked > 0) {
+                $totalAttended = $totalPresent + $totalLate;
+                $stats['summary']['average_attendance_rate'] = round(($totalAttended / $totalChecked) * 100, 2);
+            }
+            
+            return $stats;
         });
     }
     

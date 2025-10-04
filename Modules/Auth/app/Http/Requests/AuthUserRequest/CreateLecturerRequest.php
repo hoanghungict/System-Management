@@ -26,7 +26,7 @@ class CreateLecturerRequest extends FormRequest
             'email' => 'required|email|unique:lecturer,email',
             'phone' => 'required|string|max:20',
             'lecturer_code' => 'required|string|unique:lecturer,lecturer_code',
-            'unit_id' => 'required|exists:unit,id'
+            'department_id' => 'required|exists:department,id'
         ];
     }
 

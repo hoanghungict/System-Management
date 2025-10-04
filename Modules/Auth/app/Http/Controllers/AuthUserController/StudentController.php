@@ -3,20 +3,24 @@
 namespace Modules\Auth\app\Http\Controllers\AuthUserController;
 
 use App\Http\Controllers\Controller;
+use App\Models\Student;
 use Illuminate\Http\Request;
 use Modules\Auth\app\Services\AuthUserService\StudentService;
 use Modules\Auth\app\Http\Requests\AuthUserRequest\CreateStudentRequest;
 use Modules\Auth\app\Http\Requests\AuthUserRequest\UpdateStudentRequest;
 use Modules\Auth\app\Http\Resources\AuthUserResources\UserResource;
 use Illuminate\Http\JsonResponse;
+use Modules\Notifications\app\Services\KafkaService\KafkaProducerService;
 
 class StudentController extends Controller
 {
     protected $studentService;
+    protected $kafkaProducer;
 
-    public function __construct(StudentService $studentService)
+    public function __construct(StudentService $studentService, KafkaProducerService $kafkaProducer)
     {
         $this->studentService = $studentService;
+        $this->kafkaProducer = $kafkaProducer;
     }
 
     /**
@@ -35,6 +39,7 @@ class StudentController extends Controller
     {
         try {
             $student = $this->studentService->createStudentWithAccount($request->validated());
+            
             
             return response()->json([
                 'message' => 'Tạo sinh viên thành công',
@@ -201,5 +206,10 @@ class StudentController extends Controller
                 'error' => $e->getMessage()
             ], 500);
         }
+    }
+    public function getStudentByClassId(int $classId): JsonResponse
+    {
+        $students = $this->studentService->getStudentByClassId($classId);
+        return response()->json(UserResource::collection($students));
     }
 }

@@ -7,13 +7,9 @@ return [
         'student_account_created' => 'student.registered',
         'lecturer_account_created' => 'lecturer.registered',
         'task_assigned' => 'task.assigned',
-    ],
-    'consumer' => [
-        'auto_offset_reset' => 'earliest',
-        'enable_auto_commit' => true,
-    ],
-    'producer' => [
-        'acks' => 'all',
-        'retries' => 3,
+        'official_dispatch' => 'official.dispatch',
+        'official_dispatch_status_update' => 'official.dispatch.status.update',
+        'quiz_result' => 'quiz.result',
+        'lecturer_create_course' => 'lecturer.create.course',
     ],
 ];

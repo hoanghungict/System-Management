@@ -32,7 +32,7 @@ class UpdateLecturerRequest extends FormRequest
                 Rule::unique('lecturer', 'email')->ignore($lecturerId)
             ],
             'phone' => 'sometimes|string|max:20',
-            'unit_id' => 'sometimes|exists:unit,id'
+            'departmentpartment_id' => 'sometimesdepartmeeists:department,id'
         ];
     }
 
@@ -50,7 +50,7 @@ class UpdateLecturerRequest extends FormRequest
             'email.unique' => 'Email đã tồn tại',
             'phone.string' => 'Số điện thoại phải là chuỗi',
             'phone.max' => 'Số điện thoại không được vượt quá 20 ký tự',
-            'unit_id.exists' => 'Đơn vị không tồn tại'
+            'department_id.exists' => 'Đơn vị không tồn tại'
         ];
     }
 }

@@ -15,7 +15,9 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Pagination\LengthAwarePaginator;
-
+use Modules\Auth\app\Models\Lecturer;
+use Modules\Auth\app\Models\Student;
+use Modules\Notifications\app\Services\KafkaService\KafkaProducerService;
 /**
  * Service chứa business logic cho Task
  * 
@@ -29,6 +31,7 @@ class TaskService implements TaskServiceInterface
     protected $cachedUserRepository;
     protected $cachedReportRepository;
     protected $permissionService;
+    protected $kafkaProducer;
 
     /**
      * Khởi tạo service với dependency injection
@@ -38,19 +41,23 @@ class TaskService implements TaskServiceInterface
      * @param CachedUserRepositoryInterface $cachedUserRepository Repository có cache cho user data
      * @param CachedReportRepositoryInterface $cachedReportRepository Repository có cache cho reports
      * @param PermissionService $permissionService Service xử lý permissions
+     * @param KafkaProducerService $kafkaProducer Service xử lý kafka
      */
     public function __construct(
         TaskRepositoryInterface $taskRepository, 
         CachedTaskRepositoryInterface $cachedTaskRepository,
         CachedUserRepositoryInterface $cachedUserRepository,
         CachedReportRepositoryInterface $cachedReportRepository,
-        PermissionService $permissionService
+        PermissionService $permissionService,
+        KafkaProducerService $kafkaProducer
+
     ) {
         $this->taskRepository = $taskRepository;
         $this->cachedTaskRepository = $cachedTaskRepository;
         $this->cachedUserRepository = $cachedUserRepository;
         $this->cachedReportRepository = $cachedReportRepository;
         $this->permissionService = $permissionService;
+        $this->kafkaProducer = $kafkaProducer;
     }
 
     /**
@@ -98,6 +105,27 @@ class TaskService implements TaskServiceInterface
                 // ✅ Collect và invalidate affected caches
                 $affectedCacheKeys = $this->collectAffectedCacheKeys($task);
                 $this->invalidateMultipleCaches($affectedCacheKeys);
+
+                // ✅ Send Kafka notification for each receiver
+                foreach ($receivers as $receiver) {
+                    $user = null;
+                    if ($receiver['receiver_type'] === 'student') {
+                        $user = Student::find($receiver['receiver_id']);
+                    } elseif ($receiver['receiver_type'] === 'lecturer') {
+                        $user = Lecturer::find($receiver['receiver_id']);
+                    }
+
+                    $this->kafkaProducer->send('task.assigned', [
+                        'user_id' => $receiver['receiver_id'],
+                        'user_type' => $receiver['receiver_type'],
+                        'user_name' => $user->full_name ?? "Unknown",
+                        'task_name' => $task->title,
+                        'task_description' => $task->description,
+                        'deadline' => $task->dateline,
+                        'task_url' => route('tasks.show', $task->id),
+                        'assigner_name' => $userContext->full_name ?? "Unknown",
+                    ]);
+                }
 
                 return $task;
             } catch (\Exception $e) {

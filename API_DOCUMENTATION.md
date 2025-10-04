@@ -478,12 +478,25 @@ Authorization: Bearer {JWT_TOKEN}
     "data": [
         {
             "id": 1,
-            "full_name": "Nguyễn Văn A",
-            "student_code": "SV001",
-            "email": "nguyenvana@example.com",
-            "phone": "0123456789",
-            "department": "Công nghệ thông tin",
-            "class": "WEB101"
+            "email": "sinhvien@test.com",
+            "full_name": "Sinh Viên Mẫu",
+            "phone": "0987654321",
+            "address": "Hà Nội",
+            "user_type": "student",
+            "account": {
+                "username": "sv_sv001",
+                "is_admin": false
+            },
+            "student_info": {
+                "student_code": "SV001",
+                "birth_date": "2000-01-01T00:00:00.000000Z",
+                "gender": "male",
+                "class": {
+                    "id": 1,
+                    "class_name": "Lớp CNTT K65",
+                    "class_code": "CNTT65"
+                }
+            }
         }
     ]
 }
@@ -528,21 +541,32 @@ Authorization: Bearer {JWT_TOKEN}
 
 ```json
 {
-    "status": true,
-    "message": "Sinh viên được tạo thành công",
+    "message": "Tạo sinh viên thành công",
     "data": {
-        "id": 2,
-        "full_name": "Lê Văn C",
-        "student_code": "SV002",
-        "email": "levanc@example.com",
-        "phone": "0987654321",
-        "department_id": 1,
-        "class_id": 1,
-        "gender": "male",
-        "address": "Hà Nội",
-        "birth_date": "2000-01-01",
-        "created_at": "2024-12-19T10:00:00.000000Z",
-        "updated_at": "2024-12-19T10:00:00.000000Z"
+        "id": 9,
+        "email": "anhduong185203@gmail.com",
+        "full_name": "Đỗ Văn Anh",
+        "phone": "0123848919",
+        "address": "TP.HCM",
+        "user_type": "student",
+        "account": {
+            "username": "sv_SV3",
+            "is_admin": false
+        },
+        "student_info": {
+            "student_code": "SV3",
+            "birth_date": "2000-02-02T00:00:00.000000Z",
+            "gender": "female",
+            "class": {
+                "id": 1,
+                "class_name": "Lớp CNTT K65",
+                "class_code": "CNTT65"
+            }
+        }
+    },
+    "account_info": {
+        "username": "sv_SV3",
+        "password": "123456"
     }
 }
 ```
