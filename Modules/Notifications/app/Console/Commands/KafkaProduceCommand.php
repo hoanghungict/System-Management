@@ -34,4 +34,3 @@ class KafkaProduceCommand extends Command
     }
 }
 
-
