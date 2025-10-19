@@ -197,7 +197,8 @@ class LecturerService
     private function clearLecturersCache(): void
     {
         Cache::forget('lecturers:all');
-        
+        Cache::forget('departments:all');
+        Cache::forget('departments:with_level');
         // Xóa cache individual lecturers
         $lecturers = Lecturer::pluck('id');
         foreach ($lecturers as $id) {

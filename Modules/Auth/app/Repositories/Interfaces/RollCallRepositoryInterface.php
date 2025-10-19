@@ -67,4 +67,9 @@ interface RollCallRepositoryInterface
      * Lấy buổi điểm danh gần nhất của lớp
      */
     public function getLatestByClass(int $classId): ?RollCall;
+
+    /**
+     * Lấy model instance
+     */
+    public function getModel();
 }

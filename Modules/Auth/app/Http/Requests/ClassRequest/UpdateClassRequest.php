@@ -30,7 +30,7 @@ class UpdateClassRequest extends FormRequest
                 'max:50',
                 Rule::unique('class', 'class_code')->ignore($classId)
             ],
-            'faculty_id' => 'sometimes|exists:department,id',
+            'department_id' => 'sometimes|exists:department,id',
             'lecturer_id' => 'sometimes|nullable|exists:lecturer,id',
             'school_year' => 'sometimes|string|max:20'
         ];
@@ -45,7 +45,7 @@ class UpdateClassRequest extends FormRequest
             'class_name.max' => 'Tên lớp học không được vượt quá 255 ký tự',
             'class_code.max' => 'Mã lớp học không được vượt quá 50 ký tự',
             'class_code.unique' => 'Mã lớp học đã tồn tại',
-            'faculty_id.exists' => 'Khoa không tồn tại',
+            'department_id.exists' => 'Khoa/phòng ban không tồn tại',
             'lecturer_id.exists' => 'Giảng viên không tồn tại',
             'school_year.max' => 'Năm học không được vượt quá 20 ký tự'
         ];

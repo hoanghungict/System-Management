@@ -182,4 +182,12 @@ class RollCallRepository implements RollCallRepositoryInterface
             ->orderBy('date', 'desc')
             ->first();
     }
+
+    /**
+     * Lấy model instance
+     */
+    public function getModel()
+    {
+        return $this->model;
+    }
 }

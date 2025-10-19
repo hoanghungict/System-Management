@@ -38,8 +38,8 @@ class ClassController extends Controller
             $class = $this->classService->createClass($request->validated());
             
             // Clear related cache
-            if ($class->faculty_id) {
-                Cache::forget("auth:classes:faculty:{$class->faculty_id}");
+            if ($class->department_id) {
+                Cache::forget("auth:classes:department:{$class->department_id}");
             }
             if ($class->lecturer_id) {
                 Cache::forget("auth:classes:lecturer:{$class->lecturer_id}");
@@ -101,8 +101,8 @@ class ClassController extends Controller
             Cache::forget($cacheKey);
             
             // Clear faculty and lecturer cache if they exist
-            if ($updatedClass->faculty_id) {
-                Cache::forget("auth:classes:faculty:{$updatedClass->faculty_id}");
+            if ($updatedClass->department_id) {
+                Cache::forget("auth:classes:department:{$updatedClass->department_id}");
             }
             if ($updatedClass->lecturer_id) {
                 Cache::forget("auth:classes:lecturer:{$updatedClass->lecturer_id}");
@@ -135,7 +135,7 @@ class ClassController extends Controller
             }
             
             // Store faculty and lecturer IDs before deletion for cache clearing
-            $facultyId = $class->faculty_id;
+            $departmentId = $class->department_id;
             $lecturerId = $class->lecturer_id;
             
             $this->classService->deleteClass($class);
@@ -144,8 +144,8 @@ class ClassController extends Controller
             $cacheKey = "auth:class:{$id}";
             Cache::forget($cacheKey);
             
-            if ($facultyId) {
-                Cache::forget("auth:classes:faculty:{$facultyId}");
+            if ($departmentId) {
+                Cache::forget("auth:classes:department:{$departmentId}");
             }
             if ($lecturerId) {
                 Cache::forget("auth:classes:lecturer:{$lecturerId}");
@@ -163,30 +163,30 @@ class ClassController extends Controller
     }
 
     /**
-     * Lấy danh sách classes theo faculty
+     * Lấy danh sách classes theo khoa/phòng ban
      */
-    public function getByFaculty(int $facultyId): JsonResponse
+    public function getByDepartment(int $departmentId): JsonResponse
     {
         try {
             // Try to get from cache first
-            $cacheKey = "auth:classes:faculty:{$facultyId}";
+            $cacheKey = "auth:classes:department:{$departmentId}";
             $cachedClasses = Cache::get($cacheKey);
             
             if ($cachedClasses) {
                 return response()->json([
-                    'message' => 'Danh sách lớp theo khoa (from cache)',
+                    'message' => 'Danh sách lớp theo khoa/phòng ban (from cache)',
                     'data' => ClassResource::collection($cachedClasses),
                     'source' => 'cache'
                 ]);
             }
             
-            $classes = $this->classService->getClassesByFaculty($facultyId);
+            $classes = $this->classService->getClassesByDepartment($departmentId);
             
             // Cache for 1 hour (3600 seconds)
             Cache::put($cacheKey, $classes, 3600);
             
             return response()->json([
-                'message' => 'Danh sách lớp theo khoa',
+                'message' => 'Danh sách lớp theo khoa/phòng ban',
                 'data' => ClassResource::collection($classes),
                 'source' => 'database'
             ]);

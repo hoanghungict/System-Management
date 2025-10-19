@@ -16,14 +16,14 @@ class ClassResource extends JsonResource
             'id' => $this->id,
             'class_name' => $this->class_name,
             'class_code' => $this->class_code,
-            'faculty_id' => $this->faculty_id,
+            'department_id' => $this->department_id,
             'lecturer_id' => $this->lecturer_id,
             'school_year' => $this->school_year,
-            'faculty' => $this->whenLoaded('faculty', function () {
+            'department' => $this->whenLoaded('department', function () {
                 return [
-                    'id' => $this->faculty->id,
-                    'name' => $this->faculty->name,
-                    'type' => $this->faculty->type
+                    'id' => $this->department->id,
+                    'name' => $this->department->name,
+                    'type' => $this->department->type
                 ];
             }),
             'lecturer' => $this->whenLoaded('lecturer', function () {
@@ -35,7 +35,7 @@ class ClassResource extends JsonResource
             }),
             'students_count' => $this->whenLoaded('students', function () {
                 return $this->students->count();
-            }),
+            }, $this->students_count ?? 0),
             'students' => $this->whenLoaded('students', function () {
                 return $this->students->map(function ($student) {
                     return [

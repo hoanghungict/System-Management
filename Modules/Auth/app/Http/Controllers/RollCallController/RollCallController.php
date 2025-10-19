@@ -105,6 +105,47 @@ class RollCallController extends Controller
     }
 
     /**
+     * Lấy tất cả buổi điểm danh (có phân trang và filter)
+     */
+    public function getAllRollCalls(Request $request): JsonResponse
+    {
+        try {
+            $perPage = $request->get('per_page', 15);
+            $page = $request->get('page', 1);
+            $status = $request->get('status');
+            $type = $request->get('type');
+            $search = $request->get('search');
+            $classId = $request->get('class_id');
+            
+            $rollCalls = $this->rollCallService->getAllRollCalls([
+                'per_page' => $perPage,
+                'page' => $page,
+                'status' => $status,
+                'type' => $type,
+                'search' => $search,
+                'class_id' => $classId,
+            ]);
+            
+            return response()->json([
+                'success' => true,
+                'data' => $rollCalls
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Failed to get all roll calls', [
+                'error' => $e->getMessage(),
+                'request' => $request->all()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Có lỗi xảy ra khi lấy danh sách buổi điểm danh.',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * Lấy chi tiết buổi điểm danh
      */
     public function getRollCallDetails(int $id): JsonResponse

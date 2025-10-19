@@ -3,18 +3,26 @@
 namespace Modules\Auth\app\Services\DepartmentService;
 
 use Modules\Auth\app\Models\Department;
+use Modules\Auth\app\Repositories\DepartmentRepository;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 
 class DepartmentService
 {
+    protected $departmentRepository;
+
+    public function __construct(DepartmentRepository $departmentRepository)
+    {
+        $this->departmentRepository = $departmentRepository;
+    }
+
     /**
      * Lấy tất cả departments
      */
     public function getAllDepartments(): Collection
     {
         return Cache::remember('departments:all', 3600, function() {
-            return Department::with(['parent', 'children'])->get();
+            return $this->departmentRepository->getAllWithStaffCount();
         });
     }
 
@@ -24,7 +32,7 @@ class DepartmentService
     public function getDepartmentById(int $id): ?Department
     {
         return Cache::remember("departments:{$id}", 3600, function() use ($id) {
-            return Department::with(['parent', 'children', 'lecturers', 'classes'])->find($id);
+            return $this->departmentRepository->getByIdWithStaffCount($id);
         });
     }
 
@@ -88,11 +96,7 @@ class DepartmentService
     public function getAllDepartmentsWithLevel(): Collection
     {
         return Cache::remember('departments:with_level', 3600, function() {
-            return Department::with('parent')
-                       ->orderBy('type')
-                       ->orderBy('parent_id')
-                       ->orderBy('name')
-                       ->get();
+            return $this->departmentRepository->getAllWithLevelAndStaffCount();
         });
     }
     
