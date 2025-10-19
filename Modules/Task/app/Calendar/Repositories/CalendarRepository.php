@@ -20,12 +20,33 @@ class CalendarRepository implements CalendarRepositoryInterface
      */
     public function getEventsByRange(string $start, string $end, int $userId, string $userType): array
     {
-        return Calendar::whereBetween('start_time', [$start, $end])
-            ->where('creator_id', $userId)
-            ->where('creator_type', $userType)
-            ->with('task')
-            ->get()
-            ->toArray();
+        // Calendar events nên hiển thị cho người nhận task, không phải người tạo
+        // Sử dụng Task model để lấy tasks có deadline trong khoảng thời gian
+        $tasks = \Modules\Task\app\Models\Task::whereBetween('deadline', [$start, $end])
+            ->whereHas('receivers', function ($query) use ($userId, $userType) {
+                $query->where('receiver_id', $userId)
+                      ->where('receiver_type', $userType);
+            })
+            ->with(['creator', 'receivers'])
+            ->get();
+            
+        return $tasks->map(function ($task) {
+            return [
+                'id' => $task->id,
+                'title' => $task->title,
+                'description' => $task->description,
+                'start_time' => $task->deadline,
+                'end_time' => $task->deadline,
+                'event_type' => 'task',
+                'task_id' => $task->id,
+                'status' => $task->status,
+                'priority' => $task->priority,
+                'creator' => [
+                    'id' => $task->creator_id,
+                    'type' => $task->creator_type
+                ]
+            ];
+        })->toArray();
     }
 
     /**
@@ -33,14 +54,33 @@ class CalendarRepository implements CalendarRepositoryInterface
      */
     public function getUpcomingEvents(int $userId, string $userType, int $limit = 10): array
     {
-        return Calendar::where('start_time', '>', Carbon::now())
-            ->where('creator_id', $userId)
-            ->where('creator_type', $userType)
-            ->with('task')
-            ->orderBy('start_time', 'asc')
+        $tasks = \Modules\Task\app\Models\Task::where('deadline', '>', Carbon::now())
+            ->whereHas('receivers', function ($query) use ($userId, $userType) {
+                $query->where('receiver_id', $userId)
+                      ->where('receiver_type', $userType);
+            })
+            ->with(['creator', 'receivers'])
+            ->orderBy('deadline', 'asc')
             ->limit($limit)
-            ->get()
-            ->toArray();
+            ->get();
+            
+        return $tasks->map(function ($task) {
+            return [
+                'id' => $task->id,
+                'title' => $task->title,
+                'description' => $task->description,
+                'start_time' => $task->deadline,
+                'end_time' => $task->deadline,
+                'event_type' => 'task',
+                'task_id' => $task->id,
+                'status' => $task->status,
+                'priority' => $task->priority,
+                'creator' => [
+                    'id' => $task->creator_id,
+                    'type' => $task->creator_type
+                ]
+            ];
+        })->toArray();
     }
 
     /**
@@ -48,13 +88,33 @@ class CalendarRepository implements CalendarRepositoryInterface
      */
     public function getOverdueEvents(int $userId, string $userType): array
     {
-        return Calendar::where('end_time', '<', Carbon::now())
-            ->where('creator_id', $userId)
-            ->where('creator_type', $userType)
-            ->with('task')
-            ->orderBy('end_time', 'desc')
-            ->get()
-            ->toArray();
+        $tasks = \Modules\Task\app\Models\Task::where('deadline', '<', Carbon::now())
+            ->where('status', '!=', 'completed')
+            ->whereHas('receivers', function ($query) use ($userId, $userType) {
+                $query->where('receiver_id', $userId)
+                      ->where('receiver_type', $userType);
+            })
+            ->with(['creator', 'receivers'])
+            ->orderBy('deadline', 'desc')
+            ->get();
+            
+        return $tasks->map(function ($task) {
+            return [
+                'id' => $task->id,
+                'title' => $task->title,
+                'description' => $task->description,
+                'start_time' => $task->deadline,
+                'end_time' => $task->deadline,
+                'event_type' => 'task',
+                'task_id' => $task->id,
+                'status' => $task->status,
+                'priority' => $task->priority,
+                'creator' => [
+                    'id' => $task->creator_id,
+                    'type' => $task->creator_type
+                ]
+            ];
+        })->toArray();
     }
 
     /**
@@ -62,21 +122,21 @@ class CalendarRepository implements CalendarRepositoryInterface
      */
     public function getEventsCountByStatus(int $userId, string $userType): array
     {
-        $result = Calendar::where('creator_id', $userId)
-            ->where('creator_type', $userType)
-            ->selectRaw('
-                COUNT(*) as total,
-                SUM(CASE WHEN start_time > NOW() THEN 1 ELSE 0 END) as upcoming,
-                SUM(CASE WHEN end_time < NOW() THEN 1 ELSE 0 END) as overdue,
-                SUM(CASE WHEN start_time <= NOW() AND end_time >= NOW() THEN 1 ELSE 0 END) as ongoing
-            ')
-            ->first();
+        $tasks = \Modules\Task\app\Models\Task::whereHas('receivers', function ($query) use ($userId, $userType) {
+            $query->where('receiver_id', $userId)
+                  ->where('receiver_type', $userType);
+        })->get();
 
-        return $result ? $result->toArray() : [
-            'total' => 0,
-            'upcoming' => 0,
-            'overdue' => 0,
-            'ongoing' => 0
+        $total = $tasks->count();
+        $upcoming = $tasks->where('deadline', '>', Carbon::now())->count();
+        $overdue = $tasks->where('deadline', '<', Carbon::now())->where('status', '!=', 'completed')->count();
+        $ongoing = $tasks->where('status', 'pending')->count();
+
+        return [
+            'total' => $total,
+            'upcoming' => $upcoming,
+            'overdue' => $overdue,
+            'ongoing' => $ongoing
         ];
     }
 
@@ -85,17 +145,35 @@ class CalendarRepository implements CalendarRepositoryInterface
      */
     public function getAllEvents(int $page = 1, int $perPage = 15): array
     {
-        $events = Calendar::with('task')
-            ->orderBy('start_time', 'desc')
+        $tasks = \Modules\Task\app\Models\Task::with(['creator', 'receivers'])
+            ->orderBy('deadline', 'desc')
             ->paginate($perPage, ['*'], 'page', $page);
 
+        $events = $tasks->map(function ($task) {
+            return [
+                'id' => $task->id,
+                'title' => $task->title,
+                'description' => $task->description,
+                'start_time' => $task->deadline,
+                'end_time' => $task->deadline,
+                'event_type' => 'task',
+                'task_id' => $task->id,
+                'status' => $task->status,
+                'priority' => $task->priority,
+                'creator' => [
+                    'id' => $task->creator_id,
+                    'type' => $task->creator_type
+                ]
+            ];
+        });
+
         return [
-            'data' => $events->items(),
+            'data' => $events,
             'pagination' => [
-                'current_page' => $events->currentPage(),
-                'per_page' => $events->perPage(),
-                'total' => $events->total(),
-                'last_page' => $events->lastPage()
+                'current_page' => $tasks->currentPage(),
+                'per_page' => $tasks->perPage(),
+                'total' => $tasks->total(),
+                'last_page' => $tasks->lastPage()
             ]
         ];
     }
@@ -105,10 +183,27 @@ class CalendarRepository implements CalendarRepositoryInterface
      */
     public function getEventsByType(string $type): array
     {
-        return Calendar::where('event_type', $type)
-            ->with('task')
-            ->orderBy('start_time', 'desc')
-            ->get()
-            ->toArray();
+        $tasks = \Modules\Task\app\Models\Task::where('priority', $type)
+            ->with(['creator', 'receivers'])
+            ->orderBy('deadline', 'desc')
+            ->get();
+            
+        return $tasks->map(function ($task) {
+            return [
+                'id' => $task->id,
+                'title' => $task->title,
+                'description' => $task->description,
+                'start_time' => $task->deadline,
+                'end_time' => $task->deadline,
+                'event_type' => 'task',
+                'task_id' => $task->id,
+                'status' => $task->status,
+                'priority' => $task->priority,
+                'creator' => [
+                    'id' => $task->creator_id,
+                    'type' => $task->creator_type
+                ]
+            ];
+        })->toArray();
     }
 }

@@ -7,6 +7,7 @@ use Modules\Auth\app\Http\Controllers\AuthUserController\LecturerController;
 use Modules\Auth\app\Http\Controllers\DepartmentController\DepartmentController;
 use Modules\Auth\app\Http\Controllers\ClassController\ClassController;
 use Modules\Auth\app\Http\Controllers\RollCallController\RollCallController;
+use Modules\Auth\app\Http\Controllers\RollCallController\RollCallController;
 
 // Auth routes (không cần authentication)
 Route::prefix('v1')->group(function () {

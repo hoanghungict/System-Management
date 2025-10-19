@@ -10,11 +10,14 @@ use Modules\Task\app\Services\RedisCacheService;
 use Modules\Task\app\Services\Interfaces\CacheServiceInterface;
 use Modules\Task\app\Services\CacheService;
 use Modules\Task\app\Listeners\CacheEventListener;
+use Modules\Task\app\Listeners\TaskStatusEventListener;
+use Modules\Task\app\Services\TaskStatusService;
 use Modules\Task\app\Events\CacheCreatedEvent;
 use Modules\Task\app\Events\CacheDeletedEvent;
 use Modules\Task\app\Events\CacheHitEvent;
 use Modules\Task\app\Events\CacheMissedEvent;
 use Modules\Task\app\Events\CacheInvalidatedEvent;
+use Modules\Task\app\Admin\UseCases\TaskCacheEvent;
 
 /**
  * Cache Service Provider
@@ -39,6 +42,9 @@ class CacheServiceProvider extends ServiceProvider
 
         // ✅ Register Legacy Cache Service (for backward compatibility)
         $this->app->bind(CacheServiceInterface::class, CacheService::class);
+
+        // ✅ Register Task Status Service
+        $this->app->singleton(TaskStatusService::class);
 
         // ✅ Register Cache Service as singleton for better performance
         $this->app->singleton(RedisCacheServiceInterface::class, function ($app) {
@@ -76,23 +82,41 @@ class CacheServiceProvider extends ServiceProvider
 
         // ✅ Register cache event listeners
         $this->app['events']->listen(CacheCreatedEvent::class, [
-            $listener, 'handleCacheCreated'
+            $listener,
+            'handleCacheCreated'
         ]);
 
         $this->app['events']->listen(CacheDeletedEvent::class, [
-            $listener, 'handleCacheDeleted'
+            $listener,
+            'handleCacheDeleted'
         ]);
 
         $this->app['events']->listen(CacheHitEvent::class, [
-            $listener, 'handleCacheHit'
+            $listener,
+            'handleCacheHit'
         ]);
 
         $this->app['events']->listen(CacheMissedEvent::class, [
-            $listener, 'handleCacheMissed'
+            $listener,
+            'handleCacheMissed'
         ]);
 
         $this->app['events']->listen(CacheInvalidatedEvent::class, [
-            $listener, 'handleCacheInvalidated'
+            $listener,
+            'handleCacheInvalidated'
+        ]);
+
+        // ✅ Register Task Status Event Listeners
+        $taskStatusListener = $this->app->make(TaskStatusEventListener::class);
+
+        $this->app['events']->listen(TaskCacheEvent::class, [
+            $taskStatusListener,
+            'handleTaskCompleted'
+        ]);
+
+        $this->app['events']->listen(TaskCacheEvent::class, [
+            $taskStatusListener,
+            'handleTaskStatusUpdated'
         ]);
     }
 
@@ -105,7 +129,8 @@ class CacheServiceProvider extends ServiceProvider
     {
         // ✅ Merge module cache configuration with main config
         $this->mergeConfigFrom(
-            __DIR__ . '/../../config/cache.php', 'cache'
+            __DIR__ . '/../../config/cache.php',
+            'cache'
         );
 
         // ✅ Publish cache configuration if needed

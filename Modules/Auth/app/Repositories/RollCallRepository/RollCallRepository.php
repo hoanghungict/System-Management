@@ -118,17 +118,17 @@ class RollCallRepository implements RollCallRepositoryInterface
     public function getStatisticsByClass(int $classId, ?string $startDate = null, ?string $endDate = null): array
     {
         $query = $this->model->byClass($classId)->with('rollCallDetails');
-        
+
         if ($startDate) {
             $query->whereDate('date', '>=', $startDate);
         }
-        
+
         if ($endDate) {
             $query->whereDate('date', '<=', $endDate);
         }
-        
+
         $rollCalls = $query->get();
-        
+
         $stats = [
             'total_roll_calls' => $rollCalls->count(),
             'total_students' => \Modules\Auth\app\Models\Student::where('class_id', $classId)->count(),
@@ -140,27 +140,27 @@ class RollCallRepository implements RollCallRepositoryInterface
                 'excused' => 0
             ]
         ];
-        
+
         if ($rollCalls->count() > 0) {
             $totalDetails = 0;
             $presentCount = 0;
-            
+
             foreach ($rollCalls as $rollCall) {
                 foreach ($rollCall->rollCallDetails as $detail) {
                     $totalDetails++;
                     $stats['status_breakdown'][$detail->status]++;
-                    
+
                     if (in_array($detail->status, ['present', 'late'])) {
                         $presentCount++;
                     }
                 }
             }
-            
+
             if ($totalDetails > 0) {
                 $stats['attendance_rate'] = round(($presentCount / $totalDetails) * 100, 2);
             }
         }
-        
+
         return $stats;
     }
 

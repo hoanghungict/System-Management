@@ -36,6 +36,7 @@ class TaskRequest extends FormRequest
             $rules = [
                 'title' => 'required|string|max:255',
                 'description' => 'nullable|string',
+                'due_date' => 'nullable|date|after_or_equal:today', // ✅ Thêm validation cho due_date
                 'deadline' => 'nullable|date|after:now',
                 'status' => 'nullable|in:pending,in_progress,completed,overdue',
                 'priority' => 'nullable|in:low,medium,high',
@@ -44,6 +45,8 @@ class TaskRequest extends FormRequest
                 'receivers.*.receiver_type' => 'required|in:student,lecturer,class,all_students,all_lecturers',
                 'creator_id' => 'required|integer',
                 'creator_type' => 'required|in:lecturer,student',
+                'assigned_to' => 'nullable|string|max:255', // ✅ Thêm validation cho assigned_to
+                'assigned_to_id' => 'nullable|integer|min:0', // ✅ Thêm validation cho assigned_to_id
                 'include_new_students' => 'nullable|boolean',
                 'include_new_lecturers' => 'nullable|boolean',
             ];
@@ -78,6 +81,9 @@ class TaskRequest extends FormRequest
         return [
             'title.required' => 'Task title is required.',
             'title.max' => 'Task title cannot exceed 255 characters.',
+            'due_date.date' => 'Due date must be a valid date.',
+            'due_date.after_or_equal' => 'Due date must be today or in the future.',
+            'deadline.date' => 'Deadline must be a valid date.',
             'deadline.after' => 'Deadline must be in the future.',
             'status.in' => 'Status must be pending, in_progress, completed, or overdue.',
             'priority.in' => 'Priority must be low, medium, or high.',
@@ -93,6 +99,10 @@ class TaskRequest extends FormRequest
             'creator_id.integer' => 'Creator ID must be an integer.',
             'creator_type.required' => 'Creator type is required.',
             'creator_type.in' => 'Creator type must be either lecturer or student.',
+            'assigned_to.string' => 'Assigned to must be a string.',
+            'assigned_to.max' => 'Assigned to cannot exceed 255 characters.',
+            'assigned_to_id.integer' => 'Assigned to ID must be an integer.',
+            'assigned_to_id.min' => 'Assigned to ID must be 0 or greater.',
         ];
     }
 
@@ -109,7 +119,7 @@ class TaskRequest extends FormRequest
 
         // Thiết lập giá trị mặc định nếu không có
         if (!isset($validated['creator_id'])) {
-            $validated['creator_id'] = auth()->id();
+            $validated['creator_id'] = $this->getUserIdFromJwt(); // ✅ Fix: sử dụng JWT attributes
         }
 
         if (!isset($validated['creator_type'])) {
@@ -117,6 +127,16 @@ class TaskRequest extends FormRequest
         }
 
         return $validated;
+    }
+
+    /**
+     * Lấy user ID từ JWT attributes
+     * 
+     * @return int User ID hoặc 1 nếu không có
+     */
+    private function getUserIdFromJwt(): int
+    {
+        return $this->attributes->get('jwt_user_id', 1);
     }
 
     /**

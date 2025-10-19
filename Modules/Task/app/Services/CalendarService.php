@@ -18,16 +18,44 @@ class CalendarService
     /**
      * Lấy events theo ngày
      */
-    public function getEventsByDate(string $date): array
+    public function getEventsByDate(string $date, int $userId = null, string $userType = null): array
     {
         try {
-            // Simulate calendar events from tasks
-            $events = []; // Simplified for now
+            $startDate = $date . ' 00:00:00';
+            $endDate = $date . ' 23:59:59';
+            
+            // Lấy tasks theo user nếu có, nếu không lấy tất cả
+            if ($userId && $userType) {
+                $tasks = $this->taskRepository->getTasksByDateRange($userId, $userType, $startDate, $endDate);
+            } else {
+                // Lấy tất cả tasks trong ngày (cho admin) - sử dụng Task model trực tiếp
+                $tasks = \Modules\Task\app\Models\Task::whereBetween('deadline', [$startDate, $endDate])
+                    ->with(['creator', 'receivers'])
+                    ->get();
+            }
+            
+            $events = $tasks->map(function ($task) {
+                return [
+                    'id' => $task->id,
+                    'title' => $task->title,
+                    'description' => $task->description,
+                    'start_time' => $task->deadline,
+                    'end_time' => $task->deadline,
+                    'event_type' => 'task',
+                    'task_id' => $task->id,
+                    'status' => $task->status,
+                    'priority' => $task->priority,
+                    'creator' => [
+                        'id' => $task->creator_id,
+                        'type' => $task->creator_type
+                    ]
+                ];
+            });
             
             return [
                 'date' => $date,
                 'events' => $events,
-                'count' => count($events)
+                'count' => $events->count()
             ];
         } catch (\Exception $e) {
             Log::error('CalendarService: Error getting events by date', [
@@ -46,17 +74,42 @@ class CalendarService
     /**
      * Lấy events theo khoảng thời gian
      */
-    public function getEventsByRange(string $startDate, string $endDate): array
+    public function getEventsByRange(string $startDate, string $endDate, int $userId = null, string $userType = null): array
     {
         try {
-            // Simulate calendar events from tasks
-            $events = []; // Simplified for now
+            // Lấy tasks có deadline trong khoảng thời gian này
+            if ($userId && $userType) {
+                $tasks = $this->taskRepository->getTasksByDateRange($userId, $userType, $startDate, $endDate);
+            } else {
+                // Lấy tất cả tasks trong khoảng thời gian (cho admin)
+                $tasks = \Modules\Task\app\Models\Task::whereBetween('deadline', [$startDate, $endDate])
+                    ->with(['creator', 'receivers'])
+                    ->get();
+            }
+            
+            $events = $tasks->map(function ($task) {
+                return [
+                    'id' => $task->id,
+                    'title' => $task->title,
+                    'description' => $task->description,
+                    'start_time' => $task->deadline,
+                    'end_time' => $task->deadline,
+                    'event_type' => 'task',
+                    'task_id' => $task->id,
+                    'status' => $task->status,
+                    'priority' => $task->priority,
+                    'creator' => [
+                        'id' => $task->creator_id,
+                        'type' => $task->creator_type
+                    ]
+                ];
+            });
             
             return [
                 'start_date' => $startDate,
                 'end_date' => $endDate,
                 'events' => $events,
-                'count' => count($events)
+                'count' => $events->count()
             ];
         } catch (\Exception $e) {
             Log::error('CalendarService: Error getting events by range', [
@@ -77,15 +130,43 @@ class CalendarService
     /**
      * Lấy events sắp tới
      */
-    public function getUpcomingEvents(): array
+    public function getUpcomingEvents(int $userId = null, string $userType = null): array
     {
         try {
-            // Simulate upcoming events
-            $events = []; // Simplified for now
+            // Lấy tasks có deadline sắp tới (trong 30 ngày tới)
+            $startDate = now()->format('Y-m-d H:i:s');
+            $endDate = now()->addDays(30)->format('Y-m-d H:i:s');
+            
+            if ($userId && $userType) {
+                $tasks = $this->taskRepository->getTasksByDateRange($userId, $userType, $startDate, $endDate);
+            } else {
+                // Lấy tất cả tasks sắp tới (cho admin)
+                $tasks = \Modules\Task\app\Models\Task::whereBetween('deadline', [$startDate, $endDate])
+                    ->with(['creator', 'receivers'])
+                    ->get();
+            }
+            
+            $events = $tasks->map(function ($task) {
+                return [
+                    'id' => $task->id,
+                    'title' => $task->title,
+                    'description' => $task->description,
+                    'start_time' => $task->deadline,
+                    'end_time' => $task->deadline,
+                    'event_type' => 'task',
+                    'task_id' => $task->id,
+                    'status' => $task->status,
+                    'priority' => $task->priority,
+                    'creator' => [
+                        'id' => $task->creator_id,
+                        'type' => $task->creator_type
+                    ]
+                ];
+            });
             
             return [
                 'events' => $events,
-                'count' => count($events)
+                'count' => $events->count()
             ];
         } catch (\Exception $e) {
             Log::error('CalendarService: Error getting upcoming events', [

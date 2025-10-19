@@ -3,19 +3,18 @@
 namespace Modules\Task\routes;
 
 use Modules\Task\app\Http\Controllers\Task\TaskController;
-use Modules\Task\app\Admin\Controllers\AdminTaskController;
+use Modules\Task\app\Http\Controllers\Task\TaskDependencyController;
+use Modules\Task\app\Http\Controllers\Task\TaskSubmitController;
+use Modules\Task\app\Http\Controllers\Admin\AdminTaskController;
+use Modules\Task\app\Http\Controllers\Lecturer\LecturerTaskController;
+use Modules\Task\app\Http\Controllers\Student\StudentTaskController;
+use Modules\Task\app\Http\Controllers\Reports\TaskReportController;
+use Modules\Task\app\Http\Controllers\Statistics\TaskStatisticsController;
 use Modules\Task\app\Http\Controllers\CacheController;
 use Modules\Task\app\Http\Controllers\Task\TaskMonitoringController;
-use Modules\Task\app\Admin\Controllers\AdminCalendarController;
-use Modules\Task\app\Lecturer\Controllers\LecturerTaskController;
-use Modules\Task\app\Lecturer\Controllers\LecturerCalendarController;
 use Modules\Task\app\Http\Controllers\Calendar\CalendarController;
-use Modules\Task\app\Lecturer\Controllers\LecturerProfileController;
-use Modules\Task\app\Lecturer\Controllers\LecturerClassController;
-use Modules\Task\app\Student\Controllers\StudentTaskController;
-use Modules\Task\app\Student\Controllers\StudentCalendarController;
-use Modules\Task\app\Student\Controllers\StudentProfileController;
-use Modules\Task\app\Student\Controllers\StudentClassController;
+use Modules\Task\app\Http\Controllers\Reminder\ReminderController;
+use Modules\Task\app\Http\Controllers\Email\EmailController;
 
 
 /**
@@ -39,7 +38,8 @@ class RouteConfig
                 'prefix' => 'tasks',
                 'controller' => TaskController::class,
                 'name' => 'tasks',
-                'resource_only' => ['show', 'destroy', 'store'], // Cho phép show, destroy và store
+                'resource_only' => ['index', 'show'], // Cho phép index và show
+                'exclude_routes' => ['update', 'destroy'], // Loại bỏ update và destroy vì chỉ admin được cập nhật/xóa
                 'additional_routes' => [
                     [
                         'methods' => ['GET'],
@@ -64,6 +64,13 @@ class RouteConfig
                         'uri' => '{task}/status',
                         'action' => 'updateStatus',
                         'name' => 'update-status'
+                    ],
+                    [
+                        'methods' => ['POST'],
+                        'uri' => '{task}/submit',
+                        'action' => 'submitTask',
+                        'name' => 'submit-task',
+                        'controller' => TaskSubmitController::class
                     ],
                     [
                         'methods' => ['POST'],
@@ -100,6 +107,96 @@ class RouteConfig
                         'uri' => 'lecturers',
                         'action' => 'getLecturers',
                         'name' => 'lecturers'
+                    ]
+                ]
+            ],
+            'task-dependencies' => [
+                'prefix' => 'task-dependencies',
+                'controller' => TaskDependencyController::class,
+                'name' => 'task-dependencies',
+                'additional_routes' => [
+                    // Dependencies for specific task
+                    [
+                        'methods' => ['GET'],
+                        'uri' => 'task/{taskId}',
+                        'action' => 'index',
+                        'name' => 'by-task'
+                    ],
+                    // Create dependency
+                    [
+                        'methods' => ['POST'],
+                        'uri' => '',
+                        'action' => 'store',
+                        'name' => 'store'
+                    ],
+                    // Show dependency
+                    [
+                        'methods' => ['GET'],
+                        'uri' => '{dependencyId}',
+                        'action' => 'show',
+                        'name' => 'show'
+                    ],
+                    // Update dependency
+                    [
+                        'methods' => ['PUT', 'PATCH'],
+                        'uri' => '{dependencyId}',
+                        'action' => 'update',
+                        'name' => 'update'
+                    ],
+                    // Delete dependency
+                    [
+                        'methods' => ['DELETE'],
+                        'uri' => '{dependencyId}',
+                        'action' => 'destroy',
+                        'name' => 'destroy'
+                    ],
+                    // Task with dependencies
+                    [
+                        'methods' => ['GET'],
+                        'uri' => 'task/{taskId}/with-dependencies',
+                        'action' => 'getTaskWithDependencies',
+                        'name' => 'task-with-dependencies'
+                    ],
+                    // Validate dependency
+                    [
+                        'methods' => ['POST'],
+                        'uri' => 'validate',
+                        'action' => 'validate',
+                        'name' => 'validate'
+                    ],
+                    // Check if task can start
+                    [
+                        'methods' => ['GET'],
+                        'uri' => 'task/{taskId}/can-start',
+                        'action' => 'canTaskStart',
+                        'name' => 'can-start'
+                    ],
+                    // Get blocked tasks
+                    [
+                        'methods' => ['GET'],
+                        'uri' => 'task/{taskId}/blocked-tasks',
+                        'action' => 'getBlockedTasks',
+                        'name' => 'blocked-tasks'
+                    ],
+                    // Get dependency chain
+                    [
+                        'methods' => ['GET'],
+                        'uri' => 'task/{taskId}/dependency-chain',
+                        'action' => 'getDependencyChain',
+                        'name' => 'dependency-chain'
+                    ],
+                    // Bulk operations
+                    [
+                        'methods' => ['POST'],
+                        'uri' => 'bulk-create',
+                        'action' => 'bulkStore',
+                        'name' => 'bulk-create'
+                    ],
+                    [
+                        'methods' => ['DELETE'],
+                        'uri' => 'bulk-delete',
+                        'action' => 'bulkDestroy',
+                        'name' => 'bulk-delete'
                     ]
                 ]
             ]
@@ -183,18 +280,6 @@ class RouteConfig
                     ],
                     [
                         'methods' => ['POST'],
-                        'uri' => 'generate-report',
-                        'action' => 'generateReport',
-                        'name' => 'generate-report'
-                    ],
-                    [
-                        'methods' => ['POST'],
-                        'uri' => 'send-report-email',
-                        'action' => 'sendReportEmail',
-                        'name' => 'send-report-email'
-                    ],
-                    [
-                        'methods' => ['POST'],
                         'uri' => '{task}/process-files',
                         'action' => 'processTaskFiles',
                         'name' => 'process-files'
@@ -204,7 +289,7 @@ class RouteConfig
             ],
             'lecturer-calendar' => [
                 'prefix' => 'lecturer-calendar',
-                'controller' => LecturerCalendarController::class,
+                'controller' => \Modules\Task\app\Lecturer\Controllers\LecturerCalendarController::class,
                 'name' => 'lecturer-calendar',
                 'routes' => [
                     [
@@ -275,28 +360,11 @@ class RouteConfig
                     ],
                 ]
             ],
-            'lecturer-profile' => [
-                'prefix' => 'lecturer-profile',
-                'controller' => LecturerProfileController::class,
-                'name' => 'lecturer-profile',
-                'routes' => [
-                    [
-                        'methods' => ['GET'],
-                        'uri' => '',
-                        'action' => 'show',
-                        'name' => 'show'
-                    ],
-                    [
-                        'methods' => ['PUT'],
-                        'uri' => '',
-                        'action' => 'update',
-                        'name' => 'update'
-                    ],
-                ]
-            ],
+            // Profile APIs được xử lý bởi Auth Module
+            // Không cần profile APIs trong Task Module
             'lecturer-classes' => [
                 'prefix' => 'lecturer-classes',
-                'controller' => LecturerClassController::class,
+                'controller' => \Modules\Task\app\Lecturer\Controllers\LecturerClassController::class,
                 'name' => 'lecturer-classes',
                 'routes' => [
                     [
@@ -319,52 +387,200 @@ class RouteConfig
                     ],
                 ]
             ],
-            'calendar' => [
-                'prefix' => 'calendar',
-                'name' => 'calendar',
-                'controller' => CalendarController::class,
+            // Calendar APIs đã được tích hợp vào lecturer-calendar và student-calendar
+            // Không cần calendar chung vì mỗi role có calendar riêng
+            'reminders' => [
+                'prefix' => 'reminders',
+                'name' => 'reminders',
+                'controller' => ReminderController::class,
                 'routes' => [
                     [
                         'methods' => ['GET'],
-                        'uri' => 'events/by-date',
-                        'action' => 'getEventsByDate',
-                        'name' => 'events.by-date'
-                    ],
-                    [
-                        'methods' => ['GET'],
-                        'uri' => 'events/by-range',
-                        'action' => 'getEventsByRange',
-                        'name' => 'events.by-range'
-                    ],
-                    [
-                        'methods' => ['GET'],
-                        'uri' => 'events/upcoming',
-                        'action' => 'getUpcomingEvents',
-                        'name' => 'events.upcoming'
-                    ],
-                    [
-                        'methods' => ['GET'],
-                        'uri' => 'events/overdue',
-                        'action' => 'getOverdueEvents',
-                        'name' => 'events.overdue'
-                    ],
-                    [
-                        'methods' => ['GET'],
-                        'uri' => 'events/count-by-status',
-                        'action' => 'getEventsCountByStatus',
-                        'name' => 'events.count-by-status'
-                    ],
-                    [
-                        'methods' => ['GET'],
-                        'uri' => 'reminders',
-                        'action' => 'getReminders',
-                        'name' => 'reminders.index'
+                        'uri' => '',
+                        'action' => 'index',
+                        'name' => 'index'
                     ],
                     [
                         'methods' => ['POST'],
-                        'uri' => 'reminders',
-                        'action' => 'setReminder',
-                        'name' => 'reminders.store'
+                        'uri' => '',
+                        'action' => 'store',
+                        'name' => 'store'
+                    ],
+                    [
+                        'methods' => ['GET'],
+                        'uri' => '{id}',
+                        'action' => 'show',
+                        'name' => 'show'
+                    ],
+                    [
+                        'methods' => ['PUT', 'PATCH'],
+                        'uri' => '{id}',
+                        'action' => 'update',
+                        'name' => 'update'
+                    ],
+                    [
+                        'methods' => ['DELETE'],
+                        'uri' => '{id}',
+                        'action' => 'destroy',
+                        'name' => 'destroy'
+                    ],
+                    [
+                        'methods' => ['POST'],
+                        'uri' => 'process-due',
+                        'action' => 'processDue',
+                        'name' => 'process-due'
+                    ],
+                ]
+            ],
+            'statistics' => [
+                'prefix' => 'statistics',
+                'name' => 'statistics',
+                'controller' => TaskStatisticsController::class,
+                'routes' => [
+                    [
+                        'methods' => ['GET'],
+                        'uri' => 'user',
+                        'action' => 'getUserStatistics',
+                        'name' => 'user'
+                    ],
+                    [
+                        'methods' => ['GET'],
+                        'uri' => 'created',
+                        'action' => 'getCreatedStatistics',
+                        'name' => 'created'
+                    ],
+                    [
+                        'methods' => ['GET'],
+                        'uri' => 'overview',
+                        'action' => 'getOverviewStatistics',
+                        'name' => 'overview'
+                    ],
+                    [
+                        'methods' => ['GET'],
+                        'uri' => 'completion-rate',
+                        'action' => 'getTaskCompletionRate',
+                        'name' => 'completion-rate'
+                    ],
+                    [
+                        'methods' => ['GET'],
+                        'uri' => 'priority-distribution',
+                        'action' => 'getTaskPriorityDistribution',
+                        'name' => 'priority-distribution'
+                    ],
+                    [
+                        'methods' => ['GET'],
+                        'uri' => 'status-distribution',
+                        'action' => 'getTaskStatusDistribution',
+                        'name' => 'status-distribution'
+                    ],
+                    [
+                        'methods' => ['GET'],
+                        'uri' => 'trend',
+                        'action' => 'getTaskTrend',
+                        'name' => 'trend'
+                    ],
+                    [
+                        'methods' => ['GET'],
+                        'uri' => 'breakdown-by-class',
+                        'action' => 'getTaskBreakdownByClass',
+                        'name' => 'breakdown-by-class'
+                    ],
+                    [
+                        'methods' => ['GET'],
+                        'uri' => 'breakdown-by-department',
+                        'action' => 'getTaskBreakdownByDepartment',
+                        'name' => 'breakdown-by-department'
+                    ],
+                    [
+                        'methods' => ['GET'],
+                        'uri' => 'submission-rate',
+                        'action' => 'getTaskSubmissionRate',
+                        'name' => 'submission-rate'
+                    ],
+                    [
+                        'methods' => ['GET'],
+                        'uri' => 'grading-status',
+                        'action' => 'getTaskGradingStatus',
+                        'name' => 'grading-status'
+                    ],
+                    [
+                        'methods' => ['GET'],
+                        'uri' => 'dependency-statistics',
+                        'action' => 'getTaskDependencyStatistics',
+                        'name' => 'dependency-statistics'
+                    ],
+                ]
+            ],
+            'reports' => [
+                'prefix' => 'reports',
+                'name' => 'reports',
+                'controller' => TaskReportController::class,
+                'routes' => [
+                    [
+                        'methods' => ['GET'],
+                        'uri' => 'export/excel',
+                        'action' => 'exportExcel',
+                        'name' => 'export-excel'
+                    ],
+                    [
+                        'methods' => ['GET'],
+                        'uri' => 'export/pdf',
+                        'action' => 'exportPdf',
+                        'name' => 'export-pdf'
+                    ],
+                    [
+                        'methods' => ['GET'],
+                        'uri' => 'export/csv',
+                        'action' => 'exportCsv',
+                        'name' => 'export-csv'
+                    ],
+                    [
+                        'methods' => ['GET'],
+                        'uri' => 'comprehensive',
+                        'action' => 'generateComprehensiveReport',
+                        'name' => 'comprehensive'
+                    ],
+                    [
+                        'methods' => ['GET'],
+                        'uri' => 'student/{studentId}/progress',
+                        'action' => 'generateStudentProgressReport',
+                        'name' => 'student-progress'
+                    ],
+                    [
+                        'methods' => ['GET'],
+                        'uri' => 'class/{classId}/performance',
+                        'action' => 'generateClassPerformanceReport',
+                        'name' => 'class-performance'
+                    ],
+                    [
+                        'methods' => ['GET'],
+                        'uri' => 'formats',
+                        'action' => 'getExportFormats',
+                        'name' => 'formats'
+                    ],
+                    [
+                        'methods' => ['GET'],
+                        'uri' => 'dashboard-summary',
+                        'action' => 'getDashboardSummary',
+                        'name' => 'dashboard-summary'
+                    ],
+                    [
+                        'methods' => ['GET'],
+                        'uri' => 'recent-activities',
+                        'action' => 'getRecentActivities',
+                        'name' => 'recent-activities'
+                    ],
+                    [
+                        'methods' => ['GET'],
+                        'uri' => 'overdue-tasks',
+                        'action' => 'getOverdueTasks',
+                        'name' => 'overdue-tasks'
+                    ],
+                    [
+                        'methods' => ['GET'],
+                        'uri' => 'upcoming-deadlines',
+                        'action' => 'getUpcomingDeadlines',
+                        'name' => 'upcoming-deadlines'
                     ],
                 ]
             ],
@@ -373,12 +589,6 @@ class RouteConfig
                 'name' => 'email',
                 'controller' => \Modules\Task\app\Http\Controllers\Email\EmailController::class,
                 'routes' => [
-                    [
-                        'methods' => ['POST'],
-                        'uri' => 'send-report',
-                        'action' => 'sendReportEmail',
-                        'name' => 'send-report'
-                    ],
                     [
                         'methods' => ['POST'],
                         'uri' => 'send-notification',
@@ -436,12 +646,6 @@ class RouteConfig
                         'name' => 'statistics'
                     ],
                     [
-                        'methods' => ['POST'],
-                        'uri' => '{task}/submit',
-                        'action' => 'submitTask',
-                        'name' => 'submit'
-                    ],
-                    [
                         'methods' => ['PUT'],
                         'uri' => '{task}/submission',
                         'action' => 'updateSubmission',
@@ -476,7 +680,7 @@ class RouteConfig
             ],
             'student-calendar' => [
                 'prefix' => 'student-calendar',
-                'controller' => StudentCalendarController::class,
+                'controller' => \Modules\Task\app\Student\Controllers\StudentCalendarController::class,
                 'name' => 'student-calendar',
                 'routes' => [
                     [
@@ -529,40 +733,11 @@ class RouteConfig
                     ],
                 ]
             ],
-            'student-profile' => [
-                'prefix' => 'student-profile',
-                'controller' => StudentProfileController::class,
-                'name' => 'student-profile',
-                'routes' => [
-                    [
-                        'methods' => ['GET'],
-                        'uri' => '',
-                        'action' => 'show',
-                        'name' => 'show'
-                    ],
-                    [
-                        'methods' => ['PUT'],
-                        'uri' => '',
-                        'action' => 'update',
-                        'name' => 'update'
-                    ],
-                    [
-                        'methods' => ['GET'],
-                        'uri' => 'class-info',
-                        'action' => 'getClassInfo',
-                        'name' => 'class-info'
-                    ],
-                    [
-                        'methods' => ['GET'],
-                        'uri' => 'grades',
-                        'action' => 'getGrades',
-                        'name' => 'grades'
-                    ],
-                ]
-            ],
+            // Profile APIs được xử lý bởi Auth Module
+            // Không cần profile APIs trong Task Module
             'student-class' => [
                 'prefix' => 'student-class',
-                'controller' => StudentClassController::class,
+                'controller' => \Modules\Task\app\Student\Controllers\StudentClassController::class,
                 'name' => 'student-class',
                 'routes' => [
                     [
@@ -614,40 +789,8 @@ class RouteConfig
     public static function getAdminRoutes(): array
     {
         return [
-            'middleware' => ['jwt', 'admin'],
+            'middleware' => ['jwt', 'admin', 'lecturer'],
             'prefix' => 'v1',
-            'tasks' => [
-                'prefix' => 'tasks',
-                'controller' => AdminTaskController::class,
-                'name' => 'tasks',
-                'additional_routes' => [
-                    [
-                        'methods' => ['GET'],
-                        'uri' => '',
-                        'action' => 'index',
-                        'name' => 'index'
-                    ],
-                    [
-                        'methods' => ['GET'],
-                        'uri' => 'admin/all',
-                        'action' => 'getAllTasks',
-                        'name' => 'all'
-                    ],
-                    [
-                        'methods' => ['GET'],
-                        'uri' => 'statistics/overview',
-                        'action' => 'getOverviewStatistics',
-                        'name' => 'overview-statistics'
-                    ],
-                    [
-                        'methods' => ['DELETE'],
-                        'uri' => '{task}/force',
-                        'action' => 'forceDelete',
-                        'name' => 'force-delete'
-                    ],
-                ],
-                'resource_actions' => [] // Không sử dụng resource routes để tránh conflict với /tasks/all
-            ],
             'admin-tasks' => [
                 'prefix' => 'admin-tasks',
                 'controller' => AdminTaskController::class,
@@ -655,52 +798,58 @@ class RouteConfig
                 'routes' => [
                     [
                         'methods' => ['GET'],
-                        'uri' => 'check-role',
-                        'action' => 'checkAdminRole',
-                        'name' => 'check-role'
-                    ],
-                    [
-                        'methods' => ['GET'],
-                        'uri' => 'lecturers',
-                        'action' => 'getLecturers',
-                        'name' => 'lecturers'
-                    ],
-                    [
-                        'methods' => ['GET'],
-                        'uri' => 'departments',
-                        'action' => 'getDepartments',
-                        'name' => 'departments'
+                        'uri' => '',
+                        'action' => 'index',
+                        'name' => 'index'
                     ],
                     [
                         'methods' => ['POST'],
-                        'uri' => 'assign',
-                        'action' => 'assignTaskToLecturers',
-                        'name' => 'assign'
+                        'uri' => '',
+                        'action' => 'store',
+                        'name' => 'store'
                     ],
                     [
                         'methods' => ['GET'],
-                        'uri' => 'assigned',
-                        'action' => 'getAssignedTasks',
-                        'name' => 'assigned'
+                        'uri' => '{id}',
+                        'action' => 'show',
+                        'name' => 'show'
+                    ],
+                    [
+                        'methods' => ['PUT', 'PATCH'],
+                        'uri' => '{id}',
+                        'action' => 'update',
+                        'name' => 'update'
+                    ],
+                    [
+                        'methods' => ['DELETE'],
+                        'uri' => '{id}',
+                        'action' => 'destroy',
+                        'name' => 'destroy'
                     ],
                     [
                         'methods' => ['GET'],
-                        'uri' => '{taskId}',
-                        'action' => 'getTaskDetail',
-                        'name' => 'detail'
+                        'uri' => 'system-statistics',
+                        'action' => 'getSystemStatistics',
+                        'name' => 'system-statistics'
+                    ],
+                    [
+                        'methods' => ['PATCH'],
+                        'uri' => '{id}/override-status',
+                        'action' => 'overrideStatus',
+                        'name' => 'override-status'
                     ],
                     [
                         'methods' => ['POST'],
-                        'uri' => '{taskId}/restore',
-                        'action' => 'restore',
-                        'name' => 'restore'
+                        'uri' => 'bulk-action',
+                        'action' => 'bulkAction',
+                        'name' => 'bulk-action'
                     ],
                 ]
             ],
             'calendar' => [
                 'prefix' => 'calendar',
                 'name' => 'calendar',
-                'controller' => AdminCalendarController::class,
+                'controller' => CalendarController::class,
                 'routes' => [
                     [
                         'methods' => ['GET'],

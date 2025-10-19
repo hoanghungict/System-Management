@@ -8,14 +8,18 @@ use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Cache;
 use Modules\Notifications\app\Services\KafkaService\KafkaProducerService;
+use Modules\Notifications\app\Services\KafkaService\KafkaProducerService;
 
 class StudentService
 {
     protected $authRepository;
     protected $kafkaProducer;
     public function __construct(AuthRepositoryInterface $authRepository, KafkaProducerService $kafkaProducer)
+    protected $kafkaProducer;
+    public function __construct(AuthRepositoryInterface $authRepository, KafkaProducerService $kafkaProducer)
     {
         $this->authRepository = $authRepository;
+        $this->kafkaProducer = $kafkaProducer;
         $this->kafkaProducer = $kafkaProducer;
     }
 
@@ -77,6 +81,7 @@ class StudentService
             'password' => $password
         ]);
         // Gửi notification thông báo tài khoản mới
+        // $this->sendRegistrationNotification($student, $username, $password);
         // $this->sendRegistrationNotification($student, $username, $password);
     }
     
@@ -143,6 +148,7 @@ class StudentService
                 
                 $notificationService->sendNotification(
                     'student_account_created',
+                    'student_account_created',
                     [['user_id' => $student->id, 'user_type' => 'student']],
                     [
                         'user_name' => $student->full_name ?? $student->student_code,
@@ -185,6 +191,24 @@ class StudentService
         foreach ($students as $id) {
             Cache::forget("students:{$id}");
         }
+    }
+
+    /**
+     * Xóa cache danh sách sinh viên theo lớp
+     */
+    private function clearStudentsByClassCache(int $classId): void
+    {
+        Cache::forget("students:class:{$classId}");
+    }
+
+    /**
+     * Lấy sinh viên theo ID lớp
+     */
+    public function getStudentByClassId(int $classId)
+    {
+        return Cache::remember("students:class:{$classId}", 1800, function () use ($classId) {
+            return Student::where('class_id', $classId)->get();
+        });
     }
 
     /**

@@ -5,10 +5,11 @@ namespace Modules\Notifications\app\Handlers\Contracts;
 interface NotificationEventHandler
 {
     /**
-     * Handle incoming event from message broker.
+     * Handle the notification event
      *
-     * @param string $channel Full channel name, e.g. task.assigned
-     * @param array $data Decoded JSON payload
+     * @param string $channel The channel/topic name
+     * @param array $data The event data
+     * @return void
      */
     public function handle(string $channel, array $data): void;
 }

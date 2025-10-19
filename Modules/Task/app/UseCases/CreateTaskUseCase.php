@@ -34,19 +34,19 @@ class CreateTaskUseCase
         try {
             // Validate business rules
             $this->validateBusinessRules($data);
-            
+
             // Tạo DTO
             $taskDTO = TaskDTO::forCreate($data);
-            
+
             // Tạo task thông qua service
             $task = $this->taskService->createTask($taskDTO->toArray());
-            
+
             // Load receivers để lấy email
             $task->load('receivers');
-            
+
             // Dispatch email job cho receivers
             $this->dispatchTaskNotificationEmail($task);
-            
+
             // Log success
             Log::info('Task created successfully via UseCase', [
                 'task_id' => $task->id,
@@ -54,7 +54,7 @@ class CreateTaskUseCase
                 'creator_id' => $task->creator_id,
                 'receivers_count' => $task->receivers->count()
             ]);
-            
+
             return $task;
         } catch (\Exception $e) {
             Log::error('Error creating task via UseCase: ' . $e->getMessage());
@@ -77,6 +77,17 @@ class CreateTaskUseCase
                 throw TaskException::businessRuleViolation(
                     'Deadline cannot be in the past',
                     ['deadline' => $data['deadline']]
+                );
+            }
+        }
+
+        // ✅ Kiểm tra due_date không được trong quá khứ
+        if (isset($data['due_date'])) {
+            $dueDate = \Carbon\Carbon::parse($data['due_date']);
+            if ($dueDate->isPast()) {
+                throw TaskException::businessRuleViolation(
+                    'Due date cannot be in the past',
+                    ['due_date' => $data['due_date']]
                 );
             }
         }
@@ -109,7 +120,7 @@ class CreateTaskUseCase
         try {
             // Lấy danh sách email của receivers
             $recipientEmails = $this->getReceiverEmails($task);
-            
+
             if (empty($recipientEmails)) {
                 Log::warning('No valid email addresses found for task receivers', [
                     'task_id' => $task->id,
@@ -120,7 +131,7 @@ class CreateTaskUseCase
 
             // Tạo email template
             $emailContent = $this->generateTaskNotificationTemplate($task);
-            
+
             // Tạo EmailReportDTO
             $emailDTO = new EmailReportDTO(
                 recipients: $recipientEmails,
@@ -139,13 +150,12 @@ class CreateTaskUseCase
 
             // Dispatch email job
             SendEmailJob::dispatch($emailDTO)->onQueue('emails');
-            
+
             Log::info('Task notification email dispatched', [
                 'task_id' => $task->id,
                 'recipients_count' => count($recipientEmails),
                 'recipients' => $recipientEmails
             ]);
-            
         } catch (\Exception $e) {
             Log::error('Failed to dispatch task notification email', [
                 'task_id' => $task->id,
@@ -163,14 +173,14 @@ class CreateTaskUseCase
     private function getReceiverEmails(Task $task): array
     {
         $emails = [];
-        
+
         foreach ($task->receivers as $receiver) {
             $email = $this->getEmailByReceiverType($receiver->receiver_id, $receiver->receiver_type);
             if ($email) {
                 $emails[] = $email;
             }
         }
-        
+
         return array_unique($emails);
     }
 
@@ -184,7 +194,7 @@ class CreateTaskUseCase
     private function getEmailByReceiverType(int $receiverId, string $receiverType): ?string
     {
         try {
-            return match($receiverType) {
+            return match ($receiverType) {
                 'student' => \Illuminate\Support\Facades\DB::table('student')
                     ->where('id', $receiverId)
                     ->value('email'),
@@ -216,7 +226,7 @@ class CreateTaskUseCase
     {
         $creatorName = $this->getCreatorName($task);
         $deadline = $task->deadline ? \Carbon\Carbon::parse($task->deadline)->format('d/m/Y H:i') : 'Chưa xác định';
-        
+
         return "
 📋 <strong>BẠN CÓ TASK MỚI ĐƯỢC GIAO!</strong>
 
@@ -247,7 +257,7 @@ class CreateTaskUseCase
     private function getCreatorName(Task $task): string
     {
         try {
-            return match($task->creator_type) {
+            return match ($task->creator_type) {
                 'student' => \Illuminate\Support\Facades\DB::table('student')
                     ->where('id', $task->creator_id)
                     ->value('name') ?? 'Sinh viên',

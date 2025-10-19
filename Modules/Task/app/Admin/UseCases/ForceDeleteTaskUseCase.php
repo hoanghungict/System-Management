@@ -4,6 +4,10 @@ namespace Modules\Task\app\Admin\UseCases;
 
 use Modules\Task\app\Models\Task;
 use Modules\Task\app\Services\PermissionService;
+use Modules\Task\app\Services\CacheInvalidationService;
+use Modules\Task\app\Admin\UseCases\TaskCacheEvent;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Use Case: Force Delete Task (Admin only)
@@ -14,7 +18,8 @@ use Modules\Task\app\Services\PermissionService;
 class ForceDeleteTaskUseCase
 {
     public function __construct(
-        private PermissionService $permissionService
+        private PermissionService $permissionService,
+        private CacheInvalidationService $cacheInvalidationService
     ) {}
 
     /**
@@ -33,25 +38,55 @@ class ForceDeleteTaskUseCase
             'id' => $userId,
             'user_type' => $userType
         ];
-        
+
         if (!$this->permissionService->isAdmin($userContext)) {
             throw new \Exception('Unauthorized: Admin access required');
         }
 
         // Find task (including soft deleted)
         $task = Task::find($taskId);
-        
+
         if (!$task) {
             throw new \Exception('Task not found');
         }
 
-        // Force delete the task
-        $task->forceDelete();
+        DB::beginTransaction();
 
-        return [
-            'success' => true,
-            'message' => 'Task force deleted successfully',
-            'task_id' => $taskId
-        ];
+        try {
+            // Force delete the task
+            $task->forceDelete();
+
+            // Invalidate related caches
+            $this->cacheInvalidationService->invalidateTaskCache($taskId);
+            $this->cacheInvalidationService->invalidateUserCache($userId);
+
+            // Dispatch cache invalidation event
+            event(new TaskCacheEvent('task_force_deleted', [
+                'task_id' => $taskId,
+                'user_id' => $userId,
+                'user_type' => $userType
+            ]));
+
+            DB::commit();
+
+            Log::info('Task force deleted successfully', [
+                'task_id' => $taskId,
+                'user_id' => $userId,
+                'user_type' => $userType,
+                'task_title' => $task->title
+            ]);
+
+            return [
+                'success' => true,
+                'message' => 'Task force deleted successfully',
+                'data' => [
+                    'task_id' => $taskId,
+                    'deleted_at' => now()->toISOString()
+                ]
+            ];
+        } catch (\Exception $e) {
+            DB::rollBack();
+            throw $e;
+        }
     }
 }

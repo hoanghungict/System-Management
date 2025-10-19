@@ -10,14 +10,23 @@ use Modules\Task\app\Repositories\Interfaces\CachedReportRepositoryInterface;
 use Modules\Task\app\Services\Interfaces\TaskServiceInterface;
 use Modules\Task\app\DTOs\TaskDTO;
 use Modules\Task\app\Services\PermissionService;
+use Modules\Task\app\Services\ReminderService;
 use Modules\Task\app\Exceptions\TaskException;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Pagination\LengthAwarePaginator;
-use Modules\Auth\app\Models\Lecturer;
-use Modules\Auth\app\Models\Student;
 use Modules\Notifications\app\Services\KafkaService\KafkaProducerService;
+use Modules\Task\app\Events\TaskCreated;
+use Modules\Task\app\Events\TaskUpdated;
+use Modules\Task\app\Events\TaskAssigned;
+use Modules\Task\app\Events\TaskSubmitted;
+use Modules\Task\app\Events\TaskGraded;
+use Modules\Task\app\Jobs\SendTaskCreatedNotificationJob;
+use Modules\Task\app\Jobs\SendTaskUpdatedNotificationJob;
+use Modules\Task\app\Jobs\SendTaskAssignedNotificationJob;
+use Modules\Task\app\Jobs\SendTaskSubmittedNotificationJob;
+use Modules\Task\app\Jobs\SendTaskGradedNotificationJob;
 /**
  * Service chứa business logic cho Task
  * 
@@ -30,6 +39,7 @@ class TaskService implements TaskServiceInterface
     protected $cachedTaskRepository;
     protected $cachedUserRepository;
     protected $cachedReportRepository;
+    protected $reminderService;
     protected $permissionService;
     protected $kafkaProducer;
 
@@ -41,6 +51,7 @@ class TaskService implements TaskServiceInterface
      * @param CachedUserRepositoryInterface $cachedUserRepository Repository có cache cho user data
      * @param CachedReportRepositoryInterface $cachedReportRepository Repository có cache cho reports
      * @param PermissionService $permissionService Service xử lý permissions
+     * @param ReminderService $reminderService Service xử lý reminders
      * @param KafkaProducerService $kafkaProducer Service xử lý kafka
      */
     public function __construct(
@@ -49,6 +60,7 @@ class TaskService implements TaskServiceInterface
         CachedUserRepositoryInterface $cachedUserRepository,
         CachedReportRepositoryInterface $cachedReportRepository,
         PermissionService $permissionService,
+        ReminderService $reminderService,
         KafkaProducerService $kafkaProducer
 
     ) {
@@ -57,6 +69,7 @@ class TaskService implements TaskServiceInterface
         $this->cachedUserRepository = $cachedUserRepository;
         $this->cachedReportRepository = $cachedReportRepository;
         $this->permissionService = $permissionService;
+        $this->reminderService = $reminderService;
         $this->kafkaProducer = $kafkaProducer;
     }
 
@@ -106,25 +119,31 @@ class TaskService implements TaskServiceInterface
                 $affectedCacheKeys = $this->collectAffectedCacheKeys($task);
                 $this->invalidateMultipleCaches($affectedCacheKeys);
 
-                // ✅ Send Kafka notification for each receiver
-                foreach ($receivers as $receiver) {
-                    $user = null;
-                    if ($receiver['receiver_type'] === 'student') {
-                        $user = Student::find($receiver['receiver_id']);
-                    } elseif ($receiver['receiver_type'] === 'lecturer') {
-                        $user = Lecturer::find($receiver['receiver_id']);
-                    }
+                $this->kafkaProducer->send('task.assigned', [
+                    'user_id' => $task->creator_id,
+                    'name' => $task->creator_name ?? "Unknown",
+                    'user_name' =>$task->creator_name ?? "Unknown",
+                    'user_email' => $task->creator_email ?? 'no-email@example.com'
+                ]);
 
-                    $this->kafkaProducer->send('task.assigned', [
-                        'user_id' => $receiver['receiver_id'],
-                        'user_type' => $receiver['receiver_type'],
-                        'user_name' => $user->full_name ?? "Unknown",
-                        'task_name' => $task->title,
-                        'task_description' => $task->description,
-                        'deadline' => $task->dateline,
-                        'task_url' => route('tasks.show', $task->id),
-                        'assigner_name' => $userContext->full_name ?? "Unknown",
-                    ]);
+                // ✅ Create automatic reminders for task
+                if ($task->deadline) {
+                    $this->reminderService->createAutomaticReminders($task);
+                }
+
+                // ✅ Dispatch TaskCreated event for notifications
+                event(new TaskCreated($task, [
+                    'creator_id' => $task->creator_id,
+                    'creator_type' => $task->creator_type,
+                    'receivers' => $receivers
+                ]));
+
+                // ✅ Dispatch notification jobs for each receiver
+                foreach ($task->receivers as $receiver) {
+                    SendTaskCreatedNotificationJob::dispatch(new TaskCreated($task, [
+                        'receiver_id' => $receiver->id,
+                        'receiver_type' => $receiver->type
+                    ]));
                 }
 
                 return $task;
@@ -161,6 +180,9 @@ class TaskService implements TaskServiceInterface
                 // ✅ Load receivers trước để tránh N+1 queries
                 $task->load('receivers');
                 
+                // ✅ Track changes for notifications
+                $originalData = $task->toArray();
+                
                 // Collect cache keys trước khi update
                 $affectedCacheKeys = $this->collectAffectedCacheKeys($task);
                 
@@ -196,6 +218,25 @@ class TaskService implements TaskServiceInterface
                 
                 // ✅ Clear permission cache
                 $this->clearTaskPermissionCache($task);
+
+                // ✅ Track changes and dispatch events
+                $changes = $this->trackChanges($originalData, $task->toArray());
+                
+                if (!empty($changes)) {
+                    // Dispatch TaskUpdated event
+                    event(new TaskUpdated($task, $changes, [
+                        'updater_id' => $userContext?->id ?? $task->creator_id,
+                        'updater_type' => $userContext?->role ?? $task->creator_type
+                    ]));
+
+                    // Dispatch notification jobs for each receiver
+                    foreach ($task->receivers as $receiver) {
+                        SendTaskUpdatedNotificationJob::dispatch(new TaskUpdated($task, $changes, [
+                            'receiver_id' => $receiver->id,
+                            'receiver_type' => $receiver->type
+                        ]));
+                    }
+                }
 
                 return $task;
             } catch (\Exception $e) {
@@ -1328,5 +1369,36 @@ class TaskService implements TaskServiceInterface
                 'error' => $e->getMessage()
             ]);
         }
+    }
+
+    /**
+     * Track changes between original and updated data
+     */
+    private function trackChanges(array $original, array $updated): array
+    {
+        $changes = [];
+        $trackedFields = ['title', 'description', 'deadline', 'priority', 'status'];
+
+        foreach ($trackedFields as $field) {
+            if (isset($original[$field]) && isset($updated[$field])) {
+                $oldValue = $original[$field];
+                $newValue = $updated[$field];
+
+                // Handle datetime fields
+                if ($field === 'deadline') {
+                    $oldValue = $oldValue ? date('Y-m-d H:i:s', strtotime($oldValue)) : null;
+                    $newValue = $newValue ? date('Y-m-d H:i:s', strtotime($newValue)) : null;
+                }
+
+                if ($oldValue !== $newValue) {
+                    $changes[$field] = [
+                        'old' => $oldValue,
+                        'new' => $newValue
+                    ];
+                }
+            }
+        }
+
+        return $changes;
     }
 }

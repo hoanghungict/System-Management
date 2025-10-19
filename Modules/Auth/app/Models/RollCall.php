@@ -5,6 +5,7 @@ namespace Modules\Auth\app\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class RollCall extends Model
 {
@@ -48,7 +49,7 @@ class RollCall extends Model
     /**
      * Relationship với chi tiết điểm danh
      */
-    public function rollCallDetails()
+    public function rollCallDetails(): HasMany
     {
         return $this->hasMany(RollCallDetail::class, 'roll_call_id');
     }
@@ -67,6 +68,14 @@ class RollCall extends Model
     public function scopeByDate($query, $date)
     {
         return $query->whereDate('date', $date);
+    }
+
+    /**
+     * Scope: Lấy điểm danh theo trạng thái
+     */
+    public function scopeByStatus($query, $status)
+    {
+        return $query->where('status', $status);
     }
 
     /**

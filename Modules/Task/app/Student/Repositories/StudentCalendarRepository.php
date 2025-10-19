@@ -3,28 +3,60 @@
 namespace Modules\Task\app\Student\Repositories;
 
 use Modules\Task\app\Student\Exceptions\StudentTaskException;
+use Modules\Task\app\Repositories\Interfaces\TaskRepositoryInterface;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Student Calendar Repository
  */
 class StudentCalendarRepository
 {
+    public function __construct(
+        private TaskRepositoryInterface $taskRepository
+    ) {}
+
     public function getStudentEvents($studentId, $filters = [])
     {
         try {
+            // Lấy tasks của student với pagination
+            $page = $filters['page'] ?? 1;
+            $perPage = $filters['per_page'] ?? 15;
+            
+            $tasks = $this->taskRepository->getTasksByReceiver($studentId, 'student', $filters, $perPage);
+            
+            $events = $tasks->map(function ($task) {
+                return [
+                    'id' => $task->id,
+                    'title' => $task->title,
+                    'description' => $task->description,
+                    'start' => $task->deadline,
+                    'end' => $task->deadline,
+                    'event_type' => 'task',
+                    'task_id' => $task->id,
+                    'status' => $task->status,
+                    'priority' => $task->priority,
+                    'creator' => [
+                        'id' => $task->creator_id,
+                        'type' => $task->creator_type
+                    ]
+                ];
+            });
+            
             return [
-                'data' => [
-                    ['id' => 1, 'title' => 'Event 1', 'start' => '2024-09-10 08:00', 'end' => '2024-09-10 10:00'],
-                    ['id' => 2, 'title' => 'Event 2', 'start' => '2024-09-11 14:00', 'end' => '2024-09-11 16:00']
-                ],
+                'data' => $events,
                 'pagination' => [
-                    'current_page' => 1,
-                    'per_page' => 15,
-                    'total' => 2,
-                    'last_page' => 1
+                    'current_page' => $page,
+                    'per_page' => $perPage,
+                    'total' => $tasks->count(),
+                    'last_page' => ceil($tasks->count() / $perPage)
                 ]
             ];
         } catch (\Exception $e) {
+            Log::error('StudentCalendarRepository: Error getting student events', [
+                'student_id' => $studentId,
+                'filters' => $filters,
+                'error' => $e->getMessage()
+            ]);
             throw new StudentTaskException('Failed to retrieve student events: ' . $e->getMessage(), 500);
         }
     }
@@ -32,11 +64,40 @@ class StudentCalendarRepository
     public function getEventsByDate($studentId, $date)
     {
         try {
-            return [
-                ['id' => 1, 'title' => 'Event 1', 'start' => $date . ' 08:00', 'end' => $date . ' 10:00'],
-                ['id' => 2, 'title' => 'Event 2', 'start' => $date . ' 14:00', 'end' => $date . ' 16:00']
-            ];
+            $startDate = $date . ' 00:00:00';
+            $endDate = $date . ' 23:59:59';
+            
+            $tasks = \Modules\Task\app\Models\Task::whereBetween('deadline', [$startDate, $endDate])
+                ->whereHas('receivers', function ($query) use ($studentId) {
+                    $query->where('receiver_id', $studentId)
+                          ->where('receiver_type', 'student');
+                })
+                ->with(['creator', 'receivers'])
+                ->get();
+            
+            return $tasks->map(function ($task) {
+                return [
+                    'id' => $task->id,
+                    'title' => $task->title,
+                    'description' => $task->description,
+                    'start' => $task->deadline,
+                    'end' => $task->deadline,
+                    'event_type' => 'task',
+                    'task_id' => $task->id,
+                    'status' => $task->status,
+                    'priority' => $task->priority,
+                    'creator' => [
+                        'id' => $task->creator_id,
+                        'type' => $task->creator_type
+                    ]
+                ];
+            })->toArray();
         } catch (\Exception $e) {
+            Log::error('StudentCalendarRepository: Error getting events by date', [
+                'student_id' => $studentId,
+                'date' => $date,
+                'error' => $e->getMessage()
+            ]);
             throw new StudentTaskException('Failed to retrieve events by date: ' . $e->getMessage(), 500);
         }
     }
@@ -44,11 +105,38 @@ class StudentCalendarRepository
     public function getEventsByRange($studentId, $startDate, $endDate)
     {
         try {
-            return [
-                ['id' => 1, 'title' => 'Event 1', 'start' => $startDate . ' 08:00', 'end' => $startDate . ' 10:00'],
-                ['id' => 2, 'title' => 'Event 2', 'start' => $endDate . ' 14:00', 'end' => $endDate . ' 16:00']
-            ];
+            $tasks = \Modules\Task\app\Models\Task::whereBetween('deadline', [$startDate, $endDate])
+                ->whereHas('receivers', function ($query) use ($studentId) {
+                    $query->where('receiver_id', $studentId)
+                          ->where('receiver_type', 'student');
+                })
+                ->with(['creator', 'receivers'])
+                ->get();
+            
+            return $tasks->map(function ($task) {
+                return [
+                    'id' => $task->id,
+                    'title' => $task->title,
+                    'description' => $task->description,
+                    'start' => $task->deadline,
+                    'end' => $task->deadline,
+                    'event_type' => 'task',
+                    'task_id' => $task->id,
+                    'status' => $task->status,
+                    'priority' => $task->priority,
+                    'creator' => [
+                        'id' => $task->creator_id,
+                        'type' => $task->creator_type
+                    ]
+                ];
+            })->toArray();
         } catch (\Exception $e) {
+            Log::error('StudentCalendarRepository: Error getting events by range', [
+                'student_id' => $studentId,
+                'start_date' => $startDate,
+                'end_date' => $endDate,
+                'error' => $e->getMessage()
+            ]);
             throw new StudentTaskException('Failed to retrieve events by range: ' . $e->getMessage(), 500);
         }
     }
@@ -56,11 +144,42 @@ class StudentCalendarRepository
     public function getUpcomingEvents($studentId, $limit = 10)
     {
         try {
-            return [
-                ['id' => 1, 'title' => 'Upcoming Event 1', 'start' => now()->addDays(1)->format('Y-m-d H:i:s')],
-                ['id' => 2, 'title' => 'Upcoming Event 2', 'start' => now()->addDays(2)->format('Y-m-d H:i:s')]
-            ];
+            $startDate = now()->format('Y-m-d H:i:s');
+            $endDate = now()->addDays(30)->format('Y-m-d H:i:s');
+            
+            $tasks = \Modules\Task\app\Models\Task::whereBetween('deadline', [$startDate, $endDate])
+                ->whereHas('receivers', function ($query) use ($studentId) {
+                    $query->where('receiver_id', $studentId)
+                          ->where('receiver_type', 'student');
+                })
+                ->with(['creator', 'receivers'])
+                ->orderBy('deadline', 'asc')
+                ->limit($limit)
+                ->get();
+            
+            return $tasks->map(function ($task) {
+                return [
+                    'id' => $task->id,
+                    'title' => $task->title,
+                    'description' => $task->description,
+                    'start' => $task->deadline,
+                    'end' => $task->deadline,
+                    'event_type' => 'task',
+                    'task_id' => $task->id,
+                    'status' => $task->status,
+                    'priority' => $task->priority,
+                    'creator' => [
+                        'id' => $task->creator_id,
+                        'type' => $task->creator_type
+                    ]
+                ];
+            })->toArray();
         } catch (\Exception $e) {
+            Log::error('StudentCalendarRepository: Error getting upcoming events', [
+                'student_id' => $studentId,
+                'limit' => $limit,
+                'error' => $e->getMessage()
+            ]);
             throw new StudentTaskException('Failed to retrieve upcoming events: ' . $e->getMessage(), 500);
         }
     }
@@ -68,11 +187,33 @@ class StudentCalendarRepository
     public function getOverdueEvents($studentId)
     {
         try {
-            return [
-                ['id' => 1, 'title' => 'Overdue Event 1', 'start' => now()->subDays(1)->format('Y-m-d H:i:s')],
-                ['id' => 2, 'title' => 'Overdue Event 2', 'start' => now()->subDays(2)->format('Y-m-d H:i:s')]
-            ];
+            $endDate = now()->format('Y-m-d H:i:s');
+            
+            // Lấy tasks quá hạn (deadline < now)
+            $tasks = $this->taskRepository->getTasksByReceiver($studentId, 'student', ['overdue' => true]);
+            
+            return $tasks->map(function ($task) {
+                return [
+                    'id' => $task->id,
+                    'title' => $task->title,
+                    'description' => $task->description,
+                    'start' => $task->deadline,
+                    'end' => $task->deadline,
+                    'event_type' => 'task',
+                    'task_id' => $task->id,
+                    'status' => $task->status,
+                    'priority' => $task->priority,
+                    'creator' => [
+                        'id' => $task->creator_id,
+                        'type' => $task->creator_type
+                    ]
+                ];
+            })->toArray();
         } catch (\Exception $e) {
+            Log::error('StudentCalendarRepository: Error getting overdue events', [
+                'student_id' => $studentId,
+                'error' => $e->getMessage()
+            ]);
             throw new StudentTaskException('Failed to retrieve overdue events: ' . $e->getMessage(), 500);
         }
     }
@@ -80,13 +221,22 @@ class StudentCalendarRepository
     public function getEventsCountByStatus($studentId)
     {
         try {
-            return [
-                'total' => 10,
-                'pending' => 5,
-                'completed' => 3,
-                'overdue' => 2
+            // Lấy tất cả tasks của student
+            $allTasks = $this->taskRepository->getTasksByReceiver($studentId, 'student', []);
+            
+            $counts = [
+                'total' => $allTasks->count(),
+                'pending' => $allTasks->where('status', 'pending')->count(),
+                'completed' => $allTasks->where('status', 'completed')->count(),
+                'overdue' => $allTasks->where('deadline', '<', now())->where('status', '!=', 'completed')->count()
             ];
+            
+            return $counts;
         } catch (\Exception $e) {
+            Log::error('StudentCalendarRepository: Error getting events count by status', [
+                'student_id' => $studentId,
+                'error' => $e->getMessage()
+            ]);
             throw new StudentTaskException('Failed to retrieve events count by status: ' . $e->getMessage(), 500);
         }
     }

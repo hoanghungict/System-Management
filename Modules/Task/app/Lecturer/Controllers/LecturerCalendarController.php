@@ -114,4 +114,118 @@ class LecturerCalendarController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Lấy events theo ngày
+     */
+    public function getEventsByDate(Request $request)
+    {
+        try {
+            $lecturerId = $request->attributes->get('jwt_user_id');
+            $date = $request->get('date');
+            $events = $this->lecturerCalendarUseCase->getEventsByDate($lecturerId, $date);
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Events by date retrieved successfully',
+                'data' => $events
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve events by date: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Lấy events theo khoảng thời gian
+     */
+    public function getEventsByRange(Request $request)
+    {
+        try {
+            $lecturerId = $request->attributes->get('jwt_user_id');
+            $startDate = $request->get('start');
+            $endDate = $request->get('end');
+            $events = $this->lecturerCalendarUseCase->getEventsByRange($lecturerId, $startDate, $endDate);
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Events by range retrieved successfully',
+                'data' => $events
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve events by range: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Lấy events sắp tới
+     */
+    public function getUpcomingEvents(Request $request)
+    {
+        try {
+            $lecturerId = $request->attributes->get('jwt_user_id');
+            $limit = $request->get('limit', 10);
+            $events = $this->lecturerCalendarUseCase->getUpcomingEvents($lecturerId, $limit);
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Upcoming events retrieved successfully',
+                'data' => $events
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve upcoming events: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Lấy events quá hạn
+     */
+    public function getOverdueEvents(Request $request)
+    {
+        try {
+            $lecturerId = $request->attributes->get('jwt_user_id');
+            $events = $this->lecturerCalendarUseCase->getOverdueEvents($lecturerId);
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Overdue events retrieved successfully',
+                'data' => $events
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve overdue events: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Đếm events theo status
+     */
+    public function getEventsCountByStatus(Request $request)
+    {
+        try {
+            $lecturerId = $request->attributes->get('jwt_user_id');
+            $counts = $this->lecturerCalendarUseCase->getEventsCountByStatus($lecturerId);
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Events count by status retrieved successfully',
+                'data' => $counts
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve events count by status: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 }

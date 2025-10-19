@@ -5,7 +5,7 @@
     "keywords": [],
     "priority": 0,
     "providers": [
-        "Modules\\Task\\app\\Providers\\TaskServiceProvider"
+        "Modules\\Task\\Providers\\TaskServiceProvider"
     ],
     "files": []
 }

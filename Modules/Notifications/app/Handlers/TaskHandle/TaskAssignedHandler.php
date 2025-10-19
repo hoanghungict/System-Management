@@ -42,104 +42,45 @@ class TaskAssignedHandler implements NotificationEventHandler
                 'user_id' => $userId
             ]);
 
-            // Sử dụng NotificationService để gửi thông báo qua tất cả kênh
-            $result = $this->notificationService->sendNotification(
-                'task_assigned', // Tên template
-                [
-                    [
-                        'user_id' => $userId,
-                        'user_type' => $userType,
-                        'channels' => ['email', 'push', 'in_app']
-                    ]
-                ],
-                $templateData, // Dữ liệu chuẩn bị cho template
-                [
-                    'priority' => 'medium',
-                    'sender_id' => $data['assigner_id'] ?? null,
-                    'sender_type' => $data['assigner_type'] ?? 'lecturer'
-                ]
+            // Send notification
+            $this->notificationService->sendNotification(
+                'task_assigned', // Template name
+                [['user_id' => $receiverId, 'user_type' => $receiverType]],
+                $templateData,
+                ['priority' => $notificationPriority]
             );
 
-            if ($result['success']) {
-                Log::info('TaskAssignedHandler: Gửi thông báo thành công', [
-                    'notification_id' => $result['notification_id'],
-                    'user_id' => $userId,
-                    'task_name' => $taskName
-                ]);
-            } else {
-                Log::error('TaskAssignedHandler: Gửi thông báo thất bại', [
-                    'error' => $result['error'],
-                    'user_id' => $userId
-                ]);
-            }
+            Log::info('Task assigned notification sent', [
+                'task_id' => $taskId,
+                'receiver_id' => $receiverId,
+                'receiver_type' => $receiverType,
+                'assigner' => $assignerName
+            ]);
 
         } catch (\Exception $e) {
-            Log::error('TaskAssignedHandler: Lỗi xảy ra', [
-                'user_id' => $userId,
+            Log::error('TaskAssignedHandler: Failed to send notification', [
                 'error' => $e->getMessage(),
+                'data' => $data,
                 'trace' => $e->getTraceAsString()
             ]);
         }
     }
 
     /**
-     * Chuẩn bị dữ liệu cho template từ Kafka message
+     * Get notification priority based on task priority and deadline
      */
-    private function prepareTemplateData(array $kafkaData): array
+    private function getNotificationPriority(string $taskPriority, ?string $deadline): string
     {
-        // Lấy dữ liệu từ Kafka message và đảm bảo là chuỗi
-        $taskName = $this->ensureString($kafkaData['task_name'] ?? 'Công việc mới');
-        $userName = $this->ensureString($kafkaData['user_name'] ?? 'User');
-        $assignerName = $this->ensureString($kafkaData['assigner_name'] ?? 'Hệ thống');
-        $deadline = $this->ensureString($kafkaData['deadline'] ?? '');
-        $taskDescription = $this->ensureString($kafkaData['task_description'] ?? '');
-        $taskUrl = $this->ensureString($kafkaData['task_url'] ?? '');
+        // High priority if task is high priority
+        if ($taskPriority === 'high') {
+            return 'high';
+        }
 
-        // Chuẩn bị dữ liệu cho template
-        return [
-            // Dữ liệu từ Kafka message
-            'user_name' => $userName,
-            'task_name' => $taskName,
-            'task_description' => $taskDescription,
-            'assigner_name' => $assignerName,
-            'deadline' => $deadline,
-            'task_url' => $taskUrl,
-            
-            // Dữ liệu hệ thống
-            'app_name' => config('notification_config.name', 'Hệ thống quản lý giáo dục'),
-            'year' => date('Y'),
-            'subject' => 'Công việc mới: ' . $taskName,
-            
-            // URLs có thể từ config hoặc hardcode
-            'logo_url' => config('notification_config.logo_url', 'https://via.placeholder.com/120x40/3b82f6/ffffff?text=LOGO'),
-            'banner_url' => config('notification_config.banner_url', 'https://via.placeholder.com/600x200/3b82f6/ffffff?text=Banner'),
-            
-            // Giữ nguyên data gốc từ Kafka để có thể sử dụng sau này (nhưng convert thành string)
-            'original_data' => $this->ensureString(json_encode($kafkaData, JSON_UNESCAPED_UNICODE))
-        ];
-    }
+        // High priority if deadline is within 24 hours
+        if ($deadline && now()->diffInHours($deadline) <= 24) {
+            return 'high';
+        }
 
-    /**
-     * Đảm bảo giá trị là chuỗi
-     */
-    private function ensureString($value): string
-    {
-        if (is_array($value)) {
-            return json_encode($value, JSON_UNESCAPED_UNICODE);
-        }
-        
-        if (is_object($value)) {
-            return json_encode($value, JSON_UNESCAPED_UNICODE);
-        }
-        
-        if (is_bool($value)) {
-            return $value ? 'true' : 'false';
-        }
-        
-        if (is_null($value)) {
-            return '';
-        }
-        
-        return (string)$value;
+        return 'normal';
     }
 }

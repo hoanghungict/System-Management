@@ -13,11 +13,11 @@ class ListKafkaTopicsCommand extends Command
     public function handle(): int
     {
         $this->info('Liệt kê Kafka topics...');
-        
+
         try {
             $topicManager = app(KafkaTopicManager::class);
             $topics = $topicManager->listAllTopics();
-            
+
             if (empty($topics)) {
                 $this->warn('Không có topic nào được tìm thấy.');
             } else {
@@ -26,9 +26,8 @@ class ListKafkaTopicsCommand extends Command
                     $this->line("- $topic");
                 }
             }
-            
+
             return self::SUCCESS;
-            
         } catch (\Exception $e) {
             $this->error('Lỗi khi liệt kê topics: ' . $e->getMessage());
             return self::FAILURE;

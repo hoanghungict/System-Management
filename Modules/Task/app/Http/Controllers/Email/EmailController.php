@@ -14,31 +14,6 @@ use Illuminate\Http\JsonResponse;
 class EmailController extends Controller
 {
     /**
-     * POST /email/send-report
-     */
-    public function sendReportEmail(Request $request): JsonResponse
-    {
-        $validated = $request->validate([
-            'recipients' => 'required|array',
-            'recipients.*' => 'email',
-            'subject' => 'required|string',
-            'report_type' => 'required|string|in:daily,weekly,monthly',
-            'date_range' => 'nullable|array'
-        ]);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Report email sent successfully',
-            'data' => [
-                'recipients' => $validated['recipients'],
-                'subject' => $validated['subject'],
-                'report_type' => $validated['report_type'],
-                'sent_at' => now()->toISOString()
-            ]
-        ]);
-    }
-
-    /**
      * POST /email/send-notification
      */
     public function sendNotificationEmail(Request $request): JsonResponse
