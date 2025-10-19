@@ -69,7 +69,6 @@ services:
         networks:
             - hpc_network
 
-    # Zookeeper cho Kafka
     zookeeper:
         image: confluentinc/cp-zookeeper:latest
         container_name: hpc_zookeeper
@@ -82,7 +81,6 @@ services:
         networks:
             - hpc_network
 
-    # Kafka broker
     kafka:
         image: confluentinc/cp-kafka:6.2.10
         container_name: hpc_kafka
@@ -113,10 +111,42 @@ services:
         working_dir: /var/www
         volumes:
             - .:/var/www
+        command: php artisan queue:work --queue=emails --verbose --tries=3 --timeout=90
+        depends_on:
+            - app
+            - redis
+        networks:
+            - hpc_network
+
+    queue_default:
+        build:
+            context: .
+            dockerfile: Dockerfile
+        container_name: hpc_queue_default
+        restart: unless-stopped
+        working_dir: /var/www
+        volumes:
+            - .:/var/www
         command: php artisan queue:work --verbose --tries=3 --timeout=90
         depends_on:
             - app
             - redis
+        networks:
+            - hpc_network
+
+    kafka_consumer:
+        build:
+            context: .
+            dockerfile: Dockerfile
+        container_name: hpc_kafka_consumer
+        restart: unless-stopped
+        working_dir: /var/www
+        volumes:
+            - .:/var/www
+        command: php artisan kafka:consume
+        depends_on:
+            - app
+            - kafka
         networks:
             - hpc_network
 

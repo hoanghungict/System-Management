@@ -32,6 +32,7 @@ class RollCallService
     {
         $cacheKey = 'classrooms:with_students';
         
+        // Cache 30 phút - classrooms ít thay đổi
         return Cache::remember($cacheKey, 1800, function() {
             return Classroom::with('students')->get();
         });
@@ -246,8 +247,59 @@ class RollCallService
     {
         $cacheKey = "roll_calls:class:{$classId}:page:{$perPage}";
         
-        return Cache::remember($cacheKey, 1800, function() use ($classId, $perPage) {
+        // Cache 5 phút (300s) - data có thể thay đổi
+        return Cache::remember($cacheKey, 300, function() use ($classId, $perPage) {
             return $this->rollCallRepository->getByClass($classId, $perPage);
+        });
+    }
+    
+    /**
+     * Lấy tất cả buổi điểm danh với filter và phân trang
+     */
+    public function getAllRollCalls(array $filters = [])
+    {
+        $perPage = $filters['per_page'] ?? 15;
+        $page = $filters['page'] ?? 1;
+        $status = $filters['status'] ?? null;
+        $type = $filters['type'] ?? null;
+        $search = $filters['search'] ?? null;
+        $classId = $filters['class_id'] ?? null;
+        
+        $cacheKey = "roll_calls:all:page:{$page}:per_page:{$perPage}:status:{$status}:type:{$type}:search:{$search}:class:{$classId}";
+        
+        // GIẢM CACHE TIME từ 1800s (30 phút) xuống 60s (1 phút)
+        // Vì roll calls data thay đổi thường xuyên (create, update, complete, cancel)
+        return Cache::remember($cacheKey, 60, function() use ($perPage, $page, $status, $type, $search, $classId) {
+            $query = $this->rollCallRepository->getModel()->with(['class', 'creator']);
+            
+            // Filter by status
+            if ($status) {
+                $query->where('status', $status);
+            }
+            
+            // Filter by type
+            if ($type) {
+                $query->where('type', $type);
+            }
+            
+            // Filter by class
+            if ($classId) {
+                $query->where('class_id', $classId);
+            }
+            
+            // Search by title or description
+            if ($search) {
+                $query->where(function($q) use ($search) {
+                    $q->where('title', 'LIKE', "%{$search}%")
+                      ->orWhere('description', 'LIKE', "%{$search}%");
+                });
+            }
+            
+            // Order by created_at desc
+            $query->orderBy('created_at', 'desc');
+            
+            // Paginate
+            return $query->paginate($perPage, ['*'], 'page', $page);
         });
     }
     
@@ -489,18 +541,76 @@ class RollCallService
     /**
      * Xóa cache điểm danh
      */
-    private function clearRollCallCache(int $classId): void
+    private function clearRollCallCache(?int $classId = null): void
     {
-        // Xóa cache danh sách buổi điểm danh
-        $keys = [
-            "roll_calls:class:{$classId}:page:*",
-            "roll_call_stats:class:{$classId}:*"
-        ];
-        
-        foreach ($keys as $pattern) {
-            // Nếu dùng Redis, có thể dùng pattern matching
-            // Ở đây ta xóa cache cơ bản
-            Cache::forget("roll_calls:class:{$classId}");
+        // Xóa cache cho getRollCallsByClass nếu có classId
+        if ($classId) {
+            // Xóa tất cả pages của class này
+            for ($i = 1; $i <= 20; $i++) {
+                Cache::forget("roll_calls:class:{$classId}:page:{$i}");
+            }
+            Cache::forget("roll_call_stats:class:{$classId}");
         }
+        
+        // XÓA TẤT CẢ CACHE CỦA getAllRollCalls
+        // Cache key pattern: roll_calls:all:page:X:per_page:Y:status:Z:type:W:search:S:class:C
+        // Vì có nhiều combinations, cần xóa toàn bộ
+        
+        // Option 1: Sử dụng Redis keys pattern (nếu dùng Redis)
+        try {
+            if (Cache::getStore() instanceof \Illuminate\Cache\RedisStore) {
+                // Sử dụng Laravel Redis facade
+                $redis = \Illuminate\Support\Facades\Redis::connection();
+                
+                // Xóa tất cả keys bắt đầu với roll_calls:all:
+                $prefix = config('cache.prefix') . ':';
+                $pattern = $prefix . 'roll_calls:all:*';
+                
+                $keys = $redis->keys($pattern);
+                if (!empty($keys)) {
+                    // Xóa từng key
+                    foreach ($keys as $key) {
+                        // Laravel Redis keys đã có prefix, xóa trực tiếp
+                        Cache::forget(str_replace($prefix, '', $key));
+                    }
+                    Log::info('Cleared getAllRollCalls cache via Redis', [
+                        'keys_count' => count($keys),
+                        'pattern' => $pattern
+                    ]);
+                }
+            }
+        } catch (\Exception $e) {
+            Log::warning('Could not clear cache via Redis, using fallback', [
+                'error' => $e->getMessage()
+            ]);
+        }
+        
+        // Option 2: Fallback - xóa các cache keys phổ biến
+        $statuses = ['', 'active', 'completed', 'cancelled'];
+        $types = ['', 'class_based', 'manual'];
+        $perPages = [10, 15, 20, 25, 50, 100];
+        
+        foreach ($statuses as $status) {
+            foreach ($types as $type) {
+                foreach ($perPages as $perPage) {
+                    // Xóa 5 pages đầu tiên cho mỗi combination
+                    for ($page = 1; $page <= 5; $page++) {
+                        $cacheKey = "roll_calls:all:page:{$page}:per_page:{$perPage}:status:{$status}:type:{$type}:search::class:";
+                        Cache::forget($cacheKey);
+                        
+                        // Cũng xóa với class_id nếu có
+                        if ($classId) {
+                            $cacheKey = "roll_calls:all:page:{$page}:per_page:{$perPage}:status:{$status}:type:{$type}:search::class:{$classId}";
+                            Cache::forget($cacheKey);
+                        }
+                    }
+                }
+            }
+        }
+        
+        Log::info('Roll call cache cleared comprehensively', [
+            'class_id' => $classId,
+            'method' => 'Redis + fallback patterns'
+        ]);
     }
 }

@@ -73,7 +73,6 @@ class StudentService
         $this->kafkaProducer->send('student.registered', [
             'user_id' => $student->id,
             'name' => $dataStudent->full_name ?? "Unknown",
-            'user_email' => $student->email ?? 'no-email@example.com'
             'user_name' =>$username ?? "Unknown",
             'password' => $password
         ]);
@@ -174,7 +173,7 @@ class StudentService
     private function clearStudentsCache(): void
     {
         Cache::forget('students:all');
-
+        Cache::forget('classrooms:all');
         // Xóa cache cho GetStudentByClassId
         $classIds = Student::distinct()->pluck('class_id')->filter();
         foreach ($classIds as $classId) {

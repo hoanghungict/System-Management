@@ -22,7 +22,7 @@ class CreateClassRequest extends FormRequest
         return [
             'class_name' => 'required|string|max:255',
             'class_code' => 'required|string|max:50|unique:class,class_code',
-            'faculty_id' => 'required|exists:department,id',
+            'department_id' => 'required|exists:department,id',
             'lecturer_id' => 'nullable|exists:lecturer,id',
             'school_year' => 'required|string|max:20'
         ];
@@ -39,8 +39,8 @@ class CreateClassRequest extends FormRequest
             'class_code.required' => 'Mã lớp học là bắt buộc',
             'class_code.max' => 'Mã lớp học không được vượt quá 50 ký tự',
             'class_code.unique' => 'Mã lớp học đã tồn tại',
-            'faculty_id.required' => 'Khoa là bắt buộc',
-            'faculty_id.exists' => 'Khoa không tồn tại',
+            'department_id.required' => 'Bắt buộc chọn khoa/phòng ban',
+            'department_id.exists' => 'Khoa/phòng ban không tồn tại',
             'lecturer_id.exists' => 'Giảng viên không tồn tại',
             'school_year.required' => 'Năm học là bắt buộc',
             'school_year.max' => 'Năm học không được vượt quá 20 ký tự'

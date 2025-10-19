@@ -14,7 +14,9 @@ class ClassService
     public function getAllClasses(): Collection
     {
         return Cache::remember('classrooms:all', 1800, function() {
-            return Classroom::with(['faculty', 'lecturer', 'students'])->get();
+            return Classroom::with(['department', 'lecturer', 'students'])
+                ->withCount(['students'])
+                ->get();
         });
     }
 
@@ -24,7 +26,9 @@ class ClassService
     public function getClassById(int $id): ?Classroom
     {
         return Cache::remember("classrooms:{$id}", 1800, function() use ($id) {
-            return Classroom::with(['faculty', 'lecturer', 'students'])->find($id);
+            return Classroom::with(['department', 'lecturer', 'students'])
+                ->withCount(['students'])
+                ->find($id);
         });
     }
 
@@ -75,13 +79,13 @@ class ClassService
     }
 
     /**
-     * Lấy classes theo faculty
+     * Lấy classes theo khoa/phòng ban
      */
-    public function getClassesByFaculty(int $facultyId): Collection
+    public function getClassesByDepartment(int $departmentId): Collection
     {
-        return Cache::remember("classrooms:faculty:{$facultyId}", 1800, function() use ($facultyId) {
-            return Classroom::where('faculty_id', $facultyId)
-                           ->with(['faculty', 'lecturer', 'students'])
+        return Cache::remember("classrooms:department:{$departmentId}", 1800, function() use ($departmentId) {
+            return Classroom::where('department_id', $departmentId)
+                           ->with(['department', 'lecturer', 'students'])
                            ->get();
         });
     }
@@ -93,7 +97,7 @@ class ClassService
     {
         return Cache::remember("classrooms:lecturer:{$lecturerId}", 1800, function() use ($lecturerId) {
             return Classroom::where('lecturer_id', $lecturerId)
-                           ->with(['faculty', 'lecturer', 'students'])
+                           ->with(['department', 'lecturer', 'students'])
                            ->get();
         });
     }
@@ -104,7 +108,7 @@ class ClassService
     public function getClassesBySchoolYear(string $schoolYear): Collection
     {
         return Classroom::where('school_year', $schoolYear)
-                       ->with(['faculty', 'lecturer', 'students'])
+                       ->with(['department', 'lecturer', 'students'])
                        ->get();
     }
 
@@ -117,7 +121,7 @@ class ClassService
             return Classroom::where('class_name', 'like', "%{$keyword}%")
                            ->orWhere('class_code', 'like', "%{$keyword}%")
                            ->orWhere('school_year', 'like', "%{$keyword}%")
-                           ->with(['faculty', 'lecturer', 'students'])
+                           ->with(['department', 'lecturer', 'students'])
                            ->get();
         });
     }
@@ -128,6 +132,7 @@ class ClassService
     private function clearClassroomsCache(): void
     {
         Cache::forget('classrooms:all');
+        Cache::forget('departments:all');
         
         // Xóa cache individual classrooms
         $classrooms = Classroom::pluck('id');
@@ -135,10 +140,10 @@ class ClassService
             Cache::forget("classrooms:{$id}");
         }
         
-        // Xóa cache faculty/lecturer specific
-        $faculties = Classroom::distinct()->pluck('faculty_id');
-        foreach ($faculties as $facultyId) {
-            Cache::forget("classrooms:faculty:{$facultyId}");
+        // Xóa cache department/lecturer specific
+        $departments = Classroom::distinct()->pluck('department_id');
+        foreach ($departments as $departmentId) {
+            Cache::forget("classrooms:department:{$departmentId}");
         }
         
         $lecturers = Classroom::distinct()->pluck('lecturer_id');

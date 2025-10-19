@@ -86,6 +86,7 @@ Route::prefix('v1')->group(function () {
         
         // Tạo và quản lý buổi điểm danh
         Route::post('/roll-calls', [RollCallController::class, 'store']); // Support cả class_based và manual
+        Route::get('/roll-calls', [RollCallController::class, 'getAllRollCalls']); // NEW: Lấy tất cả roll calls
         Route::get('/roll-calls/class/{classId}', [RollCallController::class, 'getRollCallsByClass']);
         Route::get('/roll-calls/{id}', [RollCallController::class, 'getRollCallDetails']);
         

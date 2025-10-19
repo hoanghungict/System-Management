@@ -86,8 +86,8 @@ class RegisterLecturerHandle implements NotificationEventHandler {
 
     public function prepareTemplateData(array $data): array
     {
-        $usernName = $this->ensureString->ensureString($data['user_name'] ?? 'sv_' . $data['student_code']);
-        $name = $this->ensureString->ensureString($data['name'] ?? 'Sinh viên mới');
+        $usernName = $this->ensureString->ensureString($data['user_name'] ?? 'gv_' . $data['student_code']);
+        $name = $this->ensureString->ensureString($data['name'] ?? 'Giảng viên mới');
         $password = $this->ensureString->ensureString($data['password'] ?? '123456');
 
         return [
@@ -98,7 +98,7 @@ class RegisterLecturerHandle implements NotificationEventHandler {
             // Dữ Liệu Hệ Thống
             'app_name' => config('notification_config.name', 'Hệ Điện Tử Khoa CNTT'),
             'year' => date('Y'),
-            'subject' => 'Đăng ký tài khoản sinh viên',
+            'subject' => 'Đăng ký tài khoản giảng viên',
             'logo_url' => config('notification_config.logo_url', 'https://via.placeholder.com/120x40/3b82f6/ffffff?text=LOGO'),
             'banner_url' => config('notification_config.banner_url', 'https://via.placeholder.com/600x200/3b82f6/ffffff?text=Banner'),
             'original_data' => $this->ensureString->ensureString(json_encode($data, JSON_UNESCAPED_UNICODE))
