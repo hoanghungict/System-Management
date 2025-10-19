@@ -16,12 +16,12 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class Task extends Model
 {
     use HasFactory, SoftDeletes;
-    
+
     /**
      * Tên bảng trong database
      */
     protected $table = 'task';
-    
+
     /**
      * Tạo factory instance cho model để sử dụng trong testing
      * 
@@ -32,18 +32,21 @@ class Task extends Model
         // Factory sẽ được tạo khi cần thiết cho testing
         return null;
     }
-    
+
     /**
      * Các trường có thể mass assign
      */
     protected $fillable = [
         'title',
         'description',
+        'due_date', // ✅ Thêm due_date
         'deadline',
         'status',
         'priority',
         'creator_id',
         'creator_type',
+        'assigned_to', // ✅ Thêm assigned_to
+        'assigned_to_id', // ✅ Thêm assigned_to_id
         'include_new_students',
         'include_new_lecturers'
     ];
@@ -54,13 +57,14 @@ class Task extends Model
     public $timestamps = true;
     const CREATED_AT = 'created_at';
     const UPDATED_AT = 'updated_at';
-    
+
     /**
      * Các trường được cast sang kiểu dữ liệu cụ thể
      */
     protected $casts = [
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
+        'due_date' => 'date', // ✅ Thêm cast cho due_date
         'deadline' => 'datetime',
         'include_new_students' => 'boolean',
         'include_new_lecturers' => 'boolean',
@@ -84,6 +88,58 @@ class Task extends Model
     public function submissions(): HasMany
     {
         return $this->hasMany(TaskSubmission::class, 'task_id');
+    }
+
+    /**
+     * Lấy danh sách dependencies mà task này là predecessor (các task phụ thuộc vào task này)
+     * 
+     * @return HasMany Relationship với TaskDependency
+     */
+    public function dependentTasks(): HasMany
+    {
+        return $this->hasMany(TaskDependency::class, 'predecessor_task_id');
+    }
+
+    /**
+     * Lấy danh sách dependencies mà task này là successor (task này phụ thuộc vào các task khác)
+     * 
+     * @return HasMany Relationship với TaskDependency
+     */
+    public function dependencies(): HasMany
+    {
+        return $this->hasMany(TaskDependency::class, 'successor_task_id');
+    }
+
+    /**
+     * Lấy danh sách tasks mà task này phụ thuộc vào (predecessor tasks)
+     * 
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsToMany
+     */
+    public function predecessors()
+    {
+        return $this->belongsToMany(
+            Task::class,
+            'task_dependencies',
+            'successor_task_id',
+            'predecessor_task_id'
+        )->withPivot(['dependency_type', 'lag_days', 'metadata', 'created_at'])
+            ->withTimestamps();
+    }
+
+    /**
+     * Lấy danh sách tasks phụ thuộc vào task này (successor tasks)
+     * 
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsToMany
+     */
+    public function successors()
+    {
+        return $this->belongsToMany(
+            Task::class,
+            'task_dependencies',
+            'predecessor_task_id',
+            'successor_task_id'
+        )->withPivot(['dependency_type', 'lag_days', 'metadata', 'created_at'])
+            ->withTimestamps();
     }
 
     // ❌ Calendar events relationship removed - không cần thiết cho task system

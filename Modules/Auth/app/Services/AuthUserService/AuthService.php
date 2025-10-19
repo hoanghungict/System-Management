@@ -61,8 +61,11 @@ class AuthService
             'sub' => $user->id,
             'user_type' => $userType,
             'username' => $user->account->username ?? null,
+            'is_admin' => $user->account->is_admin ?? false,
             'email' => $user->email ?? null,
             'full_name' => $user->full_name ?? null,
+            'department_id' => $user->department_id ?? null,
+            'class_id' => $user->class_id ?? null,
             'iat' => time(),
             'exp' => time() + (config('jwt.ttl', 60) * 60), // Sử dụng config TTL
         ];

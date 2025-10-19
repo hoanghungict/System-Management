@@ -1,0 +1,979 @@
+{
+    "openapi": "3.0.3",
+    "info": {
+        "title": "HPC Project API",
+        "description": "Complete API documentation for HPC Project - Student Management System",
+        "version": "1.0.0",
+        "contact": {
+            "name": "API Support",
+            "email": "support@hpcproject.com"
+        }
+    },
+    "servers": [
+        {
+            "url": "http://localhost:8080/api",
+            "description": "Development server"
+        },
+        {
+            "url": "http://localhost:8000/api",
+            "description": "Alternative development server"
+        }
+    ],
+    "security": [
+        {
+            "bearerAuth": []
+        }
+    ],
+    "paths": {
+        "/auth/login": {
+            "post": {
+                "tags": ["Authentication"],
+                "summary": "User login",
+                "description": "Login with username and password for students or lecturers",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/LoginRequest"
+                            },
+                            "example": {
+                                "username": "student001",
+                                "password": "password123",
+                                "user_type": "student"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Login successful",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/LoginResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Invalid credentials",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ValidationErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/refresh": {
+            "post": {
+                "tags": ["Authentication"],
+                "summary": "Refresh token",
+                "description": "Refresh JWT token",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Token refreshed successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RefreshResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Invalid or expired token",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/me": {
+            "get": {
+                "tags": ["Authentication"],
+                "summary": "Get current user info",
+                "description": "Get information about the currently authenticated user",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "User information retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/UserInfoResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/logout": {
+            "post": {
+                "tags": ["Authentication"],
+                "summary": "User logout",
+                "description": "Logout and invalidate token",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Logout successful",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/LogoutResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/students": {
+            "get": {
+                "tags": ["Student Management"],
+                "summary": "Get all students",
+                "description": "Retrieve list of all students (Admin only)",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "description": "Page number",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "default": 1
+                        }
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "description": "Number of items per page",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 100,
+                            "default": 15
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Students retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/StudentListResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden - Admin only",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": ["Student Management"],
+                "summary": "Create new student",
+                "description": "Create a new student (Admin only)",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CreateStudentRequest"
+                            },
+                            "example": {
+                                "full_name": "Nguyễn Văn A",
+                                "birth_date": "2000-01-15",
+                                "gender": "Nam",
+                                "address": "123 Đường ABC, Quận 1, TP.HCM",
+                                "email": "nguyenvana@example.com",
+                                "phone": "0123456789",
+                                "student_code": "SV001",
+                                "class_id": 1
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Student created successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/StudentResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden - Admin only",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ValidationErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/students/{id}": {
+            "get": {
+                "tags": ["Student Management"],
+                "summary": "Get student by ID",
+                "description": "Get student information by ID (Admin or student can view own profile)",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "description": "Student ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Student information retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/StudentResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden - Can only view own profile",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Student not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "put": {
+                "tags": ["Student Management"],
+                "summary": "Update student",
+                "description": "Update student information (Admin or student can update own profile)",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "description": "Student ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdateStudentRequest"
+                            },
+                            "example": {
+                                "full_name": "Nguyễn Văn A Updated",
+                                "birth_date": "2000-01-15",
+                                "gender": "Nam",
+                                "address": "456 Đường XYZ, Quận 2, TP.HCM",
+                                "email": "nguyenvana.updated@example.com",
+                                "phone": "0987654321"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Student updated successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/StudentResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden - Can only update own profile",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Student not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ValidationErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "tags": ["Student Management"],
+                "summary": "Delete student",
+                "description": "Delete student (Admin only)",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "description": "Student ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Student deleted successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/DeleteResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden - Admin only",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Student not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "components": {
+        "securitySchemes": {
+            "bearerAuth": {
+                "type": "http",
+                "scheme": "bearer",
+                "bearerFormat": "JWT",
+                "description": "JWT token obtained from login endpoint"
+            }
+        },
+        "schemas": {
+            "LoginRequest": {
+                "type": "object",
+                "required": ["username", "password", "user_type"],
+                "properties": {
+                    "username": {
+                        "type": "string",
+                        "maxLength": 255,
+                        "description": "Username for login",
+                        "example": "student001"
+                    },
+                    "password": {
+                        "type": "string",
+                        "minLength": 6,
+                        "description": "Password for login",
+                        "example": "password123"
+                    },
+                    "user_type": {
+                        "type": "string",
+                        "enum": ["student", "lecturer"],
+                        "description": "Type of user logging in",
+                        "example": "student"
+                    }
+                }
+            },
+            "LoginResponse": {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "message": {
+                        "type": "string",
+                        "example": "Login successful"
+                    },
+                    "data": {
+                        "type": "object",
+                        "properties": {
+                            "token": {
+                                "type": "string",
+                                "description": "JWT token",
+                                "example": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9..."
+                            },
+                            "user": {
+                                "type": "object",
+                                "properties": {
+                                    "id": {
+                                        "type": "integer",
+                                        "example": 1
+                                    },
+                                    "username": {
+                                        "type": "string",
+                                        "example": "student001"
+                                    },
+                                    "user_type": {
+                                        "type": "string",
+                                        "example": "student"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "RefreshResponse": {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "message": {
+                        "type": "string",
+                        "example": "Token refreshed successfully"
+                    },
+                    "data": {
+                        "type": "object",
+                        "properties": {
+                            "token": {
+                                "type": "string",
+                                "description": "New JWT token",
+                                "example": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9..."
+                            }
+                        }
+                    }
+                }
+            },
+            "UserInfoResponse": {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "message": {
+                        "type": "string",
+                        "example": "User information retrieved successfully"
+                    },
+                    "data": {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "type": "integer",
+                                "example": 1
+                            },
+                            "username": {
+                                "type": "string",
+                                "example": "student001"
+                            },
+                            "user_type": {
+                                "type": "string",
+                                "example": "student"
+                            },
+                            "profile": {
+                                "type": "object",
+                                "description": "User profile information"
+                            }
+                        }
+                    }
+                }
+            },
+            "LogoutResponse": {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "message": {
+                        "type": "string",
+                        "example": "Logout successful"
+                    }
+                }
+            },
+            "CreateStudentRequest": {
+                "type": "object",
+                "required": [
+                    "full_name",
+                    "birth_date",
+                    "gender",
+                    "address",
+                    "email",
+                    "phone",
+                    "student_code",
+                    "class_id"
+                ],
+                "properties": {
+                    "full_name": {
+                        "type": "string",
+                        "maxLength": 255,
+                        "description": "Full name of the student",
+                        "example": "Nguyễn Văn A"
+                    },
+                    "birth_date": {
+                        "type": "string",
+                        "format": "date",
+                        "description": "Birth date of the student",
+                        "example": "2000-01-15"
+                    },
+                    "gender": {
+                        "type": "string",
+                        "enum": ["Nam", "Nữ", "Khác"],
+                        "description": "Gender of the student",
+                        "example": "Nam"
+                    },
+                    "address": {
+                        "type": "string",
+                        "description": "Address of the student",
+                        "example": "123 Đường ABC, Quận 1, TP.HCM"
+                    },
+                    "email": {
+                        "type": "string",
+                        "format": "email",
+                        "maxLength": 255,
+                        "description": "Email address of the student",
+                        "example": "nguyenvana@example.com"
+                    },
+                    "phone": {
+                        "type": "string",
+                        "maxLength": 20,
+                        "description": "Phone number of the student",
+                        "example": "0123456789"
+                    },
+                    "student_code": {
+                        "type": "string",
+                        "maxLength": 50,
+                        "description": "Unique student code",
+                        "example": "SV001"
+                    },
+                    "class_id": {
+                        "type": "integer",
+                        "description": "ID of the class the student belongs to",
+                        "example": 1
+                    }
+                }
+            },
+            "UpdateStudentRequest": {
+                "type": "object",
+                "properties": {
+                    "full_name": {
+                        "type": "string",
+                        "maxLength": 255,
+                        "description": "Full name of the student",
+                        "example": "Nguyễn Văn A Updated"
+                    },
+                    "birth_date": {
+                        "type": "string",
+                        "format": "date",
+                        "description": "Birth date of the student",
+                        "example": "2000-01-15"
+                    },
+                    "gender": {
+                        "type": "string",
+                        "enum": ["Nam", "Nữ", "Khác"],
+                        "description": "Gender of the student",
+                        "example": "Nam"
+                    },
+                    "address": {
+                        "type": "string",
+                        "description": "Address of the student",
+                        "example": "456 Đường XYZ, Quận 2, TP.HCM"
+                    },
+                    "email": {
+                        "type": "string",
+                        "format": "email",
+                        "maxLength": 255,
+                        "description": "Email address of the student",
+                        "example": "nguyenvana.updated@example.com"
+                    },
+                    "phone": {
+                        "type": "string",
+                        "maxLength": 20,
+                        "description": "Phone number of the student",
+                        "example": "0987654321"
+                    }
+                }
+            },
+            "StudentResponse": {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "message": {
+                        "type": "string",
+                        "example": "Student retrieved successfully"
+                    },
+                    "data": {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "type": "integer",
+                                "example": 1
+                            },
+                            "full_name": {
+                                "type": "string",
+                                "example": "Nguyễn Văn A"
+                            },
+                            "birth_date": {
+                                "type": "string",
+                                "format": "date",
+                                "example": "2000-01-15"
+                            },
+                            "gender": {
+                                "type": "string",
+                                "example": "Nam"
+                            },
+                            "address": {
+                                "type": "string",
+                                "example": "123 Đường ABC, Quận 1, TP.HCM"
+                            },
+                            "email": {
+                                "type": "string",
+                                "example": "nguyenvana@example.com"
+                            },
+                            "phone": {
+                                "type": "string",
+                                "example": "0123456789"
+                            },
+                            "student_code": {
+                                "type": "string",
+                                "example": "SV001"
+                            },
+                            "class_id": {
+                                "type": "integer",
+                                "example": 1
+                            },
+                            "class": {
+                                "type": "object",
+                                "properties": {
+                                    "id": {
+                                        "type": "integer",
+                                        "example": 1
+                                    },
+                                    "class_name": {
+                                        "type": "string",
+                                        "example": "Lớp CNTT K20"
+                                    },
+                                    "class_code": {
+                                        "type": "string",
+                                        "example": "CNTT20"
+                                    }
+                                }
+                            },
+                            "created_at": {
+                                "type": "string",
+                                "format": "date-time",
+                                "example": "2024-01-15T10:30:00Z"
+                            },
+                            "updated_at": {
+                                "type": "string",
+                                "format": "date-time",
+                                "example": "2024-01-15T10:30:00Z"
+                            }
+                        }
+                    }
+                }
+            },
+            "StudentListResponse": {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "message": {
+                        "type": "string",
+                        "example": "Students retrieved successfully"
+                    },
+                    "data": {
+                        "type": "object",
+                        "properties": {
+                            "students": {
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/components/schemas/StudentResponse"
+                                }
+                            },
+                            "pagination": {
+                                "type": "object",
+                                "properties": {
+                                    "current_page": {
+                                        "type": "integer",
+                                        "example": 1
+                                    },
+                                    "per_page": {
+                                        "type": "integer",
+                                        "example": 15
+                                    },
+                                    "total": {
+                                        "type": "integer",
+                                        "example": 100
+                                    },
+                                    "last_page": {
+                                        "type": "integer",
+                                        "example": 7
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "DeleteResponse": {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "message": {
+                        "type": "string",
+                        "example": "Resource deleted successfully"
+                    }
+                }
+            },
+            "ErrorResponse": {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": false
+                    },
+                    "message": {
+                        "type": "string",
+                        "example": "An error occurred"
+                    },
+                    "error": {
+                        "type": "string",
+                        "example": "Error details"
+                    }
+                }
+            },
+            "ValidationErrorResponse": {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": false
+                    },
+                    "message": {
+                        "type": "string",
+                        "example": "Validation failed"
+                    },
+                    "errors": {
+                        "type": "object",
+                        "additionalProperties": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "example": {
+                            "email": ["The email field is required."],
+                            "password": [
+                                "The password must be at least 6 characters."
+                            ]
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

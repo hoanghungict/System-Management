@@ -26,7 +26,7 @@ class CacheInvalidationService implements CacheInvalidationServiceInterface
         try {
             // Simulate cache clearing
             Log::info('CacheInvalidationService: Student cache invalidated');
-            
+
             return [
                 'status' => 'success',
                 'cleared_caches' => ['student', 'student_tasks', 'student_calendar']
@@ -50,7 +50,7 @@ class CacheInvalidationService implements CacheInvalidationServiceInterface
         try {
             // Simulate cache clearing
             Log::info('CacheInvalidationService: Lecturer cache invalidated');
-            
+
             return [
                 'status' => 'success',
                 'cleared_caches' => ['lecturer', 'lecturer_tasks', 'lecturer_calendar']
@@ -74,7 +74,7 @@ class CacheInvalidationService implements CacheInvalidationServiceInterface
         try {
             // Simulate cache clearing
             Log::info('CacheInvalidationService: Department cache invalidated');
-            
+
             return [
                 'status' => 'success',
                 'cleared_caches' => ['department', 'department_tasks']
@@ -98,7 +98,7 @@ class CacheInvalidationService implements CacheInvalidationServiceInterface
         try {
             // Simulate cache clearing
             Log::info('CacheInvalidationService: Class cache invalidated');
-            
+
             return [
                 'status' => 'success',
                 'cleared_caches' => ['class', 'class_tasks']
@@ -121,7 +121,7 @@ class CacheInvalidationService implements CacheInvalidationServiceInterface
     {
         try {
             $clearedCaches = [];
-            
+
             foreach ($types as $type) {
                 switch ($type) {
                     case 'student':
@@ -142,7 +142,7 @@ class CacheInvalidationService implements CacheInvalidationServiceInterface
                         break;
                 }
             }
-            
+
             return [
                 'status' => 'success',
                 'cleared_caches' => $clearedCaches
@@ -166,13 +166,61 @@ class CacheInvalidationService implements CacheInvalidationServiceInterface
         try {
             // Simulate cache clearing
             Log::info('CacheInvalidationService: All cache invalidated');
-            
+
             return [
                 'status' => 'success',
                 'cleared_caches' => ['all']
             ];
         } catch (\Exception $e) {
             Log::error('CacheInvalidationService: Error invalidating all cache', [
+                'error' => $e->getMessage()
+            ]);
+            return [
+                'status' => 'error',
+                'message' => $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * Invalidate task cache by task ID
+     */
+    public function invalidateTaskCache(int $taskId): array
+    {
+        try {
+            Log::info('CacheInvalidationService: Task cache invalidated', ['task_id' => $taskId]);
+
+            return [
+                'status' => 'success',
+                'cleared_caches' => ['task_' . $taskId, 'task_dependencies_' . $taskId]
+            ];
+        } catch (\Exception $e) {
+            Log::error('CacheInvalidationService: Error invalidating task cache', [
+                'task_id' => $taskId,
+                'error' => $e->getMessage()
+            ]);
+            return [
+                'status' => 'error',
+                'message' => $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * Invalidate user cache by user ID
+     */
+    public function invalidateUserCache(int $userId): array
+    {
+        try {
+            Log::info('CacheInvalidationService: User cache invalidated', ['user_id' => $userId]);
+
+            return [
+                'status' => 'success',
+                'cleared_caches' => ['user_' . $userId, 'user_tasks_' . $userId]
+            ];
+        } catch (\Exception $e) {
+            Log::error('CacheInvalidationService: Error invalidating user cache', [
+                'user_id' => $userId,
                 'error' => $e->getMessage()
             ]);
             return [

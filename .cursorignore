@@ -1,0 +1,36 @@
+# Cursor ignore file
+# This file tells Cursor which files to ignore during indexing
+
+# Rule files (already processed)
+.cursor/rules/
+.cursorrules
+
+# Dependencies
+node_modules/
+vendor/
+
+# Build outputs
+build/
+dist/
+
+# IDE files
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Cache
+cache/
+storage/framework/cache/
+storage/framework/sessions/
+storage/framework/views/
+
+# Temporary files
+tmp/
+temp/

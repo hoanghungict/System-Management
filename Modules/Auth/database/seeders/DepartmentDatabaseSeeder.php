@@ -3,7 +3,7 @@
 namespace Modules\Auth\database\seeders;
 
 use Illuminate\Database\Seeder;
-use Modules\Auth\app\Models\Unit;
+use Modules\Auth\app\Models\Department;
 
 class DepartmentDatabaseSeeder extends Seeder
 {
@@ -13,9 +13,9 @@ class DepartmentDatabaseSeeder extends Seeder
     public function run(): void
     {
         // Tạo University (Trường đại học)
-        $university = Unit::create([
+        $university = Department::create([
             'name' => 'Đại học Công nghệ Thông tin',
-            'type' => 'university'
+            'type' => 'school'
         ]);
 
         // Tạo các Faculty (Khoa)
@@ -33,11 +33,11 @@ class DepartmentDatabaseSeeder extends Seeder
         ];
 
         foreach ($faculties as $facultyData) {
-            $faculty = Unit::create($facultyData);
+            $faculty = Department::create($facultyData);
 
             // Tạo các Department (Tổ) cho mỗi khoa
             if ($faculty->name === 'Khoa Công nghệ Thông tin') {
-                Unit::create([
+                Department::create([
                     'name' => 'Tổ Công nghệ Phần mềm',
                     'type' => 'department',
                     'parent_id' => $faculty->id
@@ -45,7 +45,7 @@ class DepartmentDatabaseSeeder extends Seeder
             }
 
             if ($faculty->name === 'Khoa Kỹ thuật Điện tử - Viễn thông') {
-                Unit::create([
+                Department::create([
                     'name' => 'Tổ Điện tử',
                     'type' => 'department',
                     'parent_id' => $faculty->id

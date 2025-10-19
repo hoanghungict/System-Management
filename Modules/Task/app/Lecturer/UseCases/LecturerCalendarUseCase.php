@@ -56,4 +56,54 @@ class LecturerCalendarUseCase
             throw new LecturerTaskException('Failed to delete event: ' . $e->getMessage(), 500);
         }
     }
+
+    public function getEventsByDate($lecturerId, $date)
+    {
+        try {
+            $events = $this->lecturerCalendarRepository->getEventsByDate($lecturerId, $date);
+            return $events;
+        } catch (\Exception $e) {
+            throw new LecturerTaskException('Failed to retrieve events by date: ' . $e->getMessage(), 500);
+        }
+    }
+
+    public function getEventsByRange($lecturerId, $startDate, $endDate)
+    {
+        try {
+            $events = $this->lecturerCalendarRepository->getEventsByRange($lecturerId, $startDate, $endDate);
+            return $events;
+        } catch (\Exception $e) {
+            throw new LecturerTaskException('Failed to retrieve events by range: ' . $e->getMessage(), 500);
+        }
+    }
+
+    public function getUpcomingEvents($lecturerId, $limit = 10)
+    {
+        try {
+            $events = $this->lecturerCalendarRepository->getUpcomingEvents($lecturerId, $limit);
+            return $events;
+        } catch (\Exception $e) {
+            throw new LecturerTaskException('Failed to retrieve upcoming events: ' . $e->getMessage(), 500);
+        }
+    }
+
+    public function getOverdueEvents($lecturerId)
+    {
+        try {
+            $events = $this->lecturerCalendarRepository->getOverdueEvents($lecturerId);
+            return $events;
+        } catch (\Exception $e) {
+            throw new LecturerTaskException('Failed to retrieve overdue events: ' . $e->getMessage(), 500);
+        }
+    }
+
+    public function getEventsCountByStatus($lecturerId)
+    {
+        try {
+            $counts = $this->lecturerCalendarRepository->getEventsCountByStatus($lecturerId);
+            return $counts;
+        } catch (\Exception $e) {
+            throw new LecturerTaskException('Failed to retrieve events count by status: ' . $e->getMessage(), 500);
+        }
+    }
 }

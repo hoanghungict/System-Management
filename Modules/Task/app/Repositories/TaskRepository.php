@@ -25,7 +25,7 @@ class TaskRepository implements TaskRepositoryInterface
      */
     public function findById(int $id): ?Task
     {
-        return Task::find($id);
+        return Task::with('receivers')->find($id);
     }
 
     /**
@@ -68,10 +68,10 @@ class TaskRepository implements TaskRepositoryInterface
                 $q->select('id', 'task_id', 'receiver_id', 'receiver_type');
             }
         ])
-        ->where('creator_type', $creatorType)
-        ->where('creator_id', $creatorId)
-        ->orderBy('created_at', 'desc')
-        ->get();
+            ->where('creator_type', $creatorType)
+            ->where('creator_id', $creatorId)
+            ->orderBy('created_at', 'desc')
+            ->get();
     }
 
     /**
@@ -98,7 +98,7 @@ chỉ      * Lấy tasks với bộ lọc - Tối ưu hóa với indexes
             // Sử dụng composite index (receiver_type, receiver_id)
             $query->whereHas('receivers', function ($q) use ($filters) {
                 $q->where('receiver_type', $filters['receiver_type'])
-                  ->where('receiver_id', $filters['receiver_id']);
+                    ->where('receiver_id', $filters['receiver_id']);
             });
         } elseif (isset($filters['receiver_id'])) {
             $query->whereHas('receivers', function ($q) use ($filters) {
@@ -113,7 +113,7 @@ chỉ      * Lấy tasks với bộ lọc - Tối ưu hóa với indexes
         // Sử dụng composite index (creator_type, creator_id)
         if (isset($filters['creator_id']) && isset($filters['creator_type'])) {
             $query->where('creator_type', $filters['creator_type'])
-                  ->where('creator_id', $filters['creator_id']);
+                ->where('creator_id', $filters['creator_id']);
         } elseif (isset($filters['creator_id'])) {
             $query->where('creator_id', $filters['creator_id']);
         } elseif (isset($filters['creator_type'])) {
@@ -124,7 +124,7 @@ chỉ      * Lấy tasks với bộ lọc - Tối ưu hóa với indexes
         if (isset($filters['search'])) {
             $query->where(function ($q) use ($filters) {
                 $q->where('title', 'LIKE', '%' . $filters['search'] . '%')
-                  ->orWhere('description', 'LIKE', '%' . $filters['search'] . '%');
+                    ->orWhere('description', 'LIKE', '%' . $filters['search'] . '%');
             });
         }
 
@@ -157,6 +157,19 @@ chỉ      * Lấy tasks với bộ lọc - Tối ưu hóa với indexes
      */
     public function create(array $data): Task
     {
+        // ✅ Đồng bộ due_date và deadline khi tạo mới
+        if (isset($data['due_date']) && !isset($data['deadline'])) {
+            $data['deadline'] = $data['due_date'] . ' 23:59:59';
+        } elseif (isset($data['deadline']) && !isset($data['due_date'])) {
+            $data['due_date'] = date('Y-m-d', strtotime($data['deadline']));
+        } elseif (isset($data['due_date']) && isset($data['deadline'])) {
+            $dueDate = date('Y-m-d', strtotime($data['due_date']));
+            $deadlineDate = date('Y-m-d', strtotime($data['deadline']));
+            if ($dueDate !== $deadlineDate) {
+                $data['due_date'] = $deadlineDate;
+            }
+        }
+
         return Task::create($data);
     }
 
@@ -169,6 +182,24 @@ chỉ      * Lấy tasks với bộ lọc - Tối ưu hóa với indexes
      */
     public function update(Task $task, array $data): Task
     {
+        // ✅ Đồng bộ due_date và deadline
+        if (isset($data['due_date']) && !isset($data['deadline'])) {
+            // Nếu chỉ có due_date, tự động tạo deadline từ due_date
+            $data['deadline'] = $data['due_date'] . ' 23:59:59';
+        } elseif (isset($data['deadline']) && !isset($data['due_date'])) {
+            // Nếu chỉ có deadline, tự động tạo due_date từ deadline
+            $data['due_date'] = date('Y-m-d', strtotime($data['deadline']));
+        } elseif (isset($data['due_date']) && isset($data['deadline'])) {
+            // Nếu có cả hai, đảm bảo chúng đồng bộ
+            $dueDate = date('Y-m-d', strtotime($data['due_date']));
+            $deadlineDate = date('Y-m-d', strtotime($data['deadline']));
+
+            if ($dueDate !== $deadlineDate) {
+                // Ưu tiên deadline, cập nhật due_date theo deadline
+                $data['due_date'] = $deadlineDate;
+            }
+        }
+
         $task->update($data);
         return $task;
     }
@@ -206,7 +237,7 @@ chỉ      * Lấy tasks với bộ lọc - Tối ưu hóa với indexes
     public function getTaskStatistics(): array
     {
         $totalTasks = Task::count();
-        
+
         // Thống kê theo receiver type từ bảng task_receivers
         $tasksByReceiverType = DB::table('task_receivers')
             ->selectRaw('receiver_type, count(*) as count')
@@ -216,24 +247,24 @@ chỉ      * Lấy tasks với bộ lọc - Tối ưu hóa với indexes
             ->toArray();
 
         $tasksByCreatorType = Task::selectRaw('creator_type, count(*) as count')
-                                 ->groupBy('creator_type')
-                                 ->get()
-                                 ->pluck('count', 'creator_type')
-                                 ->toArray();
+            ->groupBy('creator_type')
+            ->get()
+            ->pluck('count', 'creator_type')
+            ->toArray();
 
         // Thống kê theo status
         $tasksByStatus = Task::selectRaw('status, count(*) as count')
-                            ->groupBy('status')
-                            ->get()
-                            ->pluck('count', 'status')
-                            ->toArray();
+            ->groupBy('status')
+            ->get()
+            ->pluck('count', 'status')
+            ->toArray();
 
         // Thống kê theo priority
         $tasksByPriority = Task::selectRaw('priority, count(*) as count')
-                              ->groupBy('priority')
-                              ->get()
-                              ->pluck('count', 'priority')
-                              ->toArray();
+            ->groupBy('priority')
+            ->get()
+            ->pluck('count', 'priority')
+            ->toArray();
 
         return [
             'total_tasks' => $totalTasks,
@@ -255,15 +286,15 @@ chỉ      * Lấy tasks với bộ lọc - Tối ưu hóa với indexes
     public function getTasksForUser(int $userId, string $userType, int $perPage = 15): LengthAwarePaginator
     {
         Log::info("getTasksForUser called with userId: $userId, userType: $userType");
-        
+
         // ✅ Eager loading để tránh N+1 queries
         $query = Task::with([
-            'files', 
-            'receivers' => function($q) use ($userId, $userType) {
+            'files',
+            'receivers' => function ($q) use ($userId, $userType) {
                 // ✅ Chỉ load receivers đúng với user type
-                $q->where(function($subQ) use ($userId, $userType) {
+                $q->where(function ($subQ) use ($userId, $userType) {
                     $subQ->where('receiver_id', $userId)
-                         ->where('receiver_type', $userType);
+                        ->where('receiver_type', $userType);
                 });
             },
             'receivers.student',
@@ -274,7 +305,7 @@ chỉ      * Lấy tasks với bộ lọc - Tối ưu hóa với indexes
         // ✅ Chỉ lấy tasks có receiver đúng với user type
         $query->whereHas('receivers', function ($q) use ($userId, $userType) {
             $q->where('receiver_id', $userId)
-              ->where('receiver_type', $userType);
+                ->where('receiver_type', $userType);
         });
 
         // Nếu user là student, cũng tìm tasks có class hoặc all_students
@@ -284,22 +315,22 @@ chỉ      * Lấy tasks với bộ lọc - Tối ưu hóa với indexes
             if ($student) {
                 $query->orWhereHas('receivers', function ($q) use ($student) {
                     $q->where('receiver_type', 'class')
-                      ->where('receiver_id', $student->class_id);
+                        ->where('receiver_id', $student->class_id);
                 });
 
                 $query->orWhereHas('receivers', function ($q) use ($student) {
                     $q->where('receiver_type', 'all_students')
-                      ->where(function($subQ) use ($student) {
-                          $subQ->where('receiver_id', 0) // All students toàn trường
-                               ->orWhere('receiver_id', $student->classroom->department_id ?? 0); // Students theo department
-                      });
+                        ->where(function ($subQ) use ($student) {
+                            $subQ->where('receiver_id', 0) // All students toàn trường
+                                ->orWhere('receiver_id', $student->classroom->department_id ?? 0); // Students theo department
+                        });
                 });
             }
         }
 
         $result = $query->orderBy('created_at', 'desc')->paginate($perPage);
         Log::info("getTasksForUser result: " . $result->count() . " tasks found");
-        
+
         return $result;
     }
 
@@ -314,23 +345,23 @@ chỉ      * Lấy tasks với bộ lọc - Tối ưu hóa với indexes
     public function getTasksCreatedByUser(int $userId, string $userType, int $perPage = 15): LengthAwarePaginator
     {
         Log::info("getTasksCreatedByUser called with userId: $userId, userType: $userType");
-        
+
         // Tối ưu eager loading với select cụ thể
         $result = Task::where('creator_type', $userType)
-                  ->where('creator_id', $userId)
-                  ->with([
-                      'files' => function($q) {
-                          $q->select('id', 'task_id', 'name', 'path', 'size');
-                      },
-                      'receivers' => function($q) {
-                          $q->select('id', 'task_id', 'receiver_id', 'receiver_type');
-                      }
-                  ])
-                  ->orderBy('created_at', 'desc')
-                  ->paginate($perPage);
-        
+            ->where('creator_id', $userId)
+            ->with([
+                'files' => function ($q) {
+                    $q->select('id', 'task_id', 'name', 'path', 'size');
+                },
+                'receivers' => function ($q) {
+                    $q->select('id', 'task_id', 'receiver_id', 'receiver_type');
+                }
+            ])
+            ->orderBy('created_at', 'desc')
+            ->paginate($perPage);
+
         Log::info("getTasksCreatedByUser result: " . $result->count() . " tasks found");
-        
+
         return $result;
     }
 
@@ -384,7 +415,7 @@ chỉ      * Lấy tasks với bộ lọc - Tối ưu hóa với indexes
     {
         // ✅ Eager loading để tránh N+1 queries
         $query = Task::with([
-            'files', 
+            'files',
             'receivers',
             'receivers.student',
             'receivers.lecturer',
@@ -411,7 +442,7 @@ chỉ      * Lấy tasks với bộ lọc - Tối ưu hóa với indexes
         if (isset($filters['search'])) {
             $query->where(function ($q) use ($filters) {
                 $q->where('title', 'like', '%' . $filters['search'] . '%')
-                  ->orWhere('description', 'like', '%' . $filters['search'] . '%');
+                    ->orWhere('description', 'like', '%' . $filters['search'] . '%');
             });
         }
 
@@ -490,8 +521,8 @@ chỉ      * Lấy tasks với bộ lọc - Tối ưu hóa với indexes
     public function getCreatedTaskStatistics(int $userId, string $userType): array
     {
         $tasks = Task::where('creator_id', $userId)
-                    ->where('creator_type', $userType)
-                    ->get();
+            ->where('creator_type', $userType)
+            ->get();
 
         return [
             'total_created' => $tasks->count(),
@@ -608,7 +639,7 @@ chỉ      * Lấy tasks với bộ lọc - Tối ưu hóa với indexes
 
         return Task::whereHas('receivers', function ($q) use ($student) {
             $q->where('receiver_type', 'class')
-              ->where('receiver_id', $student->class_id);
+                ->where('receiver_id', $student->class_id);
         })->with(['files', 'receivers'])->get();
     }
 
@@ -632,7 +663,7 @@ chỉ      * Lấy tasks với bộ lọc - Tối ưu hóa với indexes
 
         return Task::whereHas('receivers', function ($q) use ($student) {
             $q->where('receiver_type', 'department')
-              ->where('receiver_id', $student->classroom->department_id);
+                ->where('receiver_id', $student->classroom->department_id);
         })->with(['files', 'receivers'])->get();
     }
 

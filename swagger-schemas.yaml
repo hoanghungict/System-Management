@@ -1,0 +1,1024 @@
+# ==================== ADDITIONAL REQUEST SCHEMAS ====================
+CreateClassRequest:
+  type: object
+  required:
+    - class_name
+    - class_code
+    - faculty_id
+    - school_year
+  properties:
+    class_name:
+      type: string
+      maxLength: 255
+      description: Tên lớp học
+      example: "Lập trình Web"
+    class_code:
+      type: string
+      maxLength: 50
+      description: Mã lớp học
+      example: "WEB101"
+    faculty_id:
+      type: integer
+      description: ID khoa/phòng ban
+      example: 1
+    lecturer_id:
+      type: integer
+      nullable: true
+      description: ID giảng viên
+      example: 1
+    school_year:
+      type: string
+      maxLength: 20
+      description: Năm học
+      example: "2024-2025"
+
+UpdateClassRequest:
+  type: object
+  properties:
+    class_name:
+      type: string
+      maxLength: 255
+      description: Tên lớp học
+      example: "Lập trình Web nâng cao"
+    class_code:
+      type: string
+      maxLength: 50
+      description: Mã lớp học
+      example: "WEB101"
+    faculty_id:
+      type: integer
+      description: ID khoa/phòng ban
+      example: 1
+    lecturer_id:
+      type: integer
+      nullable: true
+      description: ID giảng viên
+      example: 1
+    school_year:
+      type: string
+      maxLength: 20
+      description: Năm học
+      example: "2024-2025"
+
+CreateDepartmentRequest:
+  type: object
+  required:
+    - name
+    - type
+  properties:
+    name:
+      type: string
+      maxLength: 255
+      description: Tên khoa/phòng ban
+      example: "Bộ môn Lập trình Game"
+    type:
+      type: string
+      enum: [school, faculty, department]
+      description: Loại khoa/phòng ban
+      example: "department"
+    parent_id:
+      type: integer
+      nullable: true
+      description: ID khoa/phòng ban cha
+      example: 2
+
+UpdateDepartmentRequest:
+  type: object
+  properties:
+    name:
+      type: string
+      maxLength: 255
+      description: Tên khoa/phòng ban
+      example: "Bộ môn Lập trình Game nâng cao"
+    type:
+      type: string
+      enum: [school, faculty, department]
+      description: Loại khoa/phòng ban
+      example: "department"
+    parent_id:
+      type: integer
+      nullable: true
+      description: ID khoa/phòng ban cha
+      example: 2
+
+CreateRollCallRequest:
+  type: object
+  required:
+    - class_id
+    - title
+    - date
+    - created_by
+  properties:
+    class_id:
+      type: integer
+      description: ID lớp học
+      example: 1
+    title:
+      type: string
+      maxLength: 255
+      description: Tiêu đề buổi điểm danh
+      example: "Điểm danh buổi 1"
+    description:
+      type: string
+      maxLength: 1000
+      nullable: true
+      description: Mô tả buổi điểm danh
+      example: "Điểm danh môn Lập trình Web"
+    date:
+      type: string
+      format: date
+      description: Ngày điểm danh
+      example: "2024-12-20"
+    created_by:
+      type: integer
+      description: ID giảng viên tạo
+      example: 1
+
+UpdateRollCallStatusRequest:
+  type: object
+  required:
+    - student_id
+    - status
+  properties:
+    student_id:
+      type: integer
+      description: ID sinh viên
+      example: 1
+    status:
+      type: string
+      enum: [Có Mặt, Vắng Mặt, Có Phép, Muộn]
+      description: Trạng thái điểm danh
+      example: "Có Mặt"
+    note:
+      type: string
+      maxLength: 500
+      nullable: true
+      description: Ghi chú
+      example: "Đi muộn 5 phút"
+
+BulkUpdateRollCallStatusRequest:
+  type: object
+  required:
+    - student_statuses
+  properties:
+    student_statuses:
+      type: array
+      minItems: 1
+      items:
+        type: object
+        required:
+          - student_id
+          - status
+        properties:
+          student_id:
+            type: integer
+            description: ID sinh viên
+            example: 1
+          status:
+            type: string
+            enum: [Có Mặt, Vắng Mặt, Có Phép, Muộn]
+            description: Trạng thái điểm danh
+            example: "Có Mặt"
+          note:
+            type: string
+            maxLength: 500
+            nullable: true
+            description: Ghi chú
+            example: "Đi muộn 5 phút"
+
+SendNotificationRequest:
+  type: object
+  required:
+    - template
+    - recipients
+  properties:
+    template:
+      type: string
+      maxLength: 255
+      description: Tên template
+      example: "task_assigned"
+    recipients:
+      type: array
+      minItems: 1
+      items:
+        type: object
+        required:
+          - user_id
+          - user_type
+        properties:
+          user_id:
+            type: integer
+            minimum: 1
+            description: ID người nhận
+            example: 1
+          user_type:
+            type: string
+            enum: [student, lecturer, admin]
+            description: Loại người nhận
+            example: "student"
+          channels:
+            type: array
+            items:
+              type: string
+              enum: [email, push, sms, in_app]
+            description: Kênh gửi thông báo
+            example: ["email", "push"]
+    data:
+      type: object
+      description: Dữ liệu động cho template
+      example:
+        user_name: "Nguyễn Văn A"
+        task_title: "Làm bài tập Laravel"
+        deadline: "2024-01-20"
+    options:
+      type: object
+      properties:
+        priority:
+          type: string
+          enum: [low, medium, high, critical]
+          description: Độ ưu tiên
+          example: "high"
+        sender_id:
+          type: integer
+          minimum: 1
+          description: ID người gửi
+          example: 1
+        sender_type:
+          type: string
+          enum: [student, lecturer, admin]
+          description: Loại người gửi
+          example: "lecturer"
+
+SendBulkNotificationRequest:
+  type: object
+  required:
+    - template
+    - recipients
+  properties:
+    template:
+      type: string
+      maxLength: 255
+      description: Tên template
+      example: "system_maintenance"
+    recipients:
+      type: array
+      minItems: 1
+      maxItems: 1000
+      items:
+        type: object
+        required:
+          - user_id
+          - user_type
+        properties:
+          user_id:
+            type: integer
+            minimum: 1
+            description: ID người nhận
+            example: 1
+          user_type:
+            type: string
+            enum: [student, lecturer, admin]
+            description: Loại người nhận
+            example: "student"
+          channels:
+            type: array
+            items:
+              type: string
+              enum: [email, push, sms, in_app]
+            description: Kênh gửi thông báo
+            example: ["email", "in_app"]
+    data:
+      type: object
+      description: Dữ liệu động cho template
+      example:
+        start_time: "2024-01-20 22:00"
+        end_time: "2024-01-21 06:00"
+    options:
+      type: object
+      properties:
+        priority:
+          type: string
+          enum: [low, medium, high, critical]
+          description: Độ ưu tiên
+          example: "medium"
+        sender_id:
+          type: integer
+          minimum: 1
+          description: ID người gửi
+          example: 1
+        sender_type:
+          type: string
+          enum: [student, lecturer, admin]
+          description: Loại người gửi
+          example: "admin"
+
+ScheduleNotificationRequest:
+  type: object
+  required:
+    - template
+    - recipients
+    - scheduled_at
+  properties:
+    template:
+      type: string
+      maxLength: 255
+      description: Tên template
+      example: "task_reminder"
+    recipients:
+      type: array
+      minItems: 1
+      items:
+        type: object
+        required:
+          - user_id
+          - user_type
+        properties:
+          user_id:
+            type: integer
+            minimum: 1
+            description: ID người nhận
+            example: 1
+          user_type:
+            type: string
+            enum: [student, lecturer, admin]
+            description: Loại người nhận
+            example: "student"
+          channels:
+            type: array
+            items:
+              type: string
+              enum: [email, push, sms, in_app]
+            description: Kênh gửi thông báo
+            example: ["email", "push"]
+    data:
+      type: object
+      description: Dữ liệu động cho template
+      example:
+        task_title: "Bài tập cuối kỳ"
+        deadline: "2024-01-25"
+    scheduled_at:
+      type: string
+      format: date-time
+      description: Thời gian lên lịch gửi
+      example: "2024-01-20T09:00:00Z"
+    options:
+      type: object
+      properties:
+        priority:
+          type: string
+          enum: [low, medium, high, critical]
+          description: Độ ưu tiên
+          example: "high"
+        sender_id:
+          type: integer
+          minimum: 1
+          description: ID người gửi
+          example: 1
+        sender_type:
+          type: string
+          enum: [student, lecturer, admin]
+          description: Loại người gửi
+          example: "lecturer"
+
+GetUserNotificationsRequest:
+  type: object
+  required:
+    - user_id
+    - user_type
+  properties:
+    user_id:
+      type: integer
+      minimum: 1
+      description: ID người dùng
+      example: 1
+    user_type:
+      type: string
+      enum: [student, lecturer, admin]
+      description: Loại người dùng
+      example: "student"
+    limit:
+      type: integer
+      minimum: 1
+      maximum: 100
+      default: 20
+      description: Số lượng thông báo tối đa
+      example: 20
+    offset:
+      type: integer
+      minimum: 0
+      default: 0
+      description: Vị trí bắt đầu
+      example: 0
+
+MarkAsReadRequest:
+  type: object
+  required:
+    - user_notification_id
+  properties:
+    user_notification_id:
+      type: integer
+      minimum: 1
+      description: ID thông báo người dùng
+      example: 1
+
+PublishEventRequest:
+  type: object
+  required:
+    - topic
+    - payload
+  properties:
+    topic:
+      type: string
+      description: Kafka topic name
+      example: "task.assigned"
+    payload:
+      type: object
+      description: Event data payload
+      example:
+        user_id: 123
+        user_type: "student"
+        user_name: "Nguyễn Văn A"
+        task_name: "Làm bài tập Laravel"
+        task_description: "Viết API cho module Notifications"
+        assigner_name: "Thầy Nguyễn Văn B"
+        assigner_id: 456
+        assigner_type: "lecturer"
+        deadline: "2024-01-20 23:59:00"
+        task_url: "https://system.com/tasks/123"
+    priority:
+      type: string
+      enum: [low, medium, high, critical]
+      description: Event priority
+      example: "high"
+    key:
+      type: string
+      description: Kafka message key
+      example: "task_123_20240115"
+
+# ==================== ADDITIONAL RESPONSE SCHEMAS ====================
+ClassResponse:
+  type: object
+  properties:
+    id:
+      type: integer
+      example: 1
+    class_name:
+      type: string
+      example: "Lập trình Web"
+    class_code:
+      type: string
+      example: "WEB101"
+    faculty_id:
+      type: integer
+      example: 1
+    lecturer_id:
+      type: integer
+      example: 1
+    school_year:
+      type: string
+      example: "2024-2025"
+    faculty:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: "Công nghệ thông tin"
+    lecturer:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        full_name:
+          type: string
+          example: "Trần Thị B"
+
+ClassListResponse:
+  type: object
+  properties:
+    data:
+      type: array
+      items:
+        $ref: "#/components/schemas/ClassResponse"
+
+CreateClassResponse:
+  type: object
+  properties:
+    message:
+      type: string
+      example: "Tạo lớp học thành công"
+    data:
+      $ref: "#/components/schemas/ClassResponse"
+
+DepartmentResponse:
+  type: object
+  properties:
+    id:
+      type: integer
+      example: 1
+    name:
+      type: string
+      example: "Trường Đại học Công nghệ"
+    type:
+      type: string
+      example: "school"
+    parent_id:
+      type: integer
+      nullable: true
+      example: null
+
+DepartmentListResponse:
+  type: object
+  properties:
+    data:
+      type: array
+      items:
+        $ref: "#/components/schemas/DepartmentResponse"
+
+DepartmentTreeResponse:
+  type: object
+  properties:
+    data:
+      type: array
+      items:
+        type: object
+        properties:
+          id:
+            type: integer
+            example: 1
+          name:
+            type: string
+            example: "Trường Đại học Công nghệ"
+          type:
+            type: string
+            example: "school"
+          children:
+            type: array
+            items:
+              type: object
+              properties:
+                id:
+                  type: integer
+                  example: 2
+                name:
+                  type: string
+                  example: "Khoa Công nghệ thông tin"
+                type:
+                  type: string
+                  example: "faculty"
+                children:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                        example: 4
+                      name:
+                        type: string
+                        example: "Bộ môn Lập trình Web"
+                      type:
+                        type: string
+                        example: "department"
+
+CreateDepartmentResponse:
+  type: object
+  properties:
+    message:
+      type: string
+      example: "Tạo khoa/phòng ban thành công"
+    data:
+      $ref: "#/components/schemas/DepartmentResponse"
+
+RollCallResponse:
+  type: object
+  properties:
+    id:
+      type: integer
+      example: 1
+    class_id:
+      type: integer
+      example: 1
+    title:
+      type: string
+      example: "Điểm danh buổi 1"
+    description:
+      type: string
+      example: "Điểm danh môn Lập trình Web"
+    date:
+      type: string
+      format: date
+      example: "2024-12-20"
+    status:
+      type: string
+      enum: [active, completed, cancelled]
+      example: "active"
+    created_by:
+      type: integer
+      example: 1
+    created_at:
+      type: string
+      format: date-time
+      example: "2024-12-19T10:00:00.000000Z"
+    updated_at:
+      type: string
+      format: date-time
+      example: "2024-12-19T10:00:00.000000Z"
+
+RollCallClassroomListResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true
+    data:
+      type: array
+      items:
+        type: object
+        properties:
+          id:
+            type: integer
+            example: 1
+          class_name:
+            type: string
+            example: "Lập trình Web"
+          class_code:
+            type: string
+            example: "WEB101"
+          faculty_name:
+            type: string
+            example: "Công nghệ thông tin"
+          lecturer_name:
+            type: string
+            example: "Trần Thị B"
+
+RollCallListResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true
+    data:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/RollCallResponse"
+        current_page:
+          type: integer
+          example: 1
+        last_page:
+          type: integer
+          example: 5
+        per_page:
+          type: integer
+          example: 15
+        total:
+          type: integer
+          example: 75
+
+RollCallDetailResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true
+    data:
+      type: object
+      properties:
+        roll_call:
+          $ref: "#/components/schemas/RollCallResponse"
+        students:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+                example: 1
+              student_id:
+                type: integer
+                example: 1
+              student_name:
+                type: string
+                example: "Nguyễn Văn A"
+              student_code:
+                type: string
+                example: "SV001"
+              status:
+                type: string
+                enum: [Có Mặt, Vắng Mặt, Có Phép, Muộn]
+                example: "Có Mặt"
+              note:
+                type: string
+                example: "Đi muộn 5 phút"
+              checked_at:
+                type: string
+                format: date-time
+                example: "2024-12-20T08:05:00.000000Z"
+
+CreateRollCallResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true
+    message:
+      type: string
+      example: "Tạo buổi điểm danh thành công"
+    data:
+      $ref: "#/components/schemas/RollCallResponse"
+
+RollCallStatisticsResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true
+    data:
+      type: object
+      properties:
+        class_id:
+          type: integer
+          example: 1
+        class_name:
+          type: string
+          example: "Lập trình Web"
+        total_sessions:
+          type: integer
+          example: 10
+        total_students:
+          type: integer
+          example: 30
+        attendance_rate:
+          type: number
+          format: float
+          example: 85.5
+        statistics:
+          type: object
+          properties:
+            present:
+              type: integer
+              example: 255
+            absent:
+              type: integer
+              example: 30
+            late:
+              type: integer
+              example: 15
+            excused:
+              type: integer
+              example: 5
+        by_date:
+          type: array
+          items:
+            type: object
+            properties:
+              date:
+                type: string
+                format: date
+                example: "2024-12-20"
+              present_count:
+                type: integer
+                example: 25
+              absent_count:
+                type: integer
+                example: 5
+              attendance_rate:
+                type: number
+                format: float
+                example: 83.33
+
+NotificationResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true
+    message:
+      type: string
+      example: "Thông báo được gửi thành công"
+    data:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        title:
+          type: string
+          example: "Thông báo bài tập mới"
+        content:
+          type: string
+          example: "Có bài tập mới cho lớp WEB101"
+        type:
+          type: string
+          example: "task"
+        priority:
+          type: string
+          example: "high"
+        status:
+          type: string
+          example: "sent"
+        created_at:
+          type: string
+          format: date-time
+          example: "2024-12-19T10:00:00.000000Z"
+
+BulkNotificationResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true
+    message:
+      type: string
+      example: "Gửi thông báo hàng loạt thành công"
+    data:
+      type: object
+      properties:
+        total_sent:
+          type: integer
+          example: 2
+        total_failed:
+          type: integer
+          example: 0
+        notifications:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+                example: 2
+              status:
+                type: string
+                example: "sent"
+
+ScheduleNotificationResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true
+    message:
+      type: string
+      example: "Thông báo được lên lịch thành công"
+    data:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 4
+        title:
+          type: string
+          example: "Nhắc nhở deadline"
+        scheduled_at:
+          type: string
+          format: date-time
+          example: "2024-12-20T09:00:00.000000Z"
+        status:
+          type: string
+          example: "scheduled"
+
+NotificationTemplatesResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true
+    data:
+      type: array
+      items:
+        type: object
+        properties:
+          id:
+            type: integer
+            example: 1
+          name:
+            type: string
+            example: "Thông báo bài tập"
+          title:
+            type: string
+            example: "Có bài tập mới cho lớp {class_name}"
+          content:
+            type: string
+            example: "Thông báo: {content}"
+          channels:
+            type: array
+            items:
+              type: string
+            example: ["email", "push", "in_app"]
+          is_active:
+            type: boolean
+            example: true
+
+NotificationStatusResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true
+    data:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        title:
+          type: string
+          example: "Thông báo bài tập mới"
+        status:
+          type: string
+          example: "sent"
+        sent_at:
+          type: string
+          format: date-time
+          example: "2024-12-19T10:00:00.000000Z"
+        delivery_status:
+          type: object
+          properties:
+            email:
+              type: string
+              example: "delivered"
+            push:
+              type: string
+              example: "sent"
+            in_app:
+              type: string
+              example: "delivered"
+
+UserNotificationsResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true
+    data:
+      type: array
+      items:
+        type: object
+        properties:
+          id:
+            type: integer
+            example: 1
+          title:
+            type: string
+            example: "Thông báo bài tập mới"
+          content:
+            type: string
+            example: "Có bài tập mới cho lớp WEB101"
+          type:
+            type: string
+            example: "task"
+          priority:
+            type: string
+            example: "high"
+          is_read:
+            type: boolean
+            example: false
+          created_at:
+            type: string
+            format: date-time
+            example: "2024-12-19T10:00:00.000000Z"
+    pagination:
+      type: object
+      properties:
+        current_page:
+          type: integer
+          example: 1
+        last_page:
+          type: integer
+          example: 5
+        per_page:
+          type: integer
+          example: 20
+        total:
+          type: integer
+          example: 100
+
+PublishEventResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true
+    message:
+      type: string
+      example: "Event published successfully"
+    data:
+      type: object
+      properties:
+        event_type:
+          type: string
+          example: "task.assigned"
+        event_id:
+          type: string
+          example: "task_123_20240115"
+        timestamp:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:30:00.000000Z"

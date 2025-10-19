@@ -1,0 +1,1286 @@
+openapi: 3.0.3
+info:
+  title: Hệ Thống Quản Lý Giáo Dục API
+  description: |
+    API documentation cho hệ thống quản lý giáo dục với các chức năng:
+    - Quản lý người dùng (Sinh viên, Giảng viên, Admin)
+    - Quản lý lớp học và khoa/phòng ban
+    - Hệ thống điểm danh
+    - Hệ thống thông báo đa kênh
+  version: 1.0.0
+  contact:
+    name: Development Team
+    email: dovananh145203@gmail.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:8080/api
+    description: Development server
+  - url: https://api.education-system.com/api
+    description: Production server
+
+security:
+  - BearerAuth: []
+
+paths:
+  # ==================== AUTHENTICATION APIs ====================
+  /v1/login:
+    post:
+      tags:
+        - Authentication
+      summary: Đăng nhập tự động xác định loại user
+      description: API đăng nhập chung, tự động xác định loại user dựa trên user_type
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+            example:
+              username: "SV001"
+              password: "password123"
+              user_type: "student"
+      responses:
+        "200":
+          description: Đăng nhập thành công
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginResponse"
+        "401":
+          description: Thông tin đăng nhập không chính xác
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ValidationErrorResponse"
+
+  /v1/login/student:
+    post:
+      tags:
+        - Authentication
+      summary: Đăng nhập sinh viên
+      description: API đăng nhập dành riêng cho sinh viên
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StudentLoginRequest"
+            example:
+              username: "SV001"
+              password: "password123"
+      responses:
+        "200":
+          description: Đăng nhập thành công
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StudentLoginResponse"
+        "401":
+          description: Thông tin đăng nhập không chính xác
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /v1/login/lecturer:
+    post:
+      tags:
+        - Authentication
+      summary: Đăng nhập giảng viên
+      description: API đăng nhập dành riêng cho giảng viên
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LecturerLoginRequest"
+            example:
+              username: "GV001"
+              password: "password123"
+      responses:
+        "200":
+          description: Đăng nhập thành công
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LecturerLoginResponse"
+        "401":
+          description: Thông tin đăng nhập không chính xác
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /v1/refresh:
+    post:
+      tags:
+        - Authentication
+      summary: Làm mới JWT token
+      description: Làm mới JWT token khi token cũ sắp hết hạn
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        "200":
+          description: Token được làm mới thành công
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RefreshTokenResponse"
+        "401":
+          description: Token không hợp lệ
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /v1/me:
+    get:
+      tags:
+        - Authentication
+      summary: Lấy thông tin user từ JWT token
+      description: Lấy thông tin user hiện tại từ JWT token
+      responses:
+        "200":
+          description: Thông tin user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserInfoResponse"
+        "401":
+          description: Token không hợp lệ
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /v1/logout:
+    post:
+      tags:
+        - Authentication
+      summary: Đăng xuất
+      description: Đăng xuất và vô hiệu hóa token
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        "200":
+          description: Đăng xuất thành công
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  # ==================== STUDENT MANAGEMENT APIs ====================
+  /v1/students:
+    get:
+      tags:
+        - Student Management
+      summary: Lấy danh sách sinh viên
+      description: Lấy danh sách tất cả sinh viên (chỉ admin)
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Danh sách sinh viên
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StudentListResponse"
+        "403":
+          description: Không có quyền truy cập
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    post:
+      tags:
+        - Student Management
+      summary: Tạo sinh viên mới
+      description: Tạo sinh viên mới và tự động tạo tài khoản (chỉ admin)
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateStudentRequest"
+            example:
+              full_name: "Nguyễn Văn A"
+              birth_date: "2000-01-01"
+              gender: "male"
+              address: "Hà Nội"
+              email: "nguyenvana@example.com"
+              phone: "0123456789"
+              student_code: "SV001"
+              class_id: 1
+      responses:
+        "201":
+          description: Tạo sinh viên thành công
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreateStudentResponse"
+        "422":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ValidationErrorResponse"
+        "403":
+          description: Không có quyền truy cập
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /v1/students/{id}:
+    get:
+      tags:
+        - Student Management
+      summary: Lấy thông tin sinh viên theo ID
+      description: Lấy thông tin chi tiết của một sinh viên (chỉ admin)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: ID của sinh viên
+      responses:
+        "200":
+          description: Thông tin sinh viên
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StudentResponse"
+        "404":
+          description: Không tìm thấy sinh viên
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Không có quyền truy cập
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    put:
+      tags:
+        - Student Management
+      summary: Cập nhật thông tin sinh viên
+      description: Cập nhật thông tin sinh viên (chỉ admin)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: ID của sinh viên
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateStudentRequest"
+            example:
+              full_name: "Nguyễn Văn A Updated"
+              phone: "0987654321"
+              address: "TP.HCM"
+      responses:
+        "200":
+          description: Cập nhật sinh viên thành công
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StudentResponse"
+        "404":
+          description: Không tìm thấy sinh viên
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ValidationErrorResponse"
+        "403":
+          description: Không có quyền truy cập
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    delete:
+      tags:
+        - Student Management
+      summary: Xóa sinh viên
+      description: Xóa sinh viên và tài khoản liên quan (chỉ admin)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: ID của sinh viên
+      responses:
+        "200":
+          description: Xóa sinh viên thành công
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "404":
+          description: Không tìm thấy sinh viên
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Không có quyền truy cập
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /v1/student/profile:
+    get:
+      tags:
+        - Student Management
+      summary: Xem thông tin cá nhân (Sinh viên)
+      description: Sinh viên xem thông tin cá nhân của mình
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Thông tin cá nhân sinh viên
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StudentResponse"
+        "403":
+          description: Chỉ sinh viên mới có thể truy cập chức năng này
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    put:
+      tags:
+        - Student Management
+      summary: Cập nhật thông tin cá nhân (Sinh viên)
+      description: Sinh viên cập nhật thông tin cá nhân của mình
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateStudentProfileRequest"
+            example:
+              phone: "0987654321"
+              address: "TP.HCM"
+      responses:
+        "200":
+          description: Cập nhật thông tin thành công
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StudentResponse"
+        "403":
+          description: Chỉ sinh viên mới có thể truy cập chức năng này
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /v1/student/class/{classId}:
+    get:
+      tags:
+        - Student Management
+      summary: Lấy danh sách sinh viên theo lớp
+      description: Lấy danh sách sinh viên trong một lớp cụ thể
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: classId
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: ID của lớp học
+      responses:
+        "200":
+          description: Danh sách sinh viên trong lớp
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StudentListResponse"
+
+  # ==================== LECTURER MANAGEMENT APIs ====================
+  /v1/lecturers:
+    get:
+      tags:
+        - Lecturer Management
+      summary: Lấy danh sách giảng viên
+      description: Lấy danh sách tất cả giảng viên (chỉ admin)
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Danh sách giảng viên
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LecturerListResponse"
+        "403":
+          description: Không có quyền truy cập
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    post:
+      tags:
+        - Lecturer Management
+      summary: Tạo giảng viên mới
+      description: Tạo giảng viên mới và tự động tạo tài khoản (chỉ admin)
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateLecturerRequest"
+            example:
+              full_name: "Trần Thị B"
+              gender: "female"
+              address: "Hà Nội"
+              email: "tranthib@example.com"
+              phone: "0123456789"
+              lecturer_code: "GV001"
+              department_id: 1
+      responses:
+        "201":
+          description: Tạo giảng viên thành công
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreateLecturerResponse"
+        "422":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ValidationErrorResponse"
+        "403":
+          description: Không có quyền truy cập
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /v1/lecturers/{id}:
+    get:
+      tags:
+        - Lecturer Management
+      summary: Lấy thông tin giảng viên theo ID
+      description: Lấy thông tin chi tiết của một giảng viên (chỉ admin)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: ID của giảng viên
+      responses:
+        "200":
+          description: Thông tin giảng viên
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LecturerResponse"
+        "404":
+          description: Không tìm thấy giảng viên
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Không có quyền truy cập
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    put:
+      tags:
+        - Lecturer Management
+      summary: Cập nhật thông tin giảng viên
+      description: Cập nhật thông tin giảng viên (chỉ admin)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: ID của giảng viên
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateLecturerRequest"
+            example:
+              full_name: "Trần Thị B Updated"
+              phone: "0987654321"
+              address: "TP.HCM"
+      responses:
+        "200":
+          description: Cập nhật giảng viên thành công
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LecturerResponse"
+        "404":
+          description: Không tìm thấy giảng viên
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ValidationErrorResponse"
+        "403":
+          description: Không có quyền truy cập
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    delete:
+      tags:
+        - Lecturer Management
+      summary: Xóa giảng viên
+      description: Xóa giảng viên và tài khoản liên quan (chỉ admin)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: ID của giảng viên
+      responses:
+        "200":
+          description: Xóa giảng viên thành công
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "404":
+          description: Không tìm thấy giảng viên
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Không có quyền truy cập
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /v1/lecturers/{id}/admin-status:
+    patch:
+      tags:
+        - Lecturer Management
+      summary: Cập nhật quyền admin cho giảng viên
+      description: Cập nhật quyền admin cho giảng viên (chỉ admin)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: ID của giảng viên
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateAdminStatusRequest"
+            example:
+              is_admin: true
+      responses:
+        "200":
+          description: Cập nhật quyền admin thành công
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LecturerResponse"
+        "404":
+          description: Không tìm thấy giảng viên
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Không có quyền truy cập
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /v1/lecturer/profile:
+    get:
+      tags:
+        - Lecturer Management
+      summary: Xem thông tin cá nhân (Giảng viên)
+      description: Giảng viên xem thông tin cá nhân của mình
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Thông tin cá nhân giảng viên
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LecturerResponse"
+        "403":
+          description: Chỉ giảng viên mới có thể truy cập chức năng này
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    put:
+      tags:
+        - Lecturer Management
+      summary: Cập nhật thông tin cá nhân (Giảng viên)
+      description: Giảng viên cập nhật thông tin cá nhân của mình
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateLecturerProfileRequest"
+            example:
+              phone: "0987654321"
+              address: "TP.HCM"
+      responses:
+        "200":
+          description: Cập nhật thông tin thành công
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LecturerResponse"
+        "403":
+          description: Chỉ giảng viên mới có thể truy cập chức năng này
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token authentication
+
+  schemas:
+    # ==================== REQUEST SCHEMAS ====================
+    LoginRequest:
+      type: object
+      required:
+        - username
+        - password
+        - user_type
+      properties:
+        username:
+          type: string
+          maxLength: 255
+          description: Tên đăng nhập
+          example: "SV001"
+        password:
+          type: string
+          minLength: 6
+          description: Mật khẩu
+          example: "password123"
+        user_type:
+          type: string
+          enum: [student, lecturer]
+          description: Loại người dùng
+          example: "student"
+
+    StudentLoginRequest:
+      type: object
+      required:
+        - username
+        - password
+      properties:
+        username:
+          type: string
+          maxLength: 255
+          description: Tên đăng nhập sinh viên
+          example: "SV001"
+        password:
+          type: string
+          minLength: 6
+          description: Mật khẩu
+          example: "password123"
+
+    LecturerLoginRequest:
+      type: object
+      required:
+        - username
+        - password
+      properties:
+        username:
+          type: string
+          maxLength: 255
+          description: Tên đăng nhập giảng viên
+          example: "GV001"
+        password:
+          type: string
+          minLength: 6
+          description: Mật khẩu
+          example: "password123"
+
+    CreateStudentRequest:
+      type: object
+      required:
+        - full_name
+        - birth_date
+        - gender
+        - address
+        - email
+        - phone
+        - student_code
+        - class_id
+      properties:
+        full_name:
+          type: string
+          maxLength: 255
+          description: Họ tên sinh viên
+          example: "Nguyễn Văn A"
+        birth_date:
+          type: string
+          format: date
+          description: Ngày sinh
+          example: "2000-01-01"
+        gender:
+          type: string
+          enum: [male, female, other]
+          description: Giới tính
+          example: "male"
+        address:
+          type: string
+          description: Địa chỉ
+          example: "Hà Nội"
+        email:
+          type: string
+          format: email
+          description: Email
+          example: "nguyenvana@example.com"
+        phone:
+          type: string
+          maxLength: 20
+          description: Số điện thoại
+          example: "0123456789"
+        student_code:
+          type: string
+          description: Mã sinh viên
+          example: "SV001"
+        class_id:
+          type: integer
+          description: ID lớp học
+          example: 1
+
+    UpdateStudentRequest:
+      type: object
+      properties:
+        full_name:
+          type: string
+          maxLength: 255
+          description: Họ tên sinh viên
+          example: "Nguyễn Văn A"
+        birth_date:
+          type: string
+          format: date
+          description: Ngày sinh
+          example: "2000-01-01"
+        gender:
+          type: string
+          enum: [male, female, other]
+          description: Giới tính
+          example: "male"
+        address:
+          type: string
+          description: Địa chỉ
+          example: "Hà Nội"
+        email:
+          type: string
+          format: email
+          description: Email
+          example: "nguyenvana@example.com"
+        phone:
+          type: string
+          maxLength: 20
+          description: Số điện thoại
+          example: "0123456789"
+        class_id:
+          type: integer
+          description: ID lớp học
+          example: 1
+
+    UpdateStudentProfileRequest:
+      type: object
+      properties:
+        full_name:
+          type: string
+          maxLength: 255
+          description: Họ tên sinh viên
+          example: "Nguyễn Văn A"
+        phone:
+          type: string
+          maxLength: 20
+          description: Số điện thoại
+          example: "0123456789"
+        address:
+          type: string
+          description: Địa chỉ
+          example: "Hà Nội"
+
+    CreateLecturerRequest:
+      type: object
+      required:
+        - full_name
+        - gender
+        - address
+        - email
+        - phone
+        - lecturer_code
+        - department_id
+      properties:
+        full_name:
+          type: string
+          maxLength: 255
+          description: Họ tên giảng viên
+          example: "Trần Thị B"
+        gender:
+          type: string
+          enum: [male, female, other]
+          description: Giới tính
+          example: "female"
+        address:
+          type: string
+          description: Địa chỉ
+          example: "Hà Nội"
+        email:
+          type: string
+          format: email
+          description: Email
+          example: "tranthib@example.com"
+        phone:
+          type: string
+          maxLength: 20
+          description: Số điện thoại
+          example: "0123456789"
+        lecturer_code:
+          type: string
+          description: Mã giảng viên
+          example: "GV001"
+        department_id:
+          type: integer
+          description: ID khoa/phòng ban
+          example: 1
+
+    UpdateLecturerRequest:
+      type: object
+      properties:
+        full_name:
+          type: string
+          maxLength: 255
+          description: Họ tên giảng viên
+          example: "Trần Thị B"
+        gender:
+          type: string
+          enum: [male, female, other]
+          description: Giới tính
+          example: "female"
+        address:
+          type: string
+          description: Địa chỉ
+          example: "Hà Nội"
+        email:
+          type: string
+          format: email
+          description: Email
+          example: "tranthib@example.com"
+        phone:
+          type: string
+          maxLength: 20
+          description: Số điện thoại
+          example: "0123456789"
+        unit_id:
+          type: integer
+          description: ID đơn vị
+          example: 1
+
+    UpdateLecturerProfileRequest:
+      type: object
+      properties:
+        full_name:
+          type: string
+          maxLength: 255
+          description: Họ tên giảng viên
+          example: "Trần Thị B"
+        phone:
+          type: string
+          maxLength: 20
+          description: Số điện thoại
+          example: "0123456789"
+        address:
+          type: string
+          description: Địa chỉ
+          example: "Hà Nội"
+
+    UpdateAdminStatusRequest:
+      type: object
+      required:
+        - is_admin
+      properties:
+        is_admin:
+          type: boolean
+          description: Quyền admin
+          example: true
+
+    # ==================== RESPONSE SCHEMAS ====================
+    LoginResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            id:
+              type: integer
+              example: 1
+            full_name:
+              type: string
+              example: "Nguyễn Văn A"
+            student_code:
+              type: string
+              example: "SV001"
+            email:
+              type: string
+              example: "nguyenvana@example.com"
+            department:
+              type: string
+              example: "Công nghệ thông tin"
+            token:
+              type: string
+              example: "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9..."
+        message:
+          type: string
+          example: "Đăng nhập thành công"
+
+    StudentLoginResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            id:
+              type: integer
+              example: 1
+            full_name:
+              type: string
+              example: "Nguyễn Văn A"
+            student_code:
+              type: string
+              example: "SV001"
+            email:
+              type: string
+              example: "nguyenvana@example.com"
+            department:
+              type: string
+              example: "Công nghệ thông tin"
+            token:
+              type: string
+              example: "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9..."
+        message:
+          type: string
+          example: "Đăng nhập thành công"
+
+    LecturerLoginResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            id:
+              type: integer
+              example: 1
+            full_name:
+              type: string
+              example: "Trần Thị B"
+            lecturer_code:
+              type: string
+              example: "GV001"
+            email:
+              type: string
+              example: "tranthib@example.com"
+            department:
+              type: string
+              example: "Công nghệ thông tin"
+            token:
+              type: string
+              example: "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9..."
+        message:
+          type: string
+          example: "Đăng nhập thành công"
+
+    RefreshTokenResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: "Token được làm mới thành công"
+        token:
+          type: string
+          example: "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9..."
+
+    UserInfoResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: "Thông tin user"
+        data:
+          type: object
+          properties:
+            sub:
+              type: integer
+              example: 1
+            email:
+              type: string
+              example: "nguyenvana@example.com"
+            name:
+              type: string
+              example: "Nguyễn Văn A"
+            iat:
+              type: integer
+              example: 1703123456
+            exp:
+              type: integer
+              example: 1703209856
+
+    StudentResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        email:
+          type: string
+          example: "sinhvien@test.com"
+        full_name:
+          type: string
+          example: "Sinh Viên Mẫu"
+        phone:
+          type: string
+          example: "0987654321"
+        address:
+          type: string
+          example: "Hà Nội"
+        user_type:
+          type: string
+          example: "student"
+        account:
+          type: object
+          properties:
+            username:
+              type: string
+              example: "sv_sv001"
+            is_admin:
+              type: boolean
+              example: false
+        student_info:
+          type: object
+          properties:
+            student_code:
+              type: string
+              example: "SV001"
+            birth_date:
+              type: string
+              format: date-time
+              example: "2000-01-01T00:00:00.000000Z"
+            gender:
+              type: string
+              example: "male"
+            class:
+              type: object
+              properties:
+                id:
+                  type: integer
+                  example: 1
+                class_name:
+                  type: string
+                  example: "Lớp CNTT K65"
+                class_code:
+                  type: string
+                  example: "CNTT65"
+
+    StudentListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/StudentResponse"
+
+    CreateStudentResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: "Tạo sinh viên thành công"
+        data:
+          $ref: "#/components/schemas/StudentResponse"
+        account_info:
+          type: object
+          properties:
+            username:
+              type: string
+              example: "sv_SV3"
+            password:
+              type: string
+              example: "123456"
+
+    LecturerResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        full_name:
+          type: string
+          example: "Trần Thị B"
+        lecturer_code:
+          type: string
+          example: "GV001"
+        email:
+          type: string
+          example: "tranthib@example.com"
+        phone:
+          type: string
+          example: "0123456789"
+        department:
+          type: string
+          example: "Công nghệ thông tin"
+        gender:
+          type: string
+          example: "female"
+
+    LecturerListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/LecturerResponse"
+
+    CreateLecturerResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: "Tạo giảng viên thành công"
+        data:
+          $ref: "#/components/schemas/LecturerResponse"
+        account_info:
+          type: object
+          properties:
+            username:
+              type: string
+              example: "gv_GV001"
+            password:
+              type: string
+              example: "123456"
+
+    SuccessResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: "Thành công"
+
+    ErrorResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: "Có lỗi xảy ra"
+
+    ValidationErrorResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: "Validation error"
+        errors:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+          example:
+            email: ["Email đã tồn tại"]
+            student_code: ["Mã sinh viên đã tồn tại"]

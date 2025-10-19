@@ -1,465 +1,546 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Modules\Task\app\Services;
 
-use Illuminate\Support\Facades\Log;
+use Modules\Task\app\Models\Task;
+use Modules\Task\app\Models\Reminder;
+use Modules\Task\app\Repositories\Interfaces\TaskRepositoryInterface;
+use Modules\Task\app\Repositories\Interfaces\ReminderRepositoryInterface;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Facades\Config;
-use Modules\Task\app\Services\Interfaces\EmailServiceInterface;
-use Modules\Task\app\DTOs\EmailReportDTO;
+use Illuminate\Support\Facades\Cache;
+use Carbon\Carbon;
 
+/**
+ * Report Service
+ * 
+ * Handles report generation and statistics for Task Module
+ */
 class ReportService
 {
-    private EmailServiceInterface $emailService;
-
-    public function __construct(EmailServiceInterface $emailService)
-    {
-        $this->emailService = $emailService;
-    }
+    public function __construct(
+        private readonly TaskRepositoryInterface $taskRepository,
+        private readonly ReminderRepositoryInterface $reminderRepository
+    ) {}
 
     /**
-     * Tạo báo cáo hàng ngày
-     *
-     * @param array $params
-     * @return array
+     * Get comprehensive task statistics
      */
-    public function generateDailyReport(array $params = []): array
+    public function getTaskStatistics(array $filters = []): array
     {
-        try {
-            Log::info('ReportService: Generating daily report', $params);
-            
-            // Simulate daily report generation
-            $report = [
-                'type' => 'daily',
-                'date' => now()->format('Y-m-d'),
-                'total_tasks' => 100,
-                'completed_tasks' => 85,
-                'pending_tasks' => 15,
-                'completion_rate' => 85,
-                'generated_at' => now()
-            ];
-            
-            Log::info('ReportService: Daily report generated successfully', $report);
-            return $report;
-        } catch (\Exception $e) {
-            Log::error('ReportService: Daily report generation failed', ['error' => $e->getMessage()]);
-            throw $e;
-        }
-    }
-
-    /**
-     * Tạo báo cáo hàng tuần
-     *
-     * @param array $params
-     * @return array
-     */
-    public function generateWeeklyReport(array $params = []): array
-    {
-        try {
-            Log::info('ReportService: Generating weekly report', $params);
-            
-            // Simulate weekly report generation
-            $report = [
-                'type' => 'weekly',
-                'week' => now()->format('Y-W'),
-                'total_tasks' => 500,
-                'completed_tasks' => 420,
-                'pending_tasks' => 80,
-                'completion_rate' => 84,
-                'generated_at' => now()
-            ];
-            
-            Log::info('ReportService: Weekly report generated successfully', $report);
-            return $report;
-        } catch (\Exception $e) {
-            Log::error('ReportService: Weekly report generation failed', ['error' => $e->getMessage()]);
-            throw $e;
-        }
-    }
-
-    /**
-     * Tạo báo cáo hàng tháng
-     *
-     * @param array $params
-     * @return array
-     */
-    public function generateMonthlyReport(array $params = []): array
-    {
-        try {
-            Log::info('ReportService: Generating monthly report', $params);
-            
-            // Simulate monthly report generation
-            $report = [
-                'type' => 'monthly',
-                'month' => now()->format('Y-m'),
-                'total_tasks' => 2000,
-                'completed_tasks' => 1800,
-                'pending_tasks' => 200,
-                'completion_rate' => 90,
-                'generated_at' => now()
-            ];
-            
-            Log::info('ReportService: Monthly report generated successfully', $report);
-            return $report;
-        } catch (\Exception $e) {
-            Log::error('ReportService: Monthly report generation failed', ['error' => $e->getMessage()]);
-            throw $e;
-        }
-    }
-
-    /**
-     * Tạo báo cáo tùy chỉnh
-     *
-     * @param array $params
-     * @return array
-     */
-    public function generateCustomReport(array $params = []): array
-    {
-        try {
-            Log::info('ReportService: Generating custom report', $params);
-            
-            // Simulate custom report generation
-            $report = [
-                'type' => 'custom',
-                'filters' => $params,
-                'total_tasks' => 150,
-                'completed_tasks' => 120,
-                'pending_tasks' => 30,
-                'completion_rate' => 80,
-                'generated_at' => now()
-            ];
-            
-            Log::info('ReportService: Custom report generated successfully', $report);
-            return $report;
-        } catch (\Exception $e) {
-            Log::error('ReportService: Custom report generation failed', ['error' => $e->getMessage()]);
-            throw $e;
-        }
-    }
-
-    /**
-     * Tạo báo cáo hiệu suất
-     *
-     * @param array $params
-     * @return array
-     */
-    public function generatePerformanceReport(array $params = []): array
-    {
-        try {
-            Log::info('ReportService: Generating performance report', $params);
-            
-            // Simulate performance report generation
-            $report = [
-                'type' => 'performance',
-                'avg_completion_time' => '2.5 days',
-                'avg_response_time' => '1.2 hours',
-                'user_satisfaction' => 4.5,
-                'system_uptime' => 99.9,
-                'generated_at' => now()
-            ];
-            
-            Log::info('ReportService: Performance report generated successfully', $report);
-            return $report;
-        } catch (\Exception $e) {
-            Log::error('ReportService: Performance report generation failed', ['error' => $e->getMessage()]);
-            throw $e;
-        }
-    }
-
-    /**
-     * Tạo báo cáo phân tích
-     *
-     * @param array $params
-     * @return array
-     */
-    public function generateAnalyticsReport(array $params = []): array
-    {
-        try {
-            Log::info('ReportService: Generating analytics report', $params);
-            
-            // Simulate analytics report generation
-            $report = [
-                'type' => 'analytics',
-                'trends' => [
-                    'tasks_created' => '+15%',
-                    'tasks_completed' => '+12%',
-                    'user_engagement' => '+8%'
-                ],
-                'insights' => [
-                    'peak_hours' => '9:00 AM - 11:00 AM',
-                    'most_active_users' => ['user1', 'user2', 'user3'],
-                    'popular_task_types' => ['development', 'testing', 'documentation']
-                ],
-                'generated_at' => now()
-            ];
-            
-            Log::info('ReportService: Analytics report generated successfully', $report);
-            return $report;
-        } catch (\Exception $e) {
-            Log::error('ReportService: Analytics report generation failed', ['error' => $e->getMessage()]);
-            throw $e;
-        }
-    }
-
-    /**
-     * Xuất báo cáo
-     *
-     * @param array $reportData
-     * @param string $format
-     * @return string
-     */
-    public function exportReport(array $reportData, string $format = 'pdf'): string
-    {
-        try {
-            Log::info('ReportService: Exporting report', ['format' => $format]);
-            
-            // Simulate report export
-            $exportPath = 'reports/' . uniqid() . '.' . $format;
-            
-            Log::info('ReportService: Report exported successfully', ['export_path' => $exportPath]);
-            return $exportPath;
-        } catch (\Exception $e) {
-            Log::error('ReportService: Report export failed', ['error' => $e->getMessage()]);
-            throw $e;
-        }
-    }
-
-    /**
-     * Gửi báo cáo qua email
-     *
-     * @param array $reportData
-     * @param array $recipients
-     * @return bool
-     */
-    public function emailReport(array $reportData, array $recipients): bool
-    {
-        try {
-            Log::info('ReportService: Sending report via email', ['recipients' => $recipients]);
-            
-            // Tạo email DTO
-            $emailDTO = new EmailReportDTO(
-                recipients: $recipients,
-                subject: $this->generateEmailSubject($reportData),
-                content: $this->generateEmailContent($reportData),
-                reportData: $reportData,
-                template: $this->getEmailTemplate($reportData['type'] ?? 'default')
-            );
-            
-            // Gửi email thông qua EmailService
-            $sent = $this->emailService->sendReportEmail($emailDTO);
-            
-            Log::info('ReportService: Report sent via email successfully', ['sent' => $sent]);
-            return $sent;
-        } catch (\Exception $e) {
-            Log::error('ReportService: Email report failed', ['error' => $e->getMessage()]);
-            return false;
-        }
-    }
-
-    /**
-     * Gửi báo cáo qua email (alias cho emailReport)
-     *
-     * @param array $reportData
-     * @param array $recipients
-     * @return bool
-     */
-    public function sendReportByEmail(array $reportData, array $recipients): bool
-    {
-        return $this->emailReport($reportData, $recipients);
-    }
-
-    /**
-     * Tạo subject cho email
-     *
-     * @param array $reportData
-     * @return string
-     */
-    private function generateEmailSubject(array $reportData): string
-    {
-        $type = $reportData['type'] ?? 'default';
-        $date = $reportData['date'] ?? $reportData['generated_at'] ?? now()->format('Y-m-d');
+        $cacheKey = 'task_statistics_' . md5(serialize($filters));
         
-        return match($type) {
-            'daily' => "Báo cáo hàng ngày - {$date}",
-            'weekly' => "Báo cáo hàng tuần - {$date}",
-            'monthly' => "Báo cáo hàng tháng - {$date}",
-            'performance' => "Báo cáo hiệu suất - {$date}",
-            'analytics' => "Báo cáo phân tích - {$date}",
-            default => "Báo cáo Task - {$date}"
+        return Cache::remember($cacheKey, 300, function () use ($filters) {
+            return [
+                'overview' => $this->getOverviewStatistics($filters),
+                'by_status' => $this->getStatusStatistics($filters),
+                'by_priority' => $this->getPriorityStatistics($filters),
+                'by_creator' => $this->getCreatorStatistics($filters),
+                'by_department' => $this->getDepartmentStatistics($filters),
+                'timeline' => $this->getTimelineStatistics($filters),
+                'performance' => $this->getPerformanceStatistics($filters),
+                'reminders' => $this->getReminderStatistics($filters)
+            ];
+        });
+    }
+
+    /**
+     * Get user-specific statistics
+     */
+    public function getUserStatistics(int $userId, string $userType, array $filters = []): array
+    {
+        $cacheKey = "user_task_statistics_{$userId}_{$userType}_" . md5(serialize($filters));
+        
+        return Cache::remember($cacheKey, 300, function () use ($userId, $userType, $filters) {
+            return [
+                'overview' => $this->getUserOverviewStatistics($userId, $userType, $filters),
+                'tasks_created' => $this->getUserCreatedTasksStatistics($userId, $userType, $filters),
+                'tasks_assigned' => $this->getUserAssignedTasksStatistics($userId, $userType, $filters),
+                'completion_rate' => $this->getUserCompletionRate($userId, $userType, $filters),
+                'overdue_tasks' => $this->getUserOverdueTasks($userId, $userType, $filters),
+                'reminders' => $this->getUserReminderStatistics($userId, $userType, $filters),
+                'timeline' => $this->getUserTimelineStatistics($userId, $userType, $filters)
+            ];
+        });
+    }
+
+    /**
+     * Generate task report
+     */
+    public function generateTaskReport(array $filters = []): array
+    {
+        $reportData = $this->getTaskStatistics($filters);
+        
+        return [
+            'report_info' => [
+                'generated_at' => now()->toISOString(),
+                'filters_applied' => $filters,
+                'total_tasks' => $reportData['overview']['total_tasks'],
+                'date_range' => $this->getDateRange($filters)
+            ],
+            'statistics' => $reportData,
+            'charts' => $this->generateChartData($reportData),
+            'tables' => $this->generateTableData($reportData)
+        ];
+    }
+
+    /**
+     * Export report data
+     */
+    public function exportReport(array $filters = [], string $format = 'json'): array
+    {
+        $reportData = $this->generateTaskReport($filters);
+        
+        return match($format) {
+            'json' => $reportData,
+            'csv' => $this->convertToCsv($reportData),
+            'excel' => $this->convertToExcel($reportData),
+            default => $reportData
         };
     }
 
     /**
-     * Tạo nội dung email
-     *
-     * @param array $reportData
-     * @return string
+     * Get overview statistics
      */
-    private function generateEmailContent(array $reportData): string
+    private function getOverviewStatistics(array $filters): array
     {
-        $type = $reportData['type'] ?? 'default';
-        $content = "Kính gửi,\n\n";
+        $query = Task::query();
+        $this->applyFilters($query, $filters);
+
+        return [
+            'total_tasks' => $query->count(),
+            'completed_tasks' => $query->where('status', 'completed')->count(),
+            'pending_tasks' => $query->where('status', 'pending')->count(),
+            'in_progress_tasks' => $query->where('status', 'in_progress')->count(),
+            'overdue_tasks' => $query->where('deadline', '<', now())->where('status', '!=', 'completed')->count(),
+            'completion_rate' => $this->calculateCompletionRate($query),
+            'average_completion_time' => $this->calculateAverageCompletionTime($query)
+        ];
+    }
+
+    /**
+     * Get status statistics
+     */
+    private function getStatusStatistics(array $filters): array
+    {
+        $query = Task::query();
+        $this->applyFilters($query, $filters);
+
+        return $query->select('status', DB::raw('count(*) as count'))
+            ->groupBy('status')
+            ->pluck('count', 'status')
+            ->toArray();
+    }
+
+    /**
+     * Get priority statistics
+     */
+    private function getPriorityStatistics(array $filters): array
+    {
+        $query = Task::query();
+        $this->applyFilters($query, $filters);
+
+        return $query->select('priority', DB::raw('count(*) as count'))
+            ->groupBy('priority')
+            ->pluck('count', 'priority')
+            ->toArray();
+    }
+
+    /**
+     * Get creator statistics
+     */
+    private function getCreatorStatistics(array $filters): array
+    {
+        $query = Task::query();
+        $this->applyFilters($query, $filters);
+
+        return $query->select('creator_type', DB::raw('count(*) as count'))
+            ->groupBy('creator_type')
+            ->pluck('count', 'creator_type')
+            ->toArray();
+    }
+
+    /**
+     * Get department statistics
+     */
+    private function getDepartmentStatistics(array $filters): array
+    {
+        // This would need to be implemented based on your department structure
+        return [
+            'computer_science' => 45,
+            'mathematics' => 32,
+            'physics' => 28,
+            'chemistry' => 19
+        ];
+    }
+
+    /**
+     * Get timeline statistics
+     */
+    private function getTimelineStatistics(array $filters): array
+    {
+        $query = Task::query();
+        $this->applyFilters($query, $filters);
+
+        $startDate = $filters['start_date'] ?? now()->subDays(30);
+        $endDate = $filters['end_date'] ?? now();
+
+        return $query->select(
+                DB::raw('DATE(created_at) as date'),
+                DB::raw('count(*) as tasks_created'),
+                DB::raw('sum(case when status = "completed" then 1 else 0 end) as tasks_completed')
+            )
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->groupBy('date')
+            ->orderBy('date')
+            ->get()
+            ->toArray();
+    }
+
+    /**
+     * Get performance statistics
+     */
+    private function getPerformanceStatistics(array $filters): array
+    {
+        $query = Task::query();
+        $this->applyFilters($query, $filters);
+
+        $completedTasks = $query->where('status', 'completed')->get();
+
+        return [
+            'average_completion_time_hours' => $completedTasks->avg(function ($task) {
+                return $task->created_at->diffInHours($task->updated_at);
+            }),
+            'fastest_completion_hours' => $completedTasks->min(function ($task) {
+                return $task->created_at->diffInHours($task->updated_at);
+            }),
+            'slowest_completion_hours' => $completedTasks->max(function ($task) {
+                return $task->created_at->diffInHours($task->updated_at);
+            }),
+            'on_time_completion_rate' => $this->calculateOnTimeCompletionRate($completedTasks)
+        ];
+    }
+
+    /**
+     * Get reminder statistics
+     */
+    private function getReminderStatistics(array $filters): array
+    {
+        $query = Reminder::query();
         
-        switch ($type) {
-            case 'daily':
-                $content .= $this->generateDailyEmailContent($reportData);
-                break;
-            case 'weekly':
-                $content .= $this->generateWeeklyEmailContent($reportData);
-                break;
-            case 'monthly':
-                $content .= $this->generateMonthlyEmailContent($reportData);
-                break;
-            case 'performance':
-                $content .= $this->generatePerformanceEmailContent($reportData);
-                break;
-            case 'analytics':
-                $content .= $this->generateAnalyticsEmailContent($reportData);
-                break;
-            default:
-                $content .= $this->generateDefaultEmailContent($reportData);
+        if (isset($filters['start_date'])) {
+            $query->where('created_at', '>=', $filters['start_date']);
         }
-        
-        $content .= "\n\nTrân trọng,\nHệ thống quản lý Task";
-        
-        return $content;
-    }
-
-    /**
-     * Tạo nội dung email báo cáo hàng ngày
-     *
-     * @param array $reportData
-     * @return string
-     */
-    private function generateDailyEmailContent(array $reportData): string
-    {
-        return "Đây là báo cáo hàng ngày về tình hình Task:\n\n" .
-               "📊 Tổng số Task: {$reportData['total_tasks']}\n" .
-               "✅ Task hoàn thành: {$reportData['completed_tasks']}\n" .
-               "⏳ Task đang chờ: {$reportData['pending_tasks']}\n" .
-               "📈 Tỷ lệ hoàn thành: {$reportData['completion_rate']}%\n\n" .
-               "Thời gian tạo báo cáo: {$reportData['generated_at']}";
-    }
-
-    /**
-     * Tạo nội dung email báo cáo hàng tuần
-     *
-     * @param array $reportData
-     * @return string
-     */
-    private function generateWeeklyEmailContent(array $reportData): string
-    {
-        return "Đây là báo cáo hàng tuần về tình hình Task:\n\n" .
-               "📅 Tuần: {$reportData['week']}\n" .
-               "📊 Tổng số Task: {$reportData['total_tasks']}\n" .
-               "✅ Task hoàn thành: {$reportData['completed_tasks']}\n" .
-               "⏳ Task đang chờ: {$reportData['pending_tasks']}\n" .
-               "📈 Tỷ lệ hoàn thành: {$reportData['completion_rate']}%\n\n" .
-               "Thời gian tạo báo cáo: {$reportData['generated_at']}";
-    }
-
-    /**
-     * Tạo nội dung email báo cáo hàng tháng
-     *
-     * @param array $reportData
-     * @return string
-     */
-    private function generateMonthlyEmailContent(array $reportData): string
-    {
-        return "Đây là báo cáo hàng tháng về tình hình Task:\n\n" .
-               "📅 Tháng: {$reportData['month']}\n" .
-               "📊 Tổng số Task: {$reportData['total_tasks']}\n" .
-               "✅ Task hoàn thành: {$reportData['completed_tasks']}\n" .
-               "⏳ Task đang chờ: {$reportData['pending_tasks']}\n" .
-               "📈 Tỷ lệ hoàn thành: {$reportData['completion_rate']}%\n\n" .
-               "Thời gian tạo báo cáo: {$reportData['generated_at']}";
-    }
-
-    /**
-     * Tạo nội dung email báo cáo hiệu suất
-     *
-     * @param array $reportData
-     * @return string
-     */
-    private function generatePerformanceEmailContent(array $reportData): string
-    {
-        return "Đây là báo cáo hiệu suất hệ thống Task:\n\n" .
-               "⏱️ Thời gian hoàn thành trung bình: {$reportData['avg_completion_time']}\n" .
-               "⚡ Thời gian phản hồi trung bình: {$reportData['avg_response_time']}\n" .
-               "😊 Mức độ hài lòng người dùng: {$reportData['user_satisfaction']}/5\n" .
-               "🔄 Thời gian hoạt động hệ thống: {$reportData['system_uptime']}%\n\n" .
-               "Thời gian tạo báo cáo: {$reportData['generated_at']}";
-    }
-
-    /**
-     * Tạo nội dung email báo cáo phân tích
-     *
-     * @param array $reportData
-     * @return string
-     */
-    private function generateAnalyticsEmailContent(array $reportData): string
-    {
-        $trends = $reportData['trends'] ?? [];
-        $insights = $reportData['insights'] ?? [];
-        
-        $content = "Đây là báo cáo phân tích hệ thống Task:\n\n";
-        
-        if (!empty($trends)) {
-            $content .= "📈 Xu hướng:\n";
-            foreach ($trends as $key => $value) {
-                $content .= "- " . ucfirst(str_replace('_', ' ', $key)) . ": {$value}\n";
-            }
-            $content .= "\n";
+        if (isset($filters['end_date'])) {
+            $query->where('created_at', '<=', $filters['end_date']);
         }
+
+        return [
+            'total_reminders' => $query->count(),
+            'sent_reminders' => $query->where('status', 'sent')->count(),
+            'pending_reminders' => $query->where('status', 'pending')->count(),
+            'failed_reminders' => $query->where('status', 'failed')->count(),
+            'by_type' => $query->select('reminder_type', DB::raw('count(*) as count'))
+                ->groupBy('reminder_type')
+                ->pluck('count', 'reminder_type')
+                ->toArray()
+        ];
+    }
+
+    /**
+     * Get user overview statistics
+     */
+    private function getUserOverviewStatistics(int $userId, string $userType, array $filters): array
+    {
+        $createdQuery = Task::where('creator_id', $userId)->where('creator_type', $userType);
+        $assignedQuery = Task::whereHas('receivers', function ($q) use ($userId, $userType) {
+            $q->where('receiver_id', $userId)->where('receiver_type', $userType);
+        });
+
+        $this->applyFilters($createdQuery, $filters);
+        $this->applyFilters($assignedQuery, $filters);
+
+        return [
+            'tasks_created' => $createdQuery->count(),
+            'tasks_assigned' => $assignedQuery->count(),
+            'completed_created' => $createdQuery->where('status', 'completed')->count(),
+            'completed_assigned' => $assignedQuery->where('status', 'completed')->count(),
+            'overdue_created' => $createdQuery->where('deadline', '<', now())->where('status', '!=', 'completed')->count(),
+            'overdue_assigned' => $assignedQuery->where('deadline', '<', now())->where('status', '!=', 'completed')->count()
+        ];
+    }
+
+    /**
+     * Get user created tasks statistics
+     */
+    private function getUserCreatedTasksStatistics(int $userId, string $userType, array $filters): array
+    {
+        $query = Task::where('creator_id', $userId)->where('creator_type', $userType);
+        $this->applyFilters($query, $filters);
+
+        return [
+            'total' => $query->count(),
+            'by_status' => $query->select('status', DB::raw('count(*) as count'))
+                ->groupBy('status')
+                ->pluck('count', 'status')
+                ->toArray(),
+            'by_priority' => $query->select('priority', DB::raw('count(*) as count'))
+                ->groupBy('priority')
+                ->pluck('count', 'priority')
+                ->toArray()
+        ];
+    }
+
+    /**
+     * Get user assigned tasks statistics
+     */
+    private function getUserAssignedTasksStatistics(int $userId, string $userType, array $filters): array
+    {
+        $query = Task::whereHas('receivers', function ($q) use ($userId, $userType) {
+            $q->where('receiver_id', $userId)->where('receiver_type', $userType);
+        });
+        $this->applyFilters($query, $filters);
+
+        return [
+            'total' => $query->count(),
+            'by_status' => $query->select('status', DB::raw('count(*) as count'))
+                ->groupBy('status')
+                ->pluck('count', 'status')
+                ->toArray(),
+            'by_priority' => $query->select('priority', DB::raw('count(*) as count'))
+                ->groupBy('priority')
+                ->pluck('count', 'priority')
+                ->toArray()
+        ];
+    }
+
+    /**
+     * Get user completion rate
+     */
+    private function getUserCompletionRate(int $userId, string $userType, array $filters): array
+    {
+        $createdQuery = Task::where('creator_id', $userId)->where('creator_type', $userType);
+        $assignedQuery = Task::whereHas('receivers', function ($q) use ($userId, $userType) {
+            $q->where('receiver_id', $userId)->where('receiver_type', $userType);
+        });
+
+        $this->applyFilters($createdQuery, $filters);
+        $this->applyFilters($assignedQuery, $filters);
+
+        $createdTotal = $createdQuery->count();
+        $createdCompleted = $createdQuery->where('status', 'completed')->count();
+        $assignedTotal = $assignedQuery->count();
+        $assignedCompleted = $assignedQuery->where('status', 'completed')->count();
+
+        return [
+            'created_tasks' => [
+                'total' => $createdTotal,
+                'completed' => $createdCompleted,
+                'rate' => $createdTotal > 0 ? round(($createdCompleted / $createdTotal) * 100, 2) : 0
+            ],
+            'assigned_tasks' => [
+                'total' => $assignedTotal,
+                'completed' => $assignedCompleted,
+                'rate' => $assignedTotal > 0 ? round(($assignedCompleted / $assignedTotal) * 100, 2) : 0
+            ]
+        ];
+    }
+
+    /**
+     * Get user overdue tasks
+     */
+    private function getUserOverdueTasks(int $userId, string $userType, array $filters): array
+    {
+        $createdQuery = Task::where('creator_id', $userId)
+            ->where('creator_type', $userType)
+            ->where('deadline', '<', now())
+            ->where('status', '!=', 'completed');
+
+        $assignedQuery = Task::whereHas('receivers', function ($q) use ($userId, $userType) {
+            $q->where('receiver_id', $userId)->where('receiver_type', $userType);
+        })->where('deadline', '<', now())
+        ->where('status', '!=', 'completed');
+
+        $this->applyFilters($createdQuery, $filters);
+        $this->applyFilters($assignedQuery, $filters);
+
+        return [
+            'created_overdue' => $createdQuery->count(),
+            'assigned_overdue' => $assignedQuery->count(),
+            'total_overdue' => $createdQuery->count() + $assignedQuery->count()
+        ];
+    }
+
+    /**
+     * Get user reminder statistics
+     */
+    private function getUserReminderStatistics(int $userId, string $userType, array $filters): array
+    {
+        $query = Reminder::where('user_id', $userId)->where('user_type', $userType);
         
-        if (!empty($insights)) {
-            $content .= "💡 Thông tin chi tiết:\n";
-            foreach ($insights as $key => $value) {
-                if (is_array($value)) {
-                    $content .= "- " . ucfirst(str_replace('_', ' ', $key)) . ": " . implode(', ', $value) . "\n";
-                } else {
-                    $content .= "- " . ucfirst(str_replace('_', ' ', $key)) . ": {$value}\n";
-                }
-            }
+        if (isset($filters['start_date'])) {
+            $query->where('created_at', '>=', $filters['start_date']);
         }
-        
-        $content .= "\nThời gian tạo báo cáo: {$reportData['generated_at']}";
-        
-        return $content;
+        if (isset($filters['end_date'])) {
+            $query->where('created_at', '<=', $filters['end_date']);
+        }
+
+        return [
+            'total_reminders' => $query->count(),
+            'sent_reminders' => $query->where('status', 'sent')->count(),
+            'pending_reminders' => $query->where('status', 'pending')->count(),
+            'by_type' => $query->select('reminder_type', DB::raw('count(*) as count'))
+                ->groupBy('reminder_type')
+                ->pluck('count', 'reminder_type')
+                ->toArray()
+        ];
     }
 
     /**
-     * Tạo nội dung email mặc định
-     *
-     * @param array $reportData
-     * @return string
+     * Get user timeline statistics
      */
-    private function generateDefaultEmailContent(array $reportData): string
+    private function getUserTimelineStatistics(int $userId, string $userType, array $filters): array
     {
-        return "Đây là báo cáo tổng hợp về tình hình Task:\n\n" .
-               "📊 Tổng số Task: {$reportData['total_tasks']}\n" .
-               "✅ Task hoàn thành: {$reportData['completed_tasks']}\n" .
-               "⏳ Task đang chờ: {$reportData['pending_tasks']}\n" .
-               "📈 Tỷ lệ hoàn thành: {$reportData['completion_rate']}%\n\n" .
-               "Thời gian tạo báo cáo: {$reportData['generated_at']}";
+        $startDate = $filters['start_date'] ?? now()->subDays(30);
+        $endDate = $filters['end_date'] ?? now();
+
+        $createdQuery = Task::where('creator_id', $userId)
+            ->where('creator_type', $userType)
+            ->whereBetween('created_at', [$startDate, $endDate]);
+
+        $assignedQuery = Task::whereHas('receivers', function ($q) use ($userId, $userType) {
+            $q->where('receiver_id', $userId)->where('receiver_type', $userType);
+        })->whereBetween('created_at', [$startDate, $endDate]);
+
+        return [
+            'created_tasks' => $createdQuery->select(
+                DB::raw('DATE(created_at) as date'),
+                DB::raw('count(*) as count')
+            )->groupBy('date')->orderBy('date')->get()->toArray(),
+            'assigned_tasks' => $assignedQuery->select(
+                DB::raw('DATE(created_at) as date'),
+                DB::raw('count(*) as count')
+            )->groupBy('date')->orderBy('date')->get()->toArray()
+        ];
     }
 
     /**
-     * Lấy template email
-     *
-     * @param string $type
-     * @return string
+     * Apply filters to query
      */
-    private function getEmailTemplate(string $type): string
+    private function applyFilters($query, array $filters): void
     {
-        return match($type) {
-            'daily' => 'emails.reports.daily',
-            'weekly' => 'emails.reports.weekly',
-            'monthly' => 'emails.reports.monthly',
-            'performance' => 'emails.reports.performance',
-            'analytics' => 'emails.reports.analytics',
-            default => 'emails.reports.default'
-        };
+        if (isset($filters['start_date'])) {
+            $query->where('created_at', '>=', $filters['start_date']);
+        }
+        if (isset($filters['end_date'])) {
+            $query->where('created_at', '<=', $filters['end_date']);
+        }
+        if (isset($filters['status'])) {
+            $query->where('status', $filters['status']);
+        }
+        if (isset($filters['priority'])) {
+            $query->where('priority', $filters['priority']);
+        }
+        if (isset($filters['creator_type'])) {
+            $query->where('creator_type', $filters['creator_type']);
+        }
+    }
+
+    /**
+     * Calculate completion rate
+     */
+    private function calculateCompletionRate($query): float
+    {
+        $total = $query->count();
+        if ($total === 0) return 0;
+        
+        $completed = $query->where('status', 'completed')->count();
+        return round(($completed / $total) * 100, 2);
+    }
+
+    /**
+     * Calculate average completion time
+     */
+    private function calculateAverageCompletionTime($query): float
+    {
+        $completedTasks = $query->where('status', 'completed')->get();
+        
+        if ($completedTasks->isEmpty()) return 0;
+        
+        $totalHours = $completedTasks->sum(function ($task) {
+            return $task->created_at->diffInHours($task->updated_at);
+        });
+        
+        return round($totalHours / $completedTasks->count(), 2);
+    }
+
+    /**
+     * Calculate on-time completion rate
+     */
+    private function calculateOnTimeCompletionRate($completedTasks): float
+    {
+        if ($completedTasks->isEmpty()) return 0;
+        
+        $onTimeCount = $completedTasks->filter(function ($task) {
+            return $task->deadline && $task->updated_at <= $task->deadline;
+        })->count();
+        
+        return round(($onTimeCount / $completedTasks->count()) * 100, 2);
+    }
+
+    /**
+     * Get date range from filters
+     */
+    private function getDateRange(array $filters): array
+    {
+        return [
+            'start_date' => $filters['start_date'] ?? now()->subDays(30)->toDateString(),
+            'end_date' => $filters['end_date'] ?? now()->toDateString()
+        ];
+    }
+
+    /**
+     * Generate chart data
+     */
+    private function generateChartData(array $statistics): array
+    {
+        return [
+            'status_pie_chart' => $statistics['by_status'],
+            'priority_bar_chart' => $statistics['by_priority'],
+            'timeline_chart' => $statistics['timeline'],
+            'creator_chart' => $statistics['by_creator']
+        ];
+    }
+
+    /**
+     * Generate table data
+     */
+    private function generateTableData(array $statistics): array
+    {
+        return [
+            'overview_table' => $statistics['overview'],
+            'status_table' => $statistics['by_status'],
+            'priority_table' => $statistics['by_priority'],
+            'performance_table' => $statistics['performance']
+        ];
+    }
+
+    /**
+     * Convert to CSV format
+     */
+    private function convertToCsv(array $data): array
+    {
+        // Implementation for CSV conversion
+        return $data;
+    }
+
+    /**
+     * Convert to Excel format
+     */
+    private function convertToExcel(array $data): array
+    {
+        // Implementation for Excel conversion
+        return $data;
     }
 }

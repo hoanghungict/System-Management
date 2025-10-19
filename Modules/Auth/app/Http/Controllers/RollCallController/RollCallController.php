@@ -29,17 +29,16 @@ class RollCallController extends Controller
     {
         try {
             $classrooms = $this->rollCallService->getClassrooms();
-            
+
             return response()->json([
                 'success' => true,
                 'data' => $classrooms
             ]);
-            
         } catch (\Exception $e) {
             Log::error('Failed to get classrooms', [
                 'error' => $e->getMessage()
             ]);
-            
+
             return response()->json([
                 'success' => false,
                 'message' => 'Có lỗi xảy ra khi lấy danh sách lớp học.',
@@ -55,19 +54,18 @@ class RollCallController extends Controller
     {
         try {
             $rollCall = $this->rollCallService->createRollCall($request->validated());
-            
+
             return response()->json([
                 'success' => true,
                 'message' => 'Tạo buổi điểm danh thành công.',
                 'data' => $rollCall
             ], 201);
-            
         } catch (\Exception $e) {
             Log::error('Failed to create roll call', [
                 'error' => $e->getMessage(),
                 'request' => $request->all()
             ]);
-            
+
             return response()->json([
                 'success' => false,
                 'message' => 'Có lỗi xảy ra khi tạo buổi điểm danh.',
@@ -84,18 +82,17 @@ class RollCallController extends Controller
         try {
             $perPage = $request->get('per_page', 15);
             $rollCalls = $this->rollCallService->getRollCallsByClass($classId, $perPage);
-            
+
             return response()->json([
                 'success' => true,
                 'data' => $rollCalls
             ]);
-            
         } catch (\Exception $e) {
             Log::error('Failed to get roll calls by class', [
                 'error' => $e->getMessage(),
                 'class_id' => $classId
             ]);
-            
+
             return response()->json([
                 'success' => false,
                 'message' => 'Có lỗi xảy ra khi lấy danh sách buổi điểm danh.',
@@ -111,18 +108,17 @@ class RollCallController extends Controller
     {
         try {
             $rollCall = $this->rollCallService->getRollCallDetails($id);
-            
+
             return response()->json([
                 'success' => true,
                 'data' => $rollCall
             ]);
-            
         } catch (\Exception $e) {
             Log::error('Failed to get roll call details', [
                 'error' => $e->getMessage(),
                 'roll_call_id' => $id
             ]);
-            
+
             return response()->json([
                 'success' => false,
                 'message' => 'Có lỗi xảy ra khi lấy chi tiết buổi điểm danh.',
@@ -138,14 +134,14 @@ class RollCallController extends Controller
     {
         try {
             $validated = $request->validated();
-            
+
             $success = $this->rollCallService->updateStudentStatus(
                 $rollCallId,
                 $validated['student_id'],
                 $validated['status'],
                 $validated['note'] ?? null
             );
-            
+
             if ($success) {
                 return response()->json([
                     'success' => true,
@@ -157,14 +153,13 @@ class RollCallController extends Controller
                     'message' => 'Cập nhật trạng thái điểm danh thất bại.'
                 ], 400);
             }
-            
         } catch (\Exception $e) {
             Log::error('Failed to update roll call status', [
                 'error' => $e->getMessage(),
                 'roll_call_id' => $rollCallId,
                 'request' => $request->all()
             ]);
-            
+
             return response()->json([
                 'success' => false,
                 'message' => 'Có lỗi xảy ra khi cập nhật trạng thái điểm danh.',
@@ -180,7 +175,7 @@ class RollCallController extends Controller
     {
         try {
             $validated = $request->validated();
-            
+
             // Chuyển đổi dữ liệu từ frontend
             $studentStatuses = [];
             foreach ($validated['student_statuses'] as $data) {
@@ -189,9 +184,9 @@ class RollCallController extends Controller
                     'note' => $data['note'] ?? null
                 ];
             }
-            
+
             $success = $this->rollCallService->updateBulkStatus($rollCallId, $studentStatuses);
-            
+
             if ($success) {
                 return response()->json([
                     'success' => true,
@@ -203,14 +198,13 @@ class RollCallController extends Controller
                     'message' => 'Cập nhật trạng thái điểm danh hàng loạt thất bại.'
                 ], 400);
             }
-            
         } catch (\Exception $e) {
             Log::error('Failed to bulk update roll call status', [
                 'error' => $e->getMessage(),
                 'roll_call_id' => $rollCallId,
                 'request' => $request->all()
             ]);
-            
+
             return response()->json([
                 'success' => false,
                 'message' => 'Có lỗi xảy ra khi cập nhật trạng thái điểm danh hàng loạt.',
@@ -226,7 +220,7 @@ class RollCallController extends Controller
     {
         try {
             $success = $this->rollCallService->completeRollCall($id);
-            
+
             if ($success) {
                 return response()->json([
                     'success' => true,
@@ -238,13 +232,12 @@ class RollCallController extends Controller
                     'message' => 'Hoàn thành buổi điểm danh thất bại.'
                 ], 400);
             }
-            
         } catch (\Exception $e) {
             Log::error('Failed to complete roll call', [
                 'error' => $e->getMessage(),
                 'roll_call_id' => $id
             ]);
-            
+
             return response()->json([
                 'success' => false,
                 'message' => 'Có lỗi xảy ra khi hoàn thành buổi điểm danh.',
@@ -260,7 +253,7 @@ class RollCallController extends Controller
     {
         try {
             $success = $this->rollCallService->cancelRollCall($id);
-            
+
             if ($success) {
                 return response()->json([
                     'success' => true,
@@ -272,13 +265,12 @@ class RollCallController extends Controller
                     'message' => 'Hủy buổi điểm danh thất bại.'
                 ], 400);
             }
-            
         } catch (\Exception $e) {
             Log::error('Failed to cancel roll call', [
                 'error' => $e->getMessage(),
                 'roll_call_id' => $id
             ]);
-            
+
             return response()->json([
                 'success' => false,
                 'message' => 'Có lỗi xảy ra khi hủy buổi điểm danh.',
@@ -295,20 +287,19 @@ class RollCallController extends Controller
         try {
             $startDate = $request->get('start_date');
             $endDate = $request->get('end_date');
-            
+
             $stats = $this->rollCallService->getRollCallStatistics($classId, $startDate, $endDate);
-            
+
             return response()->json([
                 'success' => true,
                 'data' => $stats
             ]);
-            
         } catch (\Exception $e) {
             Log::error('Failed to get roll call statistics', [
                 'error' => $e->getMessage(),
                 'class_id' => $classId
             ]);
-            
+
             return response()->json([
                 'success' => false,
                 'message' => 'Có lỗi xảy ra khi lấy thống kê điểm danh.',
@@ -326,18 +317,17 @@ class RollCallController extends Controller
             $students = Student::where('class_id', $classId)
                 ->with('account')
                 ->get();
-            
+
             return response()->json([
                 'success' => true,
                 'data' => $students
             ]);
-            
         } catch (\Exception $e) {
             Log::error('Failed to get students for roll call', [
                 'error' => $e->getMessage(),
                 'class_id' => $classId
             ]);
-            
+
             return response()->json([
                 'success' => false,
                 'message' => 'Có lỗi xảy ra khi lấy danh sách sinh viên.',

@@ -5,6 +5,9 @@ namespace Modules\Task\app\Admin\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Modules\Task\app\Admin\UseCases\ForceDeleteTaskUseCase;
+use Modules\Task\app\Admin\UseCases\DeleteTaskUseCase;
+use Modules\Task\app\Admin\UseCases\UpdateTaskUseCase;
+use Modules\Task\app\Admin\UseCases\ShowTaskUseCase;
 use Modules\Task\app\Admin\UseCases\RestoreTaskUseCase;
 use Modules\Task\app\Admin\UseCases\AssignTaskToLecturersUseCase;
 use Modules\Task\app\Admin\UseCases\GetAssignedTasksUseCase;
@@ -22,6 +25,9 @@ class AdminTaskController
 {
     public function __construct(
         private ForceDeleteTaskUseCase $forceDeleteTaskUseCase,
+        private DeleteTaskUseCase $deleteTaskUseCase,
+        private UpdateTaskUseCase $updateTaskUseCase,
+        private ShowTaskUseCase $showTaskUseCase,
         private RestoreTaskUseCase $restoreTaskUseCase,
         private AssignTaskToLecturersUseCase $assignTaskToLecturersUseCase,
         private GetAssignedTasksUseCase $getAssignedTasksUseCase,
@@ -29,6 +35,67 @@ class AdminTaskController
         private CheckAdminRoleUseCase $checkAdminRoleUseCase,
         private AdminTaskService $adminTaskService
     ) {}
+
+    /**
+     * Delete a task (soft delete - Admin only)
+     */
+    public function deleteTask(Request $request, $taskId): JsonResponse
+    {
+        try {
+            $userId = $request->attributes->get('jwt_user_id');
+            $userType = $request->attributes->get('jwt_user_type');
+
+            $result = $this->deleteTaskUseCase->execute($taskId, $userId, $userType);
+
+            return response()->json($result, 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], $e->getMessage() === 'Unauthorized: Admin access required' ? 403 : ($e->getMessage() === 'Task not found' ? 404 : 500));
+        }
+    }
+
+    /**
+     * Update a task (Admin only)
+     */
+    public function updateTask(Request $request, $taskId): JsonResponse
+    {
+        try {
+            $userId = $request->attributes->get('jwt_user_id');
+            $userType = $request->attributes->get('jwt_user_type');
+            $data = $request->all();
+
+            $result = $this->updateTaskUseCase->execute($taskId, $data, $userId, $userType);
+
+            return response()->json($result, 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], $e->getMessage() === 'Unauthorized: Admin access required' ? 403 : ($e->getMessage() === 'Task not found' ? 404 : 500));
+        }
+    }
+
+    /**
+     * Show task detail (Admin only)
+     */
+    public function showTask(Request $request, $taskId): JsonResponse
+    {
+        try {
+            $userId = $request->attributes->get('jwt_user_id');
+            $userType = $request->attributes->get('jwt_user_type');
+
+            $result = $this->showTaskUseCase->execute($taskId, $userId, $userType);
+
+            return response()->json($result, 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], $e->getMessage() === 'Unauthorized: Admin access required' ? 403 : ($e->getMessage() === 'Task not found' ? 404 : 500));
+        }
+    }
 
     /**
      * Force delete a task (Admin only)
@@ -186,9 +253,9 @@ class AdminTaskController
         try {
             $filters = $request->only(['receiver_id', 'receiver_type', 'creator_id', 'creator_type', 'search', 'status']);
             $perPage = $request->get('per_page', 15);
-            
+
             $tasks = $this->adminTaskService->getAllTasks($filters, $perPage);
-            
+
             return response()->json([
                 'success' => true,
                 'data' => $tasks->items(),
@@ -239,9 +306,9 @@ class AdminTaskController
         try {
             $filters = $request->only(['receiver_id', 'receiver_type', 'creator_id', 'creator_type', 'search', 'status']);
             $perPage = $request->get('per_page', 15);
-            
+
             $tasks = $this->adminTaskService->getAllTasks($filters, $perPage);
-            
+
             return response()->json([
                 'success' => true,
                 'data' => $tasks->items(),
@@ -268,7 +335,7 @@ class AdminTaskController
     {
         try {
             $stats = $this->adminTaskService->getOverviewStatistics();
-            
+
             return response()->json([
                 'success' => true,
                 'message' => 'Overview task statistics retrieved successfully',
@@ -278,6 +345,36 @@ class AdminTaskController
             return response()->json([
                 'success' => false,
                 'message' => 'An error occurred while retrieving statistics: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Store a newly created task (Admin only)
+     * Delegate to TaskController to avoid code duplication
+     */
+    public function store(Request $request): JsonResponse
+    {
+        try {
+            $data = $request->all();
+
+            // Add creator information from JWT to data
+            $data['creator_id'] = $request->attributes->get('jwt_user_id');
+            $data['creator_type'] = $request->attributes->get('jwt_user_type');
+
+            // Use CreateTaskUseCase directly
+            $createTaskUseCase = app(\Modules\Task\app\UseCases\CreateTaskUseCase::class);
+            $task = $createTaskUseCase->execute($data);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Task created successfully',
+                'data' => $task
+            ], 201);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error creating task: ' . $e->getMessage()
             ], 500);
         }
     }

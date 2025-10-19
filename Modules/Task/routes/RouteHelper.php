@@ -3,6 +3,7 @@
 namespace Modules\Task\routes;
 
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Helper class để quản lý routes trong module Task với JWT và phân quyền
@@ -21,76 +22,96 @@ class RouteHelper
     {
         $middleware = $config['middleware'] ?? [];
         $prefix = $config['prefix'] ?? '';
-        
+
         Route::middleware($middleware)->prefix('api/' . $prefix)->group(function () use ($config) {
             // Đăng ký routes cho Tasks
             if (isset($config['tasks'])) {
                 self::registerTaskRoutes($config['tasks']);
             }
-            
+
+            // Đăng ký routes cho Task Dependencies
+            if (isset($config['task-dependencies'])) {
+                self::registerTaskDependencyRoutes($config['task-dependencies']);
+            }
+
             // Đăng ký routes cho Calendar
             if (isset($config['calendar'])) {
                 self::registerCalendarRoutes($config['calendar']);
             }
-            
+
             // Đăng ký routes cho Cache
             if (isset($config['cache'])) {
                 self::registerCacheRoutes($config['cache']);
             }
-            
+
             // Đăng ký routes cho Monitoring
             if (isset($config['monitoring'])) {
                 self::registerMonitoringRoutes($config['monitoring']);
             }
-            
+
             // Đăng ký routes cho Admin Tasks
             if (isset($config['admin-tasks'])) {
                 self::registerAdminTaskRoutes($config['admin-tasks']);
             }
-            
+
             // Đăng ký routes cho Email
             if (isset($config['email'])) {
                 self::registerEmailRoutes($config['email']);
             }
-            
+
             // Đăng ký routes cho Lecturer Tasks
             if (isset($config['lecturer-tasks'])) {
                 self::registerLecturerTaskRoutes($config['lecturer-tasks']);
             }
-            
+
             // Đăng ký routes cho Lecturer Calendar
             if (isset($config['lecturer-calendar'])) {
                 self::registerLecturerCalendarRoutes($config['lecturer-calendar']);
             }
-            
+
             // Đăng ký routes cho Lecturer Profile
             if (isset($config['lecturer-profile'])) {
                 self::registerLecturerProfileRoutes($config['lecturer-profile']);
             }
-            
+
             // Đăng ký routes cho Lecturer Classes
             if (isset($config['lecturer-classes'])) {
                 self::registerLecturerClassRoutes($config['lecturer-classes']);
             }
-            
+
             // Đăng ký routes cho Student Tasks
             if (isset($config['student-tasks'])) {
                 self::registerStudentTaskRoutes($config['student-tasks']);
             }
-            
+
             // Đăng ký routes cho Student Calendar
             if (isset($config['student-calendar'])) {
                 self::registerStudentCalendarRoutes($config['student-calendar']);
             }
-            
+
             // Đăng ký routes cho Student Profile
             if (isset($config['student-profile'])) {
                 self::registerStudentProfileRoutes($config['student-profile']);
             }
-            
+
             // Đăng ký routes cho Student Class
             if (isset($config['student-class'])) {
                 self::registerStudentClassRoutes($config['student-class']);
+            }
+
+            // Đăng ký routes cho Statistics
+            if (isset($config['statistics'])) {
+                self::registerStatisticsRoutes($config['statistics']);
+            }
+
+            // Đăng ký routes cho Reports
+            if (isset($config['reports'])) {
+                self::registerReportsRoutes($config['reports']);
+            }
+
+            // Đăng ký routes cho Reminders
+            if (isset($config['reminders'])) {
+                self::registerRemindersRoutes($config['reminders']);
             }
         });
     }
@@ -127,7 +148,7 @@ class RouteHelper
                     ->only($resourceOnly)
                     ->parameters(['' => 'task']);
             }
-            
+
             if (!empty($resourceActions)) {
                 Route::apiResource('', $controller)
                     ->only($resourceActions)
@@ -206,7 +227,6 @@ class RouteHelper
                 $controller = $route['controller'];
                 $action = $route['action'];
                 $routeName = $route['name'];
-                
                 Route::match($methods, $uri, [$controller, $action])->name($routeName);
             }
         });
@@ -518,6 +538,131 @@ class RouteHelper
         $controller = $studentClassConfig['controller'];
         $name = $studentClassConfig['name'];
         $routes = $studentClassConfig['routes'] ?? [];
+
+        Route::prefix($prefix)->name($name . '.')->group(function () use ($controller, $routes) {
+            foreach ($routes as $route) {
+                $methods = $route['methods'] ?? ['GET'];
+                $uri = $route['uri'];
+                $action = $route['action'];
+                $routeName = $route['name'];
+
+                Route::match($methods, $uri, [$controller, $action])->name($routeName);
+            }
+        });
+    }
+
+    /**
+     * Đăng ký routes cho Task Dependencies
+     * 
+     * @param array $taskDependencyConfig Cấu hình task dependency routes
+     * @return void
+     */
+    protected static function registerTaskDependencyRoutes(array $taskDependencyConfig)
+    {
+        $prefix = $taskDependencyConfig['prefix'];
+        $controller = $taskDependencyConfig['controller'];
+        $name = $taskDependencyConfig['name'];
+        $additionalRoutes = $taskDependencyConfig['additional_routes'] ?? [];
+
+        // ✅ Debug: Log route registration
+        Log::info('Registering TaskDependency routes', [
+            'prefix' => $prefix,
+            'controller' => $controller,
+            'name' => $name,
+            'routes_count' => count($additionalRoutes)
+        ]);
+
+        Route::prefix($prefix)->name($name . '.')->group(function () use ($controller, $additionalRoutes) {
+            foreach ($additionalRoutes as $route) {
+                $methods = $route['methods'] ?? ['GET'];
+                $uri = $route['uri'];
+                $action = $route['action'];
+                $routeName = $route['name'];
+
+                // ✅ Debug: Log each route
+                Log::info('Registering dependency route', [
+                    'methods' => $methods,
+                    'uri' => $uri,
+                    'action' => $action,
+                    'routeName' => $routeName,
+                    'controller' => $controller
+                ]);
+
+                try {
+                    Route::match($methods, $uri, [$controller, $action])->name($routeName);
+                    Log::info('✅ Route registered successfully', ['routeName' => $routeName]);
+                } catch (\Exception $e) {
+                    Log::error('❌ Failed to register route', [
+                        'routeName' => $routeName,
+                        'error' => $e->getMessage()
+                    ]);
+                }
+            }
+        });
+    }
+
+    /**
+     * Đăng ký routes cho Statistics
+     * 
+     * @param array $statisticsConfig Cấu hình statistics routes
+     * @return void
+     */
+    protected static function registerStatisticsRoutes(array $statisticsConfig)
+    {
+        $prefix = $statisticsConfig['prefix'];
+        $controller = $statisticsConfig['controller'];
+        $name = $statisticsConfig['name'];
+        $routes = $statisticsConfig['routes'] ?? [];
+
+        Route::prefix($prefix)->name($name . '.')->group(function () use ($controller, $routes) {
+            foreach ($routes as $route) {
+                $methods = $route['methods'] ?? ['GET'];
+                $uri = $route['uri'];
+                $action = $route['action'];
+                $routeName = $route['name'];
+
+                Route::match($methods, $uri, [$controller, $action])->name($routeName);
+            }
+        });
+    }
+
+    /**
+     * Đăng ký routes cho Reports
+     * 
+     * @param array $reportsConfig Cấu hình reports routes
+     * @return void
+     */
+    protected static function registerReportsRoutes(array $reportsConfig)
+    {
+        $prefix = $reportsConfig['prefix'];
+        $controller = $reportsConfig['controller'];
+        $name = $reportsConfig['name'];
+        $routes = $reportsConfig['routes'] ?? [];
+
+        Route::prefix($prefix)->name($name . '.')->group(function () use ($controller, $routes) {
+            foreach ($routes as $route) {
+                $methods = $route['methods'] ?? ['GET'];
+                $uri = $route['uri'];
+                $action = $route['action'];
+                $routeName = $route['name'];
+
+                Route::match($methods, $uri, [$controller, $action])->name($routeName);
+            }
+        });
+    }
+
+    /**
+     * Đăng ký routes cho Reminders
+     * 
+     * @param array $remindersConfig Cấu hình reminders routes
+     * @return void
+     */
+    protected static function registerRemindersRoutes(array $remindersConfig)
+    {
+        $prefix = $remindersConfig['prefix'];
+        $controller = $remindersConfig['controller'];
+        $name = $remindersConfig['name'];
+        $routes = $remindersConfig['routes'] ?? [];
 
         Route::prefix($prefix)->name($name . '.')->group(function () use ($controller, $routes) {
             foreach ($routes as $route) {

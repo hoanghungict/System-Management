@@ -6,11 +6,7 @@ use App\Http\Controllers\Controller;
 use Modules\Task\app\Models\Task;
 use Modules\Task\app\Services\Interfaces\TaskServiceInterface;
 use Modules\Task\app\Services\UserContextService;
-use Modules\Task\app\Http\Requests\TaskRequest;
 use Modules\Task\app\Transformers\TaskResource;
-use Modules\Task\app\DTOs\TaskDTO;
-use Modules\Task\app\UseCases\CreateTaskUseCase;
-use Modules\Task\app\UseCases\CreateTaskWithPermissionsUseCase;
 use Modules\Task\app\UseCases\GetFacultiesUseCase;
 use Modules\Task\app\UseCases\GetClassesByDepartmentUseCase;
 use Modules\Task\app\UseCases\GetStudentsByClassUseCase;
@@ -21,7 +17,6 @@ use Illuminate\Http\Request;
 use Modules\Task\app\Jobs\ProcessTaskJob;
 use Modules\Task\app\Jobs\ProcessTaskFileJob;
 use Modules\Task\app\Jobs\GenerateTaskReportJob;
-use Modules\Task\app\Jobs\SyncTaskDataJob;
 use Modules\Task\app\Services\FileService;
 use Modules\Task\app\Services\ReportService;
 use Illuminate\Support\Facades\Log;
@@ -38,8 +33,6 @@ use Illuminate\Support\Facades\Log;
 class TaskController extends Controller
 {
     protected TaskServiceInterface $taskService;
-    protected CreateTaskUseCase $createTaskUseCase;
-    protected CreateTaskWithPermissionsUseCase $createTaskWithPermissionsUseCase;
     protected UserContextService $userContextService;
     protected GetFacultiesUseCase $getFacultiesUseCase;
     protected GetClassesByDepartmentUseCase $getClassesByDepartmentUseCase;
@@ -52,8 +45,6 @@ class TaskController extends Controller
      */
     public function __construct(
         TaskServiceInterface $taskService,
-        CreateTaskUseCase $createTaskUseCase,
-        CreateTaskWithPermissionsUseCase $createTaskWithPermissionsUseCase,
         UserContextService $userContextService,
         GetFacultiesUseCase $getFacultiesUseCase,
         GetClassesByDepartmentUseCase $getClassesByDepartmentUseCase,
@@ -62,8 +53,6 @@ class TaskController extends Controller
         FileService $fileService
     ) {
         $this->taskService = $taskService;
-        $this->createTaskUseCase = $createTaskUseCase;
-        $this->createTaskWithPermissionsUseCase = $createTaskWithPermissionsUseCase;
         $this->userContextService = $userContextService;
         $this->getFacultiesUseCase = $getFacultiesUseCase;
         $this->getClassesByDepartmentUseCase = $getClassesByDepartmentUseCase;
@@ -79,10 +68,10 @@ class TaskController extends Controller
     {
         $filters = $request->only(['receiver_id', 'receiver_type', 'creator_id', 'creator_type', 'search']);
         $perPage = $request->get('per_page', 15);
-        
+
         $tasks = $this->taskService->getTasksWithFilters($filters, $perPage);
-        
-        return response()->json([
+
+        $response = [
             'success' => true,
             'data' => TaskResource::collection($tasks->items()),
             'pagination' => [
@@ -92,41 +81,14 @@ class TaskController extends Controller
                 'last_page' => $tasks->lastPage()
             ],
             'message' => 'Tasks retrieved successfully'
-        ]);
+        ];
+
+        return response()->json($response, 200, [
+            'Content-Type' => 'application/json; charset=utf-8'
+        ], JSON_UNESCAPED_UNICODE);
     }
 
 
-    /**
-     * Store a newly created task
-     */
-    public function store(Request $request): JsonResponse
-    {
-        try {
-            $data = $request->all();
-            
-            // Add creator information from JWT to data
-            $data['creator_id'] = $request->attributes->get('jwt_user_id');
-            $data['creator_type'] = $request->attributes->get('jwt_user_type');
-            
-            $task = $this->createTaskUseCase->execute($data);
-            
-            return response()->json([
-                'success' => true,
-                'message' => 'Task created successfully',
-                'data' => $task
-            ], 201);
-        } catch (\Exception $e) {
-            Log::error('TaskController: Error creating task', [
-                'error' => $e->getMessage(),
-                'data' => $request->all()
-            ]);
-            
-            return response()->json([
-                'success' => false,
-                'message' => 'Error creating task: ' . $e->getMessage()
-            ], 500);
-        }
-    }
 
     /**
      * Hiển thị thông tin chi tiết của một task
@@ -134,14 +96,14 @@ class TaskController extends Controller
     public function show($taskId): JsonResponse
     {
         $taskData = $this->taskService->getTaskById((int) $taskId);
-        
+
         if (!$taskData) {
             return response()->json([
                 'success' => false,
                 'message' => 'Task not found'
             ], 404);
         }
-        
+
         return response()->json([
             'success' => true,
             'data' => new TaskResource($taskData),
@@ -150,46 +112,7 @@ class TaskController extends Controller
     }
 
 
-    /**
-     * Xóa một task
-     */
-    public function destroy(Request $request, $taskId): JsonResponse
-    {
-        try {
-            $task = Task::find($taskId);
-            if (!$task) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Task not found'
-                ], 404);
-            }
-            
-            $taskId = $task->id;
-            $taskTitle = $task->title;
-            
-            // Soft delete trực tiếp
-            $result = $task->delete();
-            
-            // Kiểm tra xem task có thực sự bị soft delete không
-            $deletedTask = Task::withTrashed()->find($taskId);
-            $isSoftDeleted = $deletedTask && $deletedTask->trashed();
-            
-            return response()->json([
-                'success' => true,
-                'message' => 'Task deleted successfully',
-                'task_id' => $taskId,
-                'title' => $taskTitle,
-                'soft_delete_result' => $result,
-                'is_soft_deleted' => $isSoftDeleted,
-                'deleted_at' => $isSoftDeleted ? $deletedTask->deleted_at : null
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Error deleting task: ' . $e->getMessage()
-            ], 500);
-        }
-    }
+
 
     /**
      * Lấy danh sách tasks của người dùng hiện tại
@@ -198,23 +121,23 @@ class TaskController extends Controller
     {
         $userId = $request->attributes->get('jwt_user_id');
         $userType = $request->attributes->get('jwt_user_type');
-        
+
         if (!$userId || !$userType) {
             return response()->json([
                 'success' => false,
                 'message' => 'User not authenticated'
             ], 401);
         }
-        
+
         $perPage = $request->get('per_page', 15);
-        
+
         $user = (object) [
             'id' => $userId,
             'user_type' => $userType
         ];
-        
+
         $tasks = $this->taskService->getTasksForCurrentUser($user, $perPage);
-        
+
         return response()->json([
             'success' => true,
             'data' => TaskResource::collection($tasks->items()),
@@ -228,49 +151,7 @@ class TaskController extends Controller
         ]);
     }
 
-    /**
-     * Lấy danh sách tasks đã giao (chỉ giảng viên)
-     */
-    public function getMyAssignedTasks(Request $request): JsonResponse
-    {
-        $userId = $request->attributes->get('jwt_user_id');
-        $userType = $request->attributes->get('jwt_user_type');
-        
-        if (!$userId || !$userType) {
-            return response()->json([
-                'success' => false,
-                'message' => 'User not authenticated'
-            ], 401);
-        }
-        
-        if ($userType !== 'lecturer') {
-            return response()->json([
-                'success' => false,
-                'message' => 'Only lecturers can view assigned tasks'
-            ], 403);
-        }
-        
-        $perPage = $request->get('per_page', 15);
-        
-        $user = (object) [
-            'id' => $userId,
-            'user_type' => $userType
-        ];
-        
-        $tasks = $this->taskService->getTasksCreatedByUser($user, $perPage);
-        
-        return response()->json([
-            'success' => true,
-            'data' => TaskResource::collection($tasks->items()),
-            'pagination' => [
-                'current_page' => $tasks->currentPage(),
-                'per_page' => $tasks->perPage(),
-                'total' => $tasks->total(),
-                'last_page' => $tasks->lastPage()
-            ],
-            'message' => 'My assigned tasks retrieved successfully'
-        ]);
-    }
+    // Lecturer methods đã được chuyển sang LecturerTaskController
 
 
     /**
@@ -280,46 +161,46 @@ class TaskController extends Controller
     {
         $userId = $request->attributes->get('jwt_user_id');
         $userType = $request->attributes->get('jwt_user_type');
-        
+
         if (!$userId || !$userType) {
             return response()->json([
                 'success' => false,
                 'message' => 'User not authenticated'
             ], 401);
         }
-        
+
         // Find task manually
         $task = \Modules\Task\app\Models\Task::with('receivers')->find($taskId);
-        
+
         if (!$task) {
             return response()->json([
                 'success' => false,
                 'message' => 'Task not found'
             ], 404);
         }
-        
+
         $status = $request->get('status');
-        
+
         $user = (object) [
             'id' => $userId,
             'user_type' => $userType
         ];
-        
+
         $canUpdate = $this->taskService->canUpdateTaskStatus($user, $task);
-        
+
         if (!$canUpdate) {
             return response()->json([
                 'success' => false,
                 'message' => 'Bạn không có quyền cập nhật trạng thái task này'
             ], 403);
         }
-        
+
         $updatedTask = $this->taskService->updateTaskStatus($task, $status);
-        
+
         ProcessTaskJob::dispatch($task->toArray(), 'status_updated', ['old_status' => $task->status, 'new_status' => $status])
             ->onQueue('high')
             ->delay(now()->addSeconds(15));
-        
+
         return response()->json([
             'success' => true,
             'data' => new TaskResource($updatedTask),
@@ -334,21 +215,21 @@ class TaskController extends Controller
     {
         $userId = $request->attributes->get('jwt_user_id');
         $userType = $request->attributes->get('jwt_user_type');
-        
+
         if (!$userId || !$userType) {
             return response()->json([
                 'success' => false,
                 'message' => 'User not authenticated'
             ], 401);
         }
-        
+
         $user = (object) [
             'id' => $userId,
             'user_type' => $userType
         ];
-        
+
         $statistics = $this->taskService->getUserTaskStatistics($user);
-        
+
         return response()->json([
             'success' => true,
             'data' => $statistics,
@@ -356,71 +237,9 @@ class TaskController extends Controller
         ]);
     }
 
-    /**
-     * Lấy thống kê tasks đã tạo (chỉ giảng viên)
-     */
-    public function getCreatedStatistics(Request $request): JsonResponse
-    {
-        $userId = $request->attributes->get('jwt_user_id');
-        $userType = $request->attributes->get('jwt_user_type');
-        
-        if (!$userId || !$userType) {
-            return response()->json([
-                'success' => false,
-                'message' => 'User not authenticated'
-            ], 401);
-        }
-        
-        $user = (object) [
-            'id' => $userId,
-            'user_type' => $userType
-        ];
-        
-        $statistics = $this->taskService->getCreatedTaskStatistics($user);
-        
-        return response()->json([
-            'success' => true,
-            'data' => $statistics,
-            'message' => 'Created task statistics retrieved successfully'
-        ]);
-    }
+    // Lecturer methods đã được chuyển sang LecturerTaskController
 
-    /**
-     * Lấy thống kê tổng quan (chỉ admin)
-     */
-    public function getOverviewStatistics(): JsonResponse
-    {
-        $statistics = $this->taskService->getOverviewTaskStatistics();
-        
-        return response()->json([
-            'success' => true,
-            'data' => $statistics,
-            'message' => 'Overview task statistics retrieved successfully'
-        ]);
-    }
-
-    /**
-     * Lấy tất cả tasks (chỉ admin)
-     */
-    public function getAllTasks(Request $request): JsonResponse
-    {
-        $filters = $request->only(['receiver_id', 'receiver_type', 'creator_id', 'creator_type', 'search', 'status']);
-        $perPage = $request->get('per_page', 15);
-        
-        $tasks = $this->taskService->getAllTasks($filters, $perPage);
-        
-        return response()->json([
-            'success' => true,
-            'data' => TaskResource::collection($tasks->items()),
-            'pagination' => [
-                'current_page' => $tasks->currentPage(),
-                'per_page' => $tasks->perPage(),
-                'total' => $tasks->total(),
-                'last_page' => $tasks->lastPage()
-            ],
-            'message' => 'All tasks retrieved successfully'
-        ]);
-    }
+    // Admin methods đã được chuyển sang AdminTaskController
 
     /**
      * Lấy danh sách departments
@@ -430,7 +249,7 @@ class TaskController extends Controller
         try {
             $user = $this->userContextService->createUserFromJwt($request);
             $faculties = $this->getFacultiesUseCase->execute($user);
-            
+
             return response()->json([
                 'success' => true,
                 'data' => $faculties,
@@ -451,13 +270,7 @@ class TaskController extends Controller
         }
     }
 
-    /**
-     * Lấy danh sách departments (alias for getFaculties)
-     */
-    public function getDepartments(Request $request): JsonResponse
-    {
-        return $this->getFaculties($request);
-    }
+    // getDepartments đã được loại bỏ vì chỉ là alias của getFaculties
 
     /**
      * Lấy danh sách classes theo department
@@ -472,10 +285,10 @@ class TaskController extends Controller
                     'message' => 'Department ID is required'
                 ], 400);
             }
-            
+
             $user = $this->userContextService->createUserFromJwt($request);
             $classes = $this->getClassesByDepartmentUseCase->execute($user, $departmentId);
-            
+
             return response()->json([
                 'success' => true,
                 'data' => $classes,
@@ -509,10 +322,10 @@ class TaskController extends Controller
                     'message' => 'Class ID is required'
                 ], 400);
             }
-            
+
             $user = $this->userContextService->createUserFromJwt($request);
             $students = $this->getStudentsByClassUseCase->execute($user, $classId);
-            
+
             return response()->json([
                 'success' => true,
                 'data' => $students,
@@ -541,7 +354,7 @@ class TaskController extends Controller
         try {
             $user = $this->userContextService->createUserFromJwt($request);
             $lecturers = $this->getLecturersUseCase->execute($user);
-            
+
             return response()->json([
                 'success' => true,
                 'data' => $lecturers,
@@ -562,32 +375,9 @@ class TaskController extends Controller
         }
     }
 
-    
-    
-    /**
-     * Đồng bộ dữ liệu task với queue processing
-     */
-    public function syncData(Request $request): JsonResponse
-    {
-        try {
-            $syncType = $request->input('type', 'database');
-            $syncParams = $request->input('params', []);
-            
-            SyncTaskDataJob::dispatch($syncType, $syncParams)
-                ->onQueue('sync')
-                ->delay(now()->addMinutes(1));
-            
-            return response()->json([
-                'success' => true,
-                'message' => 'Đồng bộ dữ liệu đang được thực hiện'
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Lỗi khi đồng bộ dữ liệu: ' . $e->getMessage()
-            ], 500);
-        }
-    }
+
+
+    // Admin methods đã được chuyển sang AdminTaskController
 
 
 
@@ -598,31 +388,31 @@ class TaskController extends Controller
     {
         try {
             // Find task manually to avoid route model binding issues
-            $task = \Modules\Task\app\Models\Task::find($taskId);
-            
+            $task = \Modules\Task\app\Models\Task::with('receivers')->find($taskId);
+
             if (!$task) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Task not found'
                 ], 404);
             }
-            
-            
+
+
             $userId = $request->attributes->get('jwt_user_id');
             $userType = $request->attributes->get('jwt_user_type');
-            
+
             if (!$userId || !$userType) {
                 return response()->json([
                     'success' => false,
                     'message' => 'User not authenticated'
                 ], 401);
             }
-            
+
             $user = (object) [
                 'id' => $userId,
                 'user_type' => $userType
             ];
-            
+
             // Check permission
             if (!$this->fileService->canUserUploadFiles($task, $user)) {
                 return response()->json([
@@ -630,10 +420,10 @@ class TaskController extends Controller
                     'message' => 'Bạn không có quyền upload files cho task này'
                 ], 403);
             }
-            
+
             // Get files from request
             $uploadedFiles = $request->file('files');
-            
+
             // Handle both single file and multiple files
             $files = [];
             if ($uploadedFiles) {
@@ -643,16 +433,16 @@ class TaskController extends Controller
                     $files = [$uploadedFiles]; // Convert single file to array
                 }
             }
-            
+
             if (empty($files)) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Không có files nào được upload'
                 ], 400);
             }
-            
+
             $result = $this->fileService->uploadFilesToTask($task, $files, $user);
-            
+
             return response()->json([
                 'success' => true,
                 'message' => 'Files uploaded successfully',
@@ -678,21 +468,21 @@ class TaskController extends Controller
         try {
             $userId = $request->attributes->get('jwt_user_id');
             $userType = $request->attributes->get('jwt_user_type');
-            
+
             if (!$userId || !$userType) {
                 return response()->json([
                     'success' => false,
                     'message' => 'User not authenticated'
                 ], 401);
             }
-            
+
             $user = (object) [
                 'id' => $userId,
                 'user_type' => $userType
             ];
-            
+
             $result = $this->fileService->deleteFile($fileId, $user);
-            
+
             if ($result) {
                 return response()->json([
                     'success' => true,
@@ -711,4 +501,6 @@ class TaskController extends Controller
             ], 500);
         }
     }
+
+    // Admin methods đã được chuyển sang AdminTaskController
 }

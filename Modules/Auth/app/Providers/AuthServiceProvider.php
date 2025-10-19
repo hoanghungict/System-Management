@@ -43,10 +43,21 @@ class AuthServiceProvider extends ServiceProvider
             \Modules\Auth\app\Repositories\AuthUserRepository\AuthRepository::class
         );
         
+        $this->app->bind(
+            \Modules\Auth\app\Repositories\Interfaces\RollCallRepositoryInterface::class,
+            \Modules\Auth\app\Repositories\RollCallRepository\RollCallRepository::class
+        );
+        
+        $this->app->bind(
+            \Modules\Auth\app\Repositories\Interfaces\RollCallDetailRepositoryInterface::class,
+            \Modules\Auth\app\Repositories\RollCallRepository\RollCallDetailRepository::class
+        );
+        
         // Bind Services
         $this->app->bind(\Modules\Auth\app\Services\AuthUserService\AuthService::class);
         $this->app->bind(\Modules\Auth\app\Services\AuthUserService\StudentService::class);
         $this->app->bind(\Modules\Auth\app\Services\AuthUserService\LecturerService::class);
+        $this->app->bind(\Modules\Auth\app\Services\RollCallService\RollCallService::class);
     }
 
     /**

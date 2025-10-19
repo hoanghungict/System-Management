@@ -1,0 +1,1 @@
+laravel-exceptions-renderer::components.navigation<?php /**PATH /var/www/storage/framework/views/be0d0186b77be684b3ecfcb4c03ede36.blade.php ENDPATH**/ ?>

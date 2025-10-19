@@ -4,6 +4,9 @@ namespace Modules\Task\app\Admin\Providers;
 
 use Illuminate\Support\ServiceProvider;
 use Modules\Task\app\Admin\UseCases\ForceDeleteTaskUseCase;
+use Modules\Task\app\Admin\UseCases\DeleteTaskUseCase;
+use Modules\Task\app\Admin\UseCases\UpdateTaskUseCase;
+use Modules\Task\app\Admin\UseCases\ShowTaskUseCase;
 use Modules\Task\app\Admin\UseCases\RestoreTaskUseCase;
 use Modules\Task\app\Admin\UseCases\AssignTaskToLecturersUseCase;
 use Modules\Task\app\Admin\UseCases\GetAssignedTasksUseCase;
@@ -35,7 +38,8 @@ class AdminServiceProvider extends ServiceProvider
         // Register Admin Use Cases
         $this->app->singleton(ForceDeleteTaskUseCase::class, function ($app) {
             return new ForceDeleteTaskUseCase(
-                $app->make(PermissionService::class)
+                $app->make(PermissionService::class),
+                $app->make(\Modules\Task\app\Services\CacheInvalidationService::class)
             );
         });
 
@@ -66,6 +70,28 @@ class AdminServiceProvider extends ServiceProvider
         $this->app->singleton(CheckAdminRoleUseCase::class, function ($app) {
             return new CheckAdminRoleUseCase(
                 $app->make(PermissionService::class)
+            );
+        });
+
+        $this->app->singleton(DeleteTaskUseCase::class, function ($app) {
+            return new DeleteTaskUseCase(
+                $app->make(PermissionService::class),
+                $app->make(\Modules\Task\app\Services\CacheInvalidationService::class)
+            );
+        });
+
+        $this->app->singleton(UpdateTaskUseCase::class, function ($app) {
+            return new UpdateTaskUseCase(
+                $app->make(PermissionService::class),
+                $app->make(\Modules\Task\app\Services\CacheInvalidationService::class),
+                $app->make(\Modules\Task\app\Services\TaskStatusService::class)
+            );
+        });
+
+        $this->app->singleton(ShowTaskUseCase::class, function ($app) {
+            return new ShowTaskUseCase(
+                $app->make(PermissionService::class),
+                $app->make(\Modules\Task\app\Services\CacheInvalidationService::class)
             );
         });
     }

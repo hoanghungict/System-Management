@@ -1,0 +1,183 @@
+# 🚀 Laravel System Management Backend - Project Rules
+
+## 📚 Rule Files Overview
+
+This project uses specialized rule files in `.cursor/rules/` for better organization and maintainability:
+
+- **📖 Main Rules**: `.cursor/rules/README.md` - Complete rules overview and quick reference
+- **🔧 Backend**: `.cursor/rules/backend.md` - Core backend rules and standards  
+- **🏗️ Architecture**: `.cursor/rules/architecture.md` - Clean Architecture implementation patterns
+- **🔐 Security**: `.cursor/rules/security.md` - Security best practices and implementation
+- **⚡ Performance**: `.cursor/rules/performance.md` - Performance optimization strategies
+- **🧪 Testing**: `.cursor/rules/testing.md` - Testing standards and patterns
+- **📝 Documentation**: `.cursor/rules/documentation.md` - Documentation standards and examples
+- **🔔 Notifications**: `.cursor/rules/notifications.md` - Notifications module patterns and best practices
+
+## 🎯 Project Context
+
+This is a **Laravel 12 modular system** with:
+- **PHP 8.3+** with strict typing
+- **Modules**: Auth, Task, Notifications, RollCall, Handle
+- **Clean Architecture** pattern implementation
+- **JWT Authentication** with Firebase JWT 6.11
+- **Redis Caching** with Predis 3.2
+- **Kafka Messaging** for notifications
+- **Docker** containerization
+- **Swagger API** documentation with l5-swagger 9.0
+- **SQLite** database for development
+
+## 🚀 Quick Start
+
+1. **Read the main rules**: Start with `.cursor/rules/README.md`
+2. **Understand the architecture**: Review `.cursor/rules/architecture.md`
+3. **Implement security**: Follow `.cursor/rules/security.md`
+4. **Optimize performance**: Apply `.cursor/rules/performance.md`
+5. **Write tests**: Use `.cursor/rules/testing.md` patterns
+6. **Document everything**: Follow `.cursor/rules/documentation.md`
+
+## 🎯 Critical Rules (Never Break!)
+
+1. **NEVER** use `any` type in TypeScript
+2. **ALWAYS** check latest official docs before coding
+3. **NEVER** hardcode secrets or sensitive data
+4. **ALWAYS** validate and sanitize inputs
+5. **ALWAYS** handle errors properly with logging
+6. **NEVER** load AI models synchronously
+7. **ALWAYS** use environment variables
+8. **ALWAYS** implement timeouts for external calls
+9. **NEVER** ignore performance metrics
+10. **ALWAYS** use proper authentication/authorization
+
+## 🏗️ Architecture Overview
+
+### Clean Architecture Implementation
+```
+Presentation Layer (Controllers, Requests, Middleware)
+    ↓
+Application Layer (Use Cases, DTOs, Services)
+    ↓
+Domain Layer (Models, Entities, Value Objects)
+    ↓
+Infrastructure Layer (Repositories, External Services)
+```
+
+### Module Structure (nwidart/laravel-modules 12.0)
+```
+Modules/{ModuleName}/
+├── app/
+│   ├── Http/Controllers/
+│   ├── Services/
+│   ├── Repositories/
+│   ├── UseCases/
+│   ├── DTOs/
+│   ├── Exceptions/
+│   └── Models/
+├── config/
+├── routes/
+└── README.md
+```
+
+## 💻 Quick Coding Standards
+
+### PHP 8.3+ Features (Always Use)
+- **Strict Types**: `declare(strict_types=1);` in ALL files
+- **Typed Properties**: Use property types in all classes
+- **Named Arguments**: Use named arguments for clarity
+- **Match Expressions**: Use `match()` instead of `switch()`
+- **Constructor Property Promotion**: Use for simple DTOs
+- **Readonly Properties**: Use `readonly` for immutable data
+- **Enums**: Use backed enums for constants
+- **Union Types**: Use union types where appropriate
+- **Nullsafe Operator**: Use `?->` for safe property access
+
+### Laravel 12+ Patterns
+- **Eloquent ORM**: Use Eloquent instead of raw SQL
+- **Form Requests**: Use FormRequest for validation
+- **Dependency Injection**: Use constructor injection
+- **Service Layer**: Use services for business logic
+- **Repository Pattern**: Use repositories for data access
+- **DTO Pattern**: Use DTOs for data transfer
+- **Exception Classes**: Use custom exception classes
+
+## 🔧 Module-Specific Quick Reference
+
+### Auth Module
+- **JWT Authentication**: Use Firebase JWT for token generation/validation
+- **User Management**: Separate accounts for lecturers and students
+- **Role-Based Access**: Implement proper role checking
+- **Password Security**: Use secure password hashing
+- **Session Management**: Implement proper session handling
+
+### Task Module
+- **Clean Architecture**: Follow established patterns in existing code
+- **Permission Service**: Use centralized permission checking
+- **Caching Strategy**: Implement Redis caching with proper invalidation
+- **Business Rules**: Validate deadlines, receivers, creator types
+- **Kafka Integration**: Use Kafka for task notifications
+- **File Uploads**: Implement secure file handling for task attachments
+
+### Notifications Module
+- **Kafka Producer/Consumer**: Use Kafka for message queuing
+- **Email Templates**: Create reusable email templates
+- **Background Jobs**: Use queues for email sending
+- **Error Handling**: Graceful handling of notification failures
+- **Monitoring**: Log notification delivery status
+
+### RollCall Module
+- **Attendance Management**: Implement proper attendance tracking
+- **Data Validation**: Validate attendance data
+- **Reporting**: Generate attendance reports
+- **Integration**: Integrate with other modules
+
+### Handle Module
+- **File Processing**: Implement secure file handling
+- **Data Processing**: Process data efficiently
+- **Error Handling**: Handle processing errors gracefully
+- **Logging**: Log processing activities
+
+## 🚀 Quick Commands
+
+### Development
+- `composer dev` - Start development environment
+- `php artisan test` - Run tests
+- `php artisan pint` - Format code
+- `php artisan queue:work` - Process queues
+
+### Docker
+- `docker-compose up -d` - Start services
+- `docker-compose down` - Stop services
+- `docker-compose logs -f` - View logs
+
+### Module Management
+- `php artisan module:make {ModuleName}` - Create new module
+- `php artisan module:list` - List modules
+- `php artisan module:enable {ModuleName}` - Enable module
+- `php artisan module:disable {ModuleName}` - Disable module
+
+## 📊 Task Module Status
+
+Based on current implementation analysis:
+- **Overall Completion**: ~75-80%
+- **Core Task Management**: 90% ✅
+- **Calendar/Event Management**: 85% ✅  
+- **Dependency Management**: 95% ✅
+- **File Management**: 85% ✅
+- **Statistics/Reports**: 60% ⚠️
+- **Reminder System**: 30% ⚠️
+
+## 🎯 Implementation Guidelines
+
+- **Research First**: Always research latest documentation before coding
+- **Test Thoroughly**: Test all new features before production
+- **Document Changes**: Document all changes and updates
+- **Version Control**: Use proper version control practices
+- **Code Review**: Always review code for latest standards
+- **Continuous Learning**: Stay updated with latest trends
+- **Community Engagement**: Engage with developer communities
+- **Best Practices**: Follow industry best practices
+
+---
+
+**📚 For detailed rules and examples, see the specialized files in `.cursor/rules/` directory.**
+
+Remember: This is a Laravel 12 modular system with Clean Architecture. Always follow established patterns and use the latest Laravel 12 features and best practices.
