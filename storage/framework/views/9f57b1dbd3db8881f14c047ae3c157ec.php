@@ -1,1 +1,0 @@
-laravel-exceptions-renderer::components.trace-and-editor<?php /**PATH /var/www/storage/framework/views/fb39173555fb5c047fcdb2b098cf57f2.blade.php ENDPATH**/ ?>
