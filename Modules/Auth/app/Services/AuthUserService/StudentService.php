@@ -8,14 +8,12 @@ use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Cache;
 use Modules\Notifications\app\Services\KafkaService\KafkaProducerService;
-use Modules\Notifications\app\Services\KafkaService\KafkaProducerService;
 
 class StudentService
 {
     protected $authRepository;
     protected $kafkaProducer;
-    public function __construct(AuthRepositoryInterface $authRepository, KafkaProducerService $kafkaProducer)
-    protected $kafkaProducer;
+
     public function __construct(AuthRepositoryInterface $authRepository, KafkaProducerService $kafkaProducer)
     {
         $this->authRepository = $authRepository;
@@ -193,13 +191,6 @@ class StudentService
         }
     }
 
-    /**
-     * Xóa cache danh sách sinh viên theo lớp
-     */
-    private function clearStudentsByClassCache(int $classId): void
-    {
-        Cache::forget("students:class:{$classId}");
-    }
 
     /**
      * Lấy sinh viên theo ID lớp
@@ -219,13 +210,4 @@ class StudentService
         Cache::forget("students:class:{$classId}");
     }
 
-    /**
-     * Lấy sinh viên theo ID lớp
-     */
-    public function getStudentByClassId(int $classId)
-    {
-        return Cache::remember("students:class:{$classId}", 1800, function () use ($classId) {
-            return Student::where('class_id', $classId)->get();
-        });
-    }
 }
