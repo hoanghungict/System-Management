@@ -90,7 +90,7 @@ class AuthController extends Controller
     {
         // In JWT, logout is typically handled client-side by removing the token
         // But we can add token to a blacklist if needed
-        
+
         return response()->json([
             'status' => true,
             'message' => 'Logout successful'
@@ -103,7 +103,7 @@ class AuthController extends Controller
     public function profile(Request $request)
     {
         $user = $request->user();
-        
+
         return response()->json([
             'status' => true,
             'user' => $user
@@ -119,11 +119,16 @@ class AuthController extends Controller
             'sub' => $user->id,
             'email' => $user->email,
             'name' => $user->name,
+            'full_name' => $user->full_name ?? $user->name, // thêm để frontend có thể hiển thị
+            'username' => $user->username ?? $user->email,  // fallback nếu chưa có cột username
+            'user_type' => $user->user_type ?? 'student',   // student | lecturer | admin
+            'is_admin' => (bool) $user->is_admin,           // 👈 dòng quan trọng
             'iat' => time(),
-            'exp' => time() + (60 * 60 * 24), // 24 hours
+            'exp' => time() + (60 * 60 * 24), // 24h
         ];
 
-        $secret = config('jwt.secret');
+        // Dùng secret và thuật toán từ file config
+        $secret = config('jwt.secret', env('JWT_SECRET'));
         $algo = config('jwt.algorithm', 'HS256');
 
         return JWT::encode($payload, $secret, $algo);

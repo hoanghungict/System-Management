@@ -36,6 +36,7 @@ class LecturerSeeder3 extends Seeder
             'phone' => '0987654321',
             'lecturer_code' => 'GV004',
             'department_id' => $unitId,
+
         ]);
 
         DB::table('lecturer_account')->insert([

@@ -22,36 +22,36 @@ class AuthService
     public function loginStudent(string $username, string $password)
     {
         $studentAccount = $this->authRepository->findStudentAccountByUsername($username);
-        
+
         if (!$studentAccount || !Hash::check($password, $studentAccount->password)) {
             return null;
         }
-        
+
         $student = $studentAccount->student;
         $token = $this->generateJWTToken($student, 'student');
         $student->token = $token;
-        
+
         return $student;
     }
-    
+
     /**
      * Đăng nhập giảng viên
      */
     public function loginLecturer(string $username, string $password)
     {
         $lecturerAccount = $this->authRepository->findLecturerAccountByUsername($username);
-        
+
         if (!$lecturerAccount || !Hash::check($password, $lecturerAccount->password)) {
             return null;
         }
-        
+
         $lecturer = $lecturerAccount->lecturer;
         $token = $this->generateJWTToken($lecturer, 'lecturer');
         $lecturer->token = $token;
-        
+
         return $lecturer;
     }
-    
+
     /**
      * Tạo JWT token
      */
@@ -63,6 +63,7 @@ class AuthService
             'username' => $user->account->username ?? null,
             'email' => $user->email ?? null,
             'full_name' => $user->full_name ?? null,
+            'is_admin' => (bool) ($user->account->is_admin ?? false), // ✅ thêm dòng này
             'iat' => time(),
             'exp' => time() + (config('jwt.ttl', 60) * 60), // Sử dụng config TTL
         ];
@@ -76,7 +77,8 @@ class AuthService
 
         return JWT::encode($payload, $secret, $algo);
     }
-    
+
+
     /**
      * Xác thực JWT token
      */
@@ -85,18 +87,18 @@ class AuthService
         try {
             $secret = config('jwt.secret');
             $algo = config('jwt.algorithm', 'HS256');
-            
+
             if (!$secret) {
                 return null;
             }
-            
+
             $decoded = JWT::decode($token, new Key($secret, $algo));
             return $decoded;
         } catch (\Exception $e) {
             return null;
         }
     }
-    
+
     /**
      * Làm mới JWT token
      */
@@ -104,11 +106,11 @@ class AuthService
     {
         try {
             $payload = $this->validateToken($token);
-            
+
             if (!$payload) {
                 throw new \Exception('Invalid token');
             }
-            
+
             // Tạo token mới với thời gian gia hạn
             $newPayload = [
                 'sub' => $payload->sub,
@@ -119,16 +121,16 @@ class AuthService
                 'iat' => time(),
                 'exp' => time() + (config('jwt.ttl', 60) * 60),
             ];
-            
+
             $secret = config('jwt.secret');
             $algo = config('jwt.algorithm', 'HS256');
-            
+
             return JWT::encode($newPayload, $secret, $algo);
         } catch (\Exception $e) {
             throw new \Exception('Không thể làm mới token: ' . $e->getMessage());
         }
     }
-    
+
     /**
      * Vô hiệu hóa JWT token (thêm vào blacklist nếu cần)
      */
