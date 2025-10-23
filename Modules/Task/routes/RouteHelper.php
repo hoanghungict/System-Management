@@ -565,12 +565,12 @@ class RouteHelper
         $additionalRoutes = $taskDependencyConfig['additional_routes'] ?? [];
 
         // ✅ Debug: Log route registration
-        Log::info('Registering TaskDependency routes', [
-            'prefix' => $prefix,
-            'controller' => $controller,
-            'name' => $name,
-            'routes_count' => count($additionalRoutes)
-        ]);
+        // Log::info('Registering TaskDependency routes', [
+        //     'prefix' => $prefix,
+        //     'controller' => $controller,
+        //     'name' => $name,
+        //     'routes_count' => count($additionalRoutes)
+        // ]);
 
         Route::prefix($prefix)->name($name . '.')->group(function () use ($controller, $additionalRoutes) {
             foreach ($additionalRoutes as $route) {
@@ -579,18 +579,18 @@ class RouteHelper
                 $action = $route['action'];
                 $routeName = $route['name'];
 
-                // ✅ Debug: Log each route
-                Log::info('Registering dependency route', [
-                    'methods' => $methods,
-                    'uri' => $uri,
-                    'action' => $action,
-                    'routeName' => $routeName,
-                    'controller' => $controller
-                ]);
+                // // ✅ Debug: Log each route
+                // Log::info('Registering dependency route', [
+                //     'methods' => $methods,
+                //     'uri' => $uri,
+                //     'action' => $action,
+                //     'routeName' => $routeName,
+                //     'controller' => $controller
+                // ]);
 
                 try {
                     Route::match($methods, $uri, [$controller, $action])->name($routeName);
-                    Log::info('✅ Route registered successfully', ['routeName' => $routeName]);
+                    // Log::info('✅ Route registered successfully', ['routeName' => $routeName]);
                 } catch (\Exception $e) {
                     Log::error('❌ Failed to register route', [
                         'routeName' => $routeName,
