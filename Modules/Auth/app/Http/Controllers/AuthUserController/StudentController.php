@@ -190,8 +190,15 @@ class StudentController extends Controller
                 ], 404);
             }
             
-            // Chỉ cho phép cập nhật một số trường nhất định
-            $allowedFields = ['full_name', 'phone', 'address'];
+            // Cho phép cập nhật các trường thông tin cá nhân
+            $allowedFields = [
+                'full_name', 
+                'phone', 
+                'address', 
+                'email', 
+                'birth_date',
+                'gender'
+            ];
             $updateData = array_intersect_key($request->all(), array_flip($allowedFields));
             
             $updatedStudent = $this->studentService->updateStudent($student, $updateData);

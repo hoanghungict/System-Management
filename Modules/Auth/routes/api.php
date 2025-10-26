@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use Modules\Auth\app\Http\Controllers\AuthUserController\AuthController;
 use Modules\Auth\app\Http\Controllers\AuthUserController\StudentController;
 use Modules\Auth\app\Http\Controllers\AuthUserController\LecturerController;
+use Modules\Auth\app\Http\Controllers\AuthUserController\PasswordController;
 use Modules\Auth\app\Http\Controllers\DepartmentController\DepartmentController;
 use Modules\Auth\app\Http\Controllers\ClassController\ClassController;
 use Modules\Auth\app\Http\Controllers\RollCallController\RollCallController;
@@ -19,6 +20,9 @@ Route::prefix('v1')->group(function () {
         Route::post('/logout', [AuthController::class, 'logout']);
         Route::post('/refresh', [AuthController::class, 'refresh']);
         Route::get('/me', [AuthController::class, 'me']);
+        
+        // Change password - Tất cả user đã đăng nhập đều có thể đổi mật khẩu
+        Route::post('/change-password', [PasswordController::class, 'changePassword']);
     });
 
     // Student routes - Chỉ admin mới có thể quản lý

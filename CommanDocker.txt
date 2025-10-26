@@ -59,7 +59,7 @@ docker exec -it hpc_app php artisan view:clear
 docker exec -it hpc_app composer install
 docker exec -it hpc_app composer update
 docker exec -it hpc_app php artisan kafka:consume // Để chạy subscriber lắng nghe sự kiện từ các nguồn khác để đẩy lên realitme
-docker exec -it hpc_app tail -f storage/logs/laravel.log // Show Log Kafka
+     // Show Log Kafka
 
 # 🗄️ MySQL thao tác
 docker exec -it hpc_db mysql -u root -p
