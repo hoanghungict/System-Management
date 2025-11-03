@@ -18,9 +18,11 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         // API middleware group
+        // ⚠️ QUAN TRỌNG: HandleCors phải ở đầu để xử lý OPTIONS preflight requests
         $middleware->group('api', [
-            \App\Http\Middleware\ForceUtf8Middleware::class,
             \Illuminate\Http\Middleware\HandleCors::class,
+            \App\Http\Middleware\DebugCorsMiddleware::class, // Debug CORS
+            \App\Http\Middleware\ForceUtf8Middleware::class,
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
         ]);
 

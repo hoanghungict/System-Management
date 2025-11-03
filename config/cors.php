@@ -6,7 +6,7 @@
     'allowed_methods' => ['*'],
 
     // ⚠️ KHÔNG để '*' khi dùng credentials
-    'allowed_origins' => ['http://localhost:3001'],
+    'allowed_origins' => ['http://localhost:3001','http://localhost:3000'],
 
     'allowed_origins_patterns' => [],
 
@@ -14,9 +14,11 @@
 
     'exposed_headers' => [],
 
-    'max_age' => 0,
+    // Cache preflight requests trong 1 giờ để giảm số lượng preflight requests
+    'max_age' => 3600,
 
-    // ⚠️ BẮT BUỘC PHẢI TRUE nếu dùng cookie/session
+    // Không cần supports_credentials vì đang dùng Bearer token thay vì cookies
     'supports_credentials' => true,
+    // 'supports_credentials' => false,
     ];
 ?>

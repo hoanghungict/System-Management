@@ -33,7 +33,12 @@ Route::prefix('v1')->group(function () {
         Route::put('/students/{id}', [StudentController::class, 'update']);
         Route::delete('/students/{id}', [StudentController::class, 'destroy']);
     });
-
+    Route::middleware(['jwt', 'lecturer'])->group(function () {
+        Route::get('/students', [StudentController::class, 'index']);
+        Route::get('/lecturers', [LecturerController::class, 'index']);
+        Route::get('/departments', [DepartmentController::class, 'index']);
+        Route::get('/classes', [ClassController::class, 'index']);
+    });
     // Lecturer routes - Chỉ admin mới có thể quản lý
     Route::middleware(['jwt', 'admin'])->group(function () {
         Route::get('/lecturers', [LecturerController::class, 'index']);
@@ -70,7 +75,7 @@ Route::prefix('v1')->group(function () {
     Route::middleware(['jwt', 'admin'])->group(function () {
         Route::get('/classes', [ClassController::class, 'index']);
         Route::post('/classes', [ClassController::class, 'store']);
-        Route::get('/classes/faculty/{facultyId}', [ClassController::class, 'getByFaculty']);
+        Route::get('/classes/faculty/{departmentId}', [ClassController::class, 'getByDepartment']);
         Route::get('/classes/lecturer/{lecturerId}', [ClassController::class, 'getByLecturer']);
         Route::get('/classes/{id}', [ClassController::class, 'show']);
         Route::put('/classes/{id}', [ClassController::class, 'update']);

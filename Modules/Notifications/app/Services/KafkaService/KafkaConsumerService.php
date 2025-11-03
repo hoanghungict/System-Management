@@ -55,7 +55,7 @@ class KafkaConsumerService
             $conf->set('allow.auto.create.topics', 'true');
             $conf->set('metadata.max.age.ms', '10000'); // Refresh metadata every 10s
             $conf->set('auto.offset.reset', 'earliest');
-            $conf->set('enable.auto.commit', 'true');
+            $conf->set('enable.auto.commit', 'false');
             $conf->set('auto.commit.interval.ms', '1000');
             $conf->set('session.timeout.ms', '30000');
             $conf->set('heartbeat.interval.ms', '10000');
@@ -113,13 +113,22 @@ class KafkaConsumerService
                 
                 switch ($message->err) {
                     case RD_KAFKA_RESP_ERR_NO_ERROR:
-                        Log::info('KafkaConsumerService: Nhận được message', [
-                            'topic' => $message->topic_name ?? 'unknown',
-                            'partition' => $message->partition ?? 'unknown',
-                            'offset' => $message->offset ?? 'unknown',
-                            'key' => $message->key ?? null
+                        Log::info('KafkaConsumerService: Nhận được message', [ 
+                            'topic' => $message->topic_name ?? 'unknown', 
+                            'partition' => $message->partition ?? 'unknown', 
+                            'offset' => $message->offset ?? 'unknown', 
+                            'key' => $message->key ?? null 
                         ]);
                         $this->processMessage($message);
+
+                        //Commit offset sau khi xử lý thành công
+                        $this->consumer->commit($message);
+
+                        Log::debug('KafkaConsumerService: Commit offset thành công', [
+                            'topic' => $message->topic_name,
+                            'partition' => $message->partition,
+                            'offset' => $message->offset
+                        ]);
                         break;
                         
                     case RD_KAFKA_RESP_ERR__PARTITION_EOF:

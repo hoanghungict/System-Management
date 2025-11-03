@@ -132,20 +132,23 @@ class AuthController extends Controller
             $userData = [];
 
             if ($payload->user_type === 'student') {
+                // 1. Lấy tài khoản sinh viên bằng 'sub' của token (chính là student_account.id)
                 $studentAccount = DB::table('student_account')->where('id', $payload->sub)->first();
+
                 if ($studentAccount) {
-                    $student = DB::table('student')->where('student_account_id', $studentAccount->id)->first();
+                    $student = DB::table('student')->where('id', $studentAccount->student_id)->first();
+                    $class = $student ? DB::table('class')->where('id', $student->class_id)->first() : null;
                     $userData = [
-                        'id' => $studentAccount->id,
-                        'full_name' => $studentAccount->full_name,
-                        'email' => $studentAccount->email,
+                        'id' => $studentAccount->id, // Đây là ID từ student_account
+                        'full_name' => $student->full_name ?? 'Unknown', // Lấy từ $student
+                        'email' => $student->email ?? 'unknown@email.com', // Lấy từ $student
                         'user_type' => 'student',
                         'student_info' => [
                             'student_code' => $student->student_code ?? null,
-                            'class' => $student ? [
-                                'id' => $student->class_id ?? null,
-                                'class_name' => 'Class ' . ($student->class_id ?? 'N/A'),
-                                'class_code' => 'C' . ($student->class_id ?? 'N/A')
+                            'class' => $class ? [
+                                'id' => $class->id,
+                                'class_name' => $class->class_name ?? 'N/A',
+                                'class_code' => $class->class_code ?? 'N/A'
                             ] : null
                         ],
                         'account' => [
@@ -158,6 +161,7 @@ class AuthController extends Controller
                 $lecturerAccount = DB::table('lecturer_account')->where('lecturer_id', $payload->sub)->first();
                 if ($lecturerAccount) {
                     $lecturer = DB::table('lecturer')->where('id', $lecturerAccount->lecturer_id)->first();
+                    $department = DB::table('department')->where('id', $lecturer->department_id)->first();
                     $userData = [
                         'id' => $lecturerAccount->lecturer_id,
                         'full_name' => $lecturer->full_name ?? 'Unknown',
@@ -165,10 +169,10 @@ class AuthController extends Controller
                         'user_type' => 'lecturer',
                         'lecturer_info' => [
                             'lecturer_code' => $lecturer->lecturer_code ?? null,
-                            'unit' => $lecturer ? [
+                            'department' => $lecturer ? [
                                 'id' => $lecturer->department_id ?? null,
-                                'name' => 'Department ' . ($lecturer->department_id ?? 'N/A'),
-                                'type' => 'department'
+                                'name' => $department->name ?? 'N/A',
+                                'type' => $department->type ?? 'N/A'
                             ] : null
                         ],
                         'account' => [

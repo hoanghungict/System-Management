@@ -21,7 +21,7 @@ return [
         'task.created' => Modules\Notifications\app\Handlers\TaskHandle\TaskCreatedHandler::class,
         'task.updated' => Modules\Notifications\app\Handlers\TaskHandle\TaskUpdatedHandler::class,
         'task.assigned' => Modules\Notifications\app\Handlers\TaskHandle\TaskAssignedHandler::class,
-        'task.submitted' => Modules\Notifications\app\Handlers\TaskHandle\TaskSubmittedHandler::class,
+        'task.submission' => Modules\Notifications\app\Handlers\TaskHandle\TaskSubmissionHandler::class,
         'task.graded' => Modules\Notifications\app\Handlers\TaskHandle\TaskGradedHandler::class,
         
         // Reminder Handlers

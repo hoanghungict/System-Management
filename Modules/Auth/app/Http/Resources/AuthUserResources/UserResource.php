@@ -45,10 +45,11 @@ class UserResource extends JsonResource
             $baseData['lecturer_info'] = [
                 'lecturer_code' => $user->lecturer_code,
                 'gender' => $user->gender,
-                'unit' => $user->unit ? [
-                    'id' => $user->unit->id,
-                    'name' => $user->unit->name,
-                    'type' => $user->unit->type
+                'experience_number' => $user->experience_number,
+                'department' => $user->department ? [
+                    'id' => $user->department->id,
+                    'name' => $user->department->name,
+                    'type' => $user->department->type
                 ] : null
             ];
         }
