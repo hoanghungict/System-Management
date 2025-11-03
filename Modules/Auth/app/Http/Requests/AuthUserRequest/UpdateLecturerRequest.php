@@ -32,7 +32,9 @@ class UpdateLecturerRequest extends FormRequest
                 Rule::unique('lecturer', 'email')->ignore($lecturerId)
             ],
             'phone' => 'sometimes|string|max:20',
-            'departmentpartment_id' => 'sometimesdepartmeeists:department,id'
+            'department_id' => 'sometimes|exists:department,id',
+            'birth_date' => 'nullable|date',
+            'experience_number' => 'nullable|integer|min:0|max:50'
         ];
     }
 
@@ -50,7 +52,11 @@ class UpdateLecturerRequest extends FormRequest
             'email.unique' => 'Email đã tồn tại',
             'phone.string' => 'Số điện thoại phải là chuỗi',
             'phone.max' => 'Số điện thoại không được vượt quá 20 ký tự',
-            'department_id.exists' => 'Đơn vị không tồn tại'
+            'department_id.exists' => 'Khoa/phòng ban không tồn tại',
+            'birth_date.date' => 'Ngày sinh không đúng định dạng',
+            'experience_number.integer' => 'Số năm kinh nghiệm phải là số nguyên',
+            'experience_number.min' => 'Số năm kinh nghiệm phải lớn hơn hoặc bằng 0',
+            'experience_number.max' => 'Số năm kinh nghiệm không được vượt quá 50'
         ];
     }
 }

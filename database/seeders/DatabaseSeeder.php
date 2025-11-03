@@ -20,9 +20,10 @@ class DatabaseSeeder extends Seeder
             'email' => 'test@example.com',
         ]);
 
-        // Chạy AdminSeeder để tạo dữ liệu mẫu
+        // Chạy các seeders để tạo dữ liệu mẫu
         $this->call([
             AdminSeeder::class,
+            NotificationTemplateSeeder::class,
         ]);
     }
 }

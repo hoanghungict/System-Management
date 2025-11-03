@@ -26,7 +26,9 @@ class CreateLecturerRequest extends FormRequest
             'email' => 'required|email|unique:lecturer,email',
             'phone' => 'required|string|max:20',
             'lecturer_code' => 'required|string|unique:lecturer,lecturer_code',
-            'department_id' => 'required|exists:department,id'
+            'department_id' => 'required|exists:department,id',
+            'birth_date' => 'nullable|date',
+            'experience_number' => 'nullable|integer|min:0|max:50'
         ];
     }
 
@@ -52,8 +54,12 @@ class CreateLecturerRequest extends FormRequest
             'lecturer_code.required' => 'Mã giảng viên là bắt buộc',
             'lecturer_code.string' => 'Mã giảng viên phải là chuỗi',
             'lecturer_code.unique' => 'Mã giảng viên đã tồn tại',
-            'unit_id.required' => 'Đơn vị là bắt buộc',
-            'unit_id.exists' => 'Đơn vị không tồn tại'
+            'department_id.required' => 'Khoa/phòng ban là bắt buộc',
+            'department_id.exists' => 'Khoa/phòng ban không tồn tại',
+            'birth_date.date' => 'Ngày sinh không đúng định dạng',
+            'experience_number.integer' => 'Số năm kinh nghiệm phải là số nguyên',
+            'experience_number.min' => 'Số năm kinh nghiệm phải lớn hơn hoặc bằng 0',
+            'experience_number.max' => 'Số năm kinh nghiệm không được vượt quá 50'
         ];
     }
 }

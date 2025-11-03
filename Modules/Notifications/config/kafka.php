@@ -11,5 +11,6 @@ return [
         'official_dispatch_status_update' => 'official.dispatch.status.update',
         'quiz_result' => 'quiz.result',
         'lecturer_create_course' => 'lecturer.create.course',
+        'task_submission' => 'task.submission',
     ],
 ];
