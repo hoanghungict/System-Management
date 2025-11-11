@@ -17,7 +17,7 @@ class DepartmentResource extends JsonResource
             'name' => $this->name,
             'type' => $this->type,
             'parent_id' => $this->parent_id,
-            'staff_count' => $this->lecturers_count ?? 0,
+            'staff_count' => $this->staff_count ?? 0,
             'classes_count' => $this->classes_count ?? 0,
             'parent' => $this->whenLoaded('parent', function () {
                 return [
