@@ -26,3 +26,4 @@ Thumbs.db
 bootstrap/cache/*.php
 storage/framework/sessions/*
 storage/framework/views/*
+CommanDocker.txt
