@@ -112,39 +112,26 @@ class FileService
                 'files_count' => count($files),
                 'user_id' => $user->id ?? null
             ]);
-            
             $uploadedFiles = [];
-            
             foreach ($files as $file) {
-                $fileData = [
-                    'name' => $file->getClientOriginalName(),
-                    'size' => $file->getSize(),
-                    'mime_type' => $file->getMimeType(),
-                    'path' => $file->store('task-files/' . $task->id, 'public')
+                $savePath = $file->store("task-files/{$task->id}", 'public');
+                $taskFile = \Modules\Task\app\Models\TaskFile::create([
+                    'task_id'   => $task->id,
+                    'name'      => $file->getClientOriginalName(), // Tên file gốc
+                    'path'      => $savePath,                      // Đường dẫn trong storage
+                    'size'      => $file->getSize(),               // Kích thước file
+                ]);
+                $uploadedFiles[] = [
+                    'id'         => $taskFile->id,
+                    'file_name'  => $taskFile->name,
+                    'file_url'   => $taskFile->file_url,
+                    'created_at' => $taskFile->created_at?->toDateTimeString(),
                 ];
-                
-                // Lưu thông tin file vào database (mock)
-                $uploadedFile = [
-                    'id' => rand(1000, 9999),
-                    'task_id' => $task->id,
-                    'filename' => $fileData['name'],
-                    'file_path' => $fileData['path'],
-                    'file_size' => $fileData['size'],
-                    'mime_type' => $fileData['mime_type'],
-                    'uploaded_by' => $user->id,
-                    'uploader_type' => $user->user_type,
-                    'created_at' => now()->toISOString(),
-                    'updated_at' => now()->toISOString()
-                ];
-                
-                $uploadedFiles[] = $uploadedFile;
             }
-            
             Log::info('FileService: Files uploaded successfully', [
                 'task_id' => $task->id,
                 'uploaded_count' => count($uploadedFiles)
             ]);
-            
             return [
                 'files' => $uploadedFiles,
                 'count' => count($uploadedFiles)
@@ -303,8 +290,8 @@ class FileService
             }
             
             // Delete physical file
-            if ($file->file_path && Storage::disk('public')->exists($file->file_path)) {
-                Storage::disk('public')->delete($file->file_path);
+            if ($file->path && Storage::disk('public')->exists($file->path)) {
+                Storage::disk('public')->delete($file->path);
             }
             
             // Delete database record
@@ -324,8 +311,12 @@ class FileService
     
     /**
      * Kiểm tra quyền xóa file
+     * 
+     * @param object $file TaskFile instance
+     * @param object $user User object với id và user_type
+     * @return bool
      */
-    private function canUserDeleteFile($file, $user): bool
+    public function canUserDeleteFile($file, $user): bool
     {
         // Admin có thể xóa mọi file
         if ($user->user_type === 'admin') {
@@ -337,12 +328,120 @@ class FileService
             return $file->task->creator_id === $user->id && $file->task->creator_type === 'lecturer';
         }
         
-        // Sinh viên có thể xóa file họ upload
+        // Sinh viên có thể xóa file của task họ được assign
+        // Vì không có uploaded_by trong schema, kiểm tra qua task receivers
         if ($user->user_type === 'student') {
-            return $file->uploaded_by === $user->id;
+            $task = $file->task;
+            if ($task && $task->receivers) {
+                foreach ($task->receivers as $receiver) {
+                    if ($receiver->receiver_id == $user->id && $receiver->receiver_type == 'student') {
+                        return true;
+                    }
+                }
+            }
+            return false;
         }
         
         return false;
+    }
+
+    /**
+     * Kiểm tra quyền download file
+     * 
+     * Download permissions rộng hơn delete permissions:
+     * - Admin có thể download mọi file
+     * - Giảng viên có thể download file của task họ tạo HOẶC task họ được assign
+     * - Sinh viên có thể download file của task họ được assign
+     * 
+     * @param object $file TaskFile instance
+     * @param object $user User object với id và user_type
+     * @return bool
+     */
+    public function canUserDownloadFile($file, $user): bool
+    {
+        try {
+            Log::info('FileService: Checking download permission', [
+                'file_id' => $file->id ?? null,
+                'task_id' => $file->task_id ?? null,
+                'user_id' => $user->id ?? null,
+                'user_type' => $user->user_type ?? null
+            ]);
+
+            // Admin có thể download mọi file
+            if ($user->user_type === 'admin') {
+                Log::info('FileService: Download allowed - Admin user');
+                return true;
+            }
+            
+            // Load task with receivers
+            $task = $file->task;
+            if (!$task) {
+                Log::warning('FileService: Download denied - Task not found', [
+                    'file_id' => $file->id,
+                    'task_id' => $file->task_id
+                ]);
+                return false;
+            }
+
+            // Giảng viên có thể download file của:
+            // 1. Task họ tạo (creator)
+            // 2. Task họ được assign (receiver)
+            if ($user->user_type === 'lecturer') {
+                // Check if lecturer is creator
+                if ($task->creator_id === $user->id && $task->creator_type === 'lecturer') {
+                    Log::info('FileService: Download allowed - Lecturer is creator');
+                    return true;
+                }
+
+                // Check if lecturer is receiver
+                if ($task->receivers) {
+                    foreach ($task->receivers as $receiver) {
+                        if ($receiver->receiver_id == $user->id && $receiver->receiver_type == 'lecturer') {
+                            Log::info('FileService: Download allowed - Lecturer is receiver');
+                            return true;
+                        }
+                    }
+                }
+
+                Log::warning('FileService: Download denied - Lecturer not creator or receiver', [
+                    'user_id' => $user->id,
+                    'task_creator_id' => $task->creator_id,
+                    'task_creator_type' => $task->creator_type
+                ]);
+                return false;
+            }
+            
+            // Sinh viên có thể download file của task họ được assign
+            if ($user->user_type === 'student') {
+                if ($task->receivers) {
+                    foreach ($task->receivers as $receiver) {
+                        if ($receiver->receiver_id == $user->id && $receiver->receiver_type == 'student') {
+                            Log::info('FileService: Download allowed - Student is receiver');
+                            return true;
+                        }
+                    }
+                }
+
+                Log::warning('FileService: Download denied - Student not receiver', [
+                    'user_id' => $user->id,
+                    'task_id' => $task->id
+                ]);
+                return false;
+            }
+            
+            Log::warning('FileService: Download denied - Unknown user type', [
+                'user_type' => $user->user_type ?? 'null'
+            ]);
+            return false;
+
+        } catch (\Exception $e) {
+            Log::error('FileService: Download permission check failed', [
+                'file_id' => $file->id ?? null,
+                'user_id' => $user->id ?? null,
+                'error' => $e->getMessage()
+            ]);
+            return false;
+        }
     }
 
     public function backupFile(string $filePath): string

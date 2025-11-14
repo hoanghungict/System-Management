@@ -36,11 +36,20 @@ class PermissionService
     private const PERMISSION_CACHE_TTL = 300; // 5 minutes
 
     /**
+     * ✅ Helper function để lấy user ID từ JWT (sub) hoặc id
+     */
+    private function getUserId(object $userContext): ?int
+    {
+        return $userContext->id ?? $userContext->sub ?? null;
+    }
+
+    /**
      * ✅ Kiểm tra user có được authenticate không
      */
     public function isAuthenticated(object $userContext): bool
     {
-        return !empty($userContext->id) && !empty($userContext->user_type);
+        $userId = $this->getUserId($userContext);
+        return !empty($userId) && !empty($userContext->user_type);
     }
 
     /**
@@ -54,8 +63,9 @@ class PermissionService
         }
         
         // Kiểm tra trong bảng lecturer_account xem có is_admin = 1 không
+        $userId = $this->getUserId($userContext);
         $account = DB::table('lecturer_account')
-            ->where('lecturer_id', $userContext->id)
+            ->where('lecturer_id', $userId)
             ->where('is_admin', 1)
             ->first();
             
@@ -148,7 +158,7 @@ class PermissionService
     {
         try {
             // Kiểm tra xem giảng viên có phụ trách lớp này không
-            $lecturer = \Modules\Auth\app\Models\Lecturer::find($userContext->id);
+            $lecturer = \Modules\Auth\app\Models\Lecturer::find($this->getUserId($userContext));
             if (!$lecturer) {
                 return false;
             }
@@ -160,7 +170,7 @@ class PermissionService
 
         } catch (\Exception $e) {
             Log::error('Error checking lecturer class charge', [
-                'lecturer_id' => $userContext->id,
+                'lecturer_id' => $this->getUserId($userContext),
                 'class_id' => $classId,
                 'error' => $e->getMessage()
             ]);
@@ -175,7 +185,7 @@ class PermissionService
     {
         try {
             // Kiểm tra xem giảng viên có thuộc khoa này không
-            $lecturer = \Modules\Auth\app\Models\Lecturer::find($userContext->id);
+            $lecturer = \Modules\Auth\app\Models\Lecturer::find($this->getUserId($userContext));
             if (!$lecturer) {
                 return false;
             }
@@ -184,7 +194,7 @@ class PermissionService
 
         } catch (\Exception $e) {
             Log::error('Error checking lecturer department charge', [
-                'lecturer_id' => $userContext->id,
+                'lecturer_id' => $this->getUserId($userContext),
                 'department_id' => $departmentId,
                 'error' => $e->getMessage()
             ]);
@@ -230,7 +240,7 @@ class PermissionService
         }
 
         // Cache permission check để tránh query database nhiều lần
-        $cacheKey = "task_permission:view:{$userContext->id}:{$userContext->user_type}:{$taskId}";
+        $cacheKey = "task_permission:view:{$this->getUserId($userContext)}:{$userContext->user_type}:{$taskId}";
         
         return Cache::remember($cacheKey, self::PERMISSION_CACHE_TTL, function () use ($userContext, $taskId) {
             return $this->checkTaskViewPermission($userContext, $taskId);
@@ -248,7 +258,7 @@ class PermissionService
         }
 
         // Cache permission check
-        $cacheKey = "task_permission:edit:{$userContext->id}:{$userContext->user_type}:{$taskId}";
+        $cacheKey = "task_permission:edit:{$this->getUserId($userContext)}:{$userContext->user_type}:{$taskId}";
         
         return Cache::remember($cacheKey, self::PERMISSION_CACHE_TTL, function () use ($userContext, $taskId) {
             return $this->checkTaskEditPermission($userContext, $taskId);
@@ -266,7 +276,7 @@ class PermissionService
         }
 
         // Cache permission check
-        $cacheKey = "task_permission:delete:{$userContext->id}:{$userContext->user_type}:{$taskId}";
+        $cacheKey = "task_permission:delete:{$this->getUserId($userContext)}:{$userContext->user_type}:{$taskId}";
         
         return Cache::remember($cacheKey, self::PERMISSION_CACHE_TTL, function () use ($userContext, $taskId) {
             return $this->checkTaskDeletePermission($userContext, $taskId);
@@ -284,7 +294,7 @@ class PermissionService
         }
 
         // Cache permission check
-        $cacheKey = "task_permission:status:{$userContext->id}:{$userContext->user_type}:{$taskId}";
+        $cacheKey = "task_permission:status:{$this->getUserId($userContext)}:{$userContext->user_type}:{$taskId}";
         
         return Cache::remember($cacheKey, self::PERMISSION_CACHE_TTL, function () use ($userContext, $taskId) {
             return $this->checkTaskStatusUpdatePermission($userContext, $taskId);
@@ -329,7 +339,7 @@ class PermissionService
             }
 
             // Creator có thể xem task của mình
-            if ($task->creator_id == $userContext->id && $task->creator_type == $userContext->user_type) {
+            if ($task->creator_id == $this->getUserId($userContext) && $task->creator_type == $userContext->user_type) {
                 return true;
             }
 
@@ -338,7 +348,7 @@ class PermissionService
 
         } catch (\Exception $e) {
             Log::error('Error checking task view permission', [
-                'user_id' => $userContext->id,
+                'user_id' => $this->getUserId($userContext),
                 'task_id' => $taskId,
                 'error' => $e->getMessage()
             ]);
@@ -348,28 +358,95 @@ class PermissionService
 
     /**
      * ✅ Check specific task edit permission (implementation)
+     * 
+     * Admin: Có thể edit tất cả tasks (đã check ở canEditTask)
+     * Lecturer: Có thể edit task họ tạo HOẶC task họ là receiver
+     * Student: Không thể edit task (chỉ submit/update submission)
      */
     private function checkTaskEditPermission(object $userContext, int $taskId): bool
     {
         try {
-            $task = Task::find($taskId);
+            $task = Task::with('receivers')->find($taskId);
             
             if (!$task) {
                 return false;
             }
 
-            // Chỉ creator mới có thể edit task (lecturer/admin)
-            if ($task->creator_id == $userContext->id && 
-                $task->creator_type == $userContext->user_type &&
-                $this->canCreateTasks($userContext)) {
-                return true;
+            // ✅ Check 1: Creator có thể edit task (lecturer/admin)
+            // Use strict comparison and ensure both are integers
+            $userId = (int) $this->getUserId($userContext);
+            $creatorId = (int) $task->creator_id;
+            
+            if ($creatorId === $userId && 
+                $task->creator_type === $userContext->user_type) {
+                // Check if user can create tasks (admin or lecturer)
+                if ($this->canCreateTasks($userContext)) {
+                    Log::info('PermissionService: Edit allowed - User is creator', [
+                        'user_id' => $userId,
+                        'user_type' => $userContext->user_type,
+                        'task_id' => $taskId,
+                        'creator_id' => $creatorId,
+                        'creator_type' => $task->creator_type
+                    ]);
+                    return true;
+                } else {
+                    Log::warning('PermissionService: Edit denied - User is creator but cannot create tasks', [
+                        'user_id' => $userId,
+                        'user_type' => $userContext->user_type,
+                        'task_id' => $taskId,
+                        'creator_id' => $creatorId,
+                        'creator_type' => $task->creator_type
+                    ]);
+                }
+            } else {
+                Log::debug('PermissionService: Creator check failed', [
+                    'user_id' => $userId,
+                    'user_type' => $userContext->user_type,
+                    'task_id' => $taskId,
+                    'creator_id' => $creatorId,
+                    'creator_type' => $task->creator_type,
+                    'match' => [
+                        'id_match' => $creatorId === $userId,
+                        'type_match' => $task->creator_type === $userContext->user_type
+                    ]
+                ]);
             }
 
+            // ✅ Check 2: Lecturer có thể edit task mà họ là receiver
+            if ($this->isLecturer($userContext)) {
+                $isReceiver = $this->isTaskReceiver($userContext, $task);
+                if ($isReceiver) {
+                    Log::info('PermissionService: Edit allowed - Lecturer is receiver', [
+                        'user_id' => $this->getUserId($userContext),
+                        'task_id' => $taskId,
+                        'creator_id' => $task->creator_id,
+                        'creator_type' => $task->creator_type
+                    ]);
+                    return true;
+                }
+            }
+
+            // ✅ Student không thể edit task
+            if ($this->isStudent($userContext)) {
+                Log::warning('PermissionService: Edit denied - Student cannot edit tasks', [
+                    'user_id' => $this->getUserId($userContext),
+                    'task_id' => $taskId
+                ]);
+                return false;
+            }
+
+            Log::warning('PermissionService: Edit denied - User is neither creator nor receiver', [
+                'user_id' => $this->getUserId($userContext),
+                'user_type' => $userContext->user_type,
+                'task_id' => $taskId,
+                'creator_id' => $task->creator_id,
+                'creator_type' => $task->creator_type
+            ]);
             return false;
 
         } catch (\Exception $e) {
             Log::error('Error checking task edit permission', [
-                'user_id' => $userContext->id,
+                'user_id' => $this->getUserId($userContext),
                 'task_id' => $taskId,
                 'error' => $e->getMessage()
             ]);
@@ -399,7 +476,7 @@ class PermissionService
             }
 
             // Creator có thể update status
-            if ($task->creator_id == $userContext->id && $task->creator_type == $userContext->user_type) {
+            if ($task->creator_id == $this->getUserId($userContext) && $task->creator_type == $userContext->user_type) {
                 return true;
             }
 
@@ -408,7 +485,7 @@ class PermissionService
 
         } catch (\Exception $e) {
             Log::error('Error checking task status update permission', [
-                'user_id' => $userContext->id,
+                'user_id' => $this->getUserId($userContext),
                 'task_id' => $taskId,
                 'error' => $e->getMessage()
             ]);
@@ -423,7 +500,7 @@ class PermissionService
     {
         // Direct receiver check
         $isDirectReceiver = $task->receivers
-            ->where('receiver_id', $userContext->id)
+            ->where('receiver_id', $this->getUserId($userContext))
             ->where('receiver_type', $userContext->user_type)
             ->isNotEmpty();
 
@@ -449,7 +526,7 @@ class PermissionService
      */
     private function isStudentTaskReceiver(object $userContext, Task $task): bool
     {
-        $student = \Modules\Auth\app\Models\Student::with('classroom')->find($userContext->id);
+        $student = \Modules\Auth\app\Models\Student::with('classroom')->find($this->getUserId($userContext));
         
         if (!$student) {
             return false;
@@ -512,11 +589,13 @@ class PermissionService
      */
     public function validateUserContext(object $userContext): void
     {
-        if (empty($userContext->id)) {
+        // JWT sử dụng 'sub' thay vì 'id'
+        $userId = $this->getUserId($userContext);
+        if (!$userId || $userId === null || $userId === '') {
             throw TaskException::businessRuleViolation('User ID is required');
         }
 
-        if (empty($userContext->user_type)) {
+        if (!isset($userContext->user_type) || empty($userContext->user_type)) {
             throw TaskException::businessRuleViolation('User type is required');
         }
 
@@ -538,10 +617,10 @@ class PermissionService
             if ($taskId) {
                 // Clear specific task permissions
                 $patterns = [
-                    "task_permission:view:{$userContext->id}:{$userContext->user_type}:{$taskId}",
-                    "task_permission:edit:{$userContext->id}:{$userContext->user_type}:{$taskId}",
-                    "task_permission:delete:{$userContext->id}:{$userContext->user_type}:{$taskId}",
-                    "task_permission:status:{$userContext->id}:{$userContext->user_type}:{$taskId}"
+                    "task_permission:view:{$this->getUserId($userContext)}:{$userContext->user_type}:{$taskId}",
+                    "task_permission:edit:{$this->getUserId($userContext)}:{$userContext->user_type}:{$taskId}",
+                    "task_permission:delete:{$this->getUserId($userContext)}:{$userContext->user_type}:{$taskId}",
+                    "task_permission:status:{$this->getUserId($userContext)}:{$userContext->user_type}:{$taskId}"
                 ];
                 
                 foreach ($patterns as $pattern) {
@@ -549,14 +628,14 @@ class PermissionService
                 }
             } else {
                 // Clear all permissions for user
-                $pattern = "task_permission:*:{$userContext->id}:{$userContext->user_type}:*";
+                $pattern = "task_permission:*:{$this->getUserId($userContext)}:{$userContext->user_type}:*";
                 // Note: Would need cache service with pattern support for this
             }
             
             return true;
         } catch (\Exception $e) {
             Log::error('Error clearing permission cache', [
-                'user_id' => $userContext->id,
+                'user_id' => $this->getUserId($userContext),
                 'task_id' => $taskId,
                 'error' => $e->getMessage()
             ]);
@@ -571,7 +650,7 @@ class PermissionService
     {
         return [
             'user_info' => [
-                'id' => $userContext->id,
+                'id' => $this->getUserId($userContext),
                 'user_type' => $userContext->user_type,
                 'is_admin' => $this->isAdmin($userContext),
                 'is_lecturer' => $this->isLecturer($userContext),

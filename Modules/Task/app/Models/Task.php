@@ -155,6 +155,17 @@ class Task extends Model
     }
 
     /**
+     * Get the creator (polymorphic relationship)
+     * Creator có thể là Lecturer, Admin, hoặc User
+     * 
+     * @return \Illuminate\Database\Eloquent\Relations\MorphTo
+     */
+    public function creator()
+    {
+        return $this->morphTo('creator', 'creator_type', 'creator_id');
+    }
+
+    /**
      * ✅ Get business logic service instance
      * 
      * @return \Modules\Task\app\Services\TaskBusinessLogicService

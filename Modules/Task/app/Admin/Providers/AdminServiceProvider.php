@@ -14,6 +14,7 @@ use Modules\Task\app\Admin\UseCases\GetTaskDetailUseCase;
 use Modules\Task\app\Admin\UseCases\CheckAdminRoleUseCase;
 use Modules\Task\app\Admin\Services\AdminTaskService;
 use Modules\Task\app\Services\PermissionService;
+use Modules\Task\app\Services\Interfaces\TaskServiceInterface;
 
 /**
  * Admin Service Provider
@@ -63,7 +64,8 @@ class AdminServiceProvider extends ServiceProvider
 
         $this->app->singleton(GetTaskDetailUseCase::class, function ($app) {
             return new GetTaskDetailUseCase(
-                $app->make(PermissionService::class)
+                $app->make(PermissionService::class),
+                $app->make(TaskServiceInterface::class)
             );
         });
 
@@ -91,7 +93,8 @@ class AdminServiceProvider extends ServiceProvider
         $this->app->singleton(ShowTaskUseCase::class, function ($app) {
             return new ShowTaskUseCase(
                 $app->make(PermissionService::class),
-                $app->make(\Modules\Task\app\Services\CacheInvalidationService::class)
+                $app->make(\Modules\Task\app\Services\CacheInvalidationService::class),
+                $app->make(TaskServiceInterface::class)
             );
         });
     }

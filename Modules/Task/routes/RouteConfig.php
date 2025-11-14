@@ -7,7 +7,7 @@ use Modules\Task\app\Http\Controllers\Task\TaskDependencyController;
 use Modules\Task\app\Http\Controllers\Task\TaskSubmitController;
 use Modules\Task\app\Http\Controllers\Admin\AdminTaskController;
 use Modules\Task\app\Http\Controllers\Lecturer\LecturerTaskController;
-use Modules\Task\app\Http\Controllers\Student\StudentTaskController;
+use Modules\Task\app\Student\Controllers\StudentTaskController as StudentTaskControllerClean;
 use Modules\Task\app\Http\Controllers\Reports\TaskReportController;
 use Modules\Task\app\Http\Controllers\Statistics\TaskStatisticsController;
 use Modules\Task\app\Http\Controllers\CacheController;
@@ -83,6 +83,12 @@ class RouteConfig
                         'uri' => '{task}/files/{file}',
                         'action' => 'deleteFile',
                         'name' => 'delete-file'
+                    ],
+                    [
+                        'methods' => ['GET'],
+                        'uri' => '{task}/files/{file}/download',
+                        'action' => 'downloadFile',
+                        'name' => 'download-file'
                     ],
                     [
                         'methods' => ['GET'],
@@ -249,7 +255,7 @@ class RouteConfig
                         'name' => 'store'
                     ],
                     [
-                        'methods' => ['PUT'],
+                        'methods' => ['PUT', 'PATCH'],
                         'uri' => '{task}',
                         'action' => 'update',
                         'name' => 'update'
@@ -283,6 +289,60 @@ class RouteConfig
                         'uri' => '{task}/process-files',
                         'action' => 'processTaskFiles',
                         'name' => 'process-files'
+                    ],
+                    [
+                        'methods' => ['POST'],
+                        'uri' => '{task}/upload-file',
+                        'action' => 'uploadFile',
+                        'name' => 'upload-file'
+                    ],
+                    [
+                        'methods' => ['POST'],
+                        'uri' => '{task}/files',
+                        'action' => 'uploadFiles',
+                        'name' => 'upload-files'
+                    ],
+                    [
+                        'methods' => ['DELETE'],
+                        'uri' => '{task}/files/{file}',
+                        'action' => 'deleteFile',
+                        'name' => 'delete-file'
+                    ],
+                    [
+                        'methods' => ['GET'],
+                        'uri' => '{task}/files/{file}/download',
+                        'action' => 'downloadFile',
+                        'name' => 'download-file'
+                    ],
+                    [
+                        'methods' => ['GET'],
+                        'uri' => '{task}/submissions',
+                        'action' => 'getTaskSubmissions',
+                        'name' => 'get-submissions'
+                    ],
+                    [
+                        'methods' => ['POST'],
+                        'uri' => '{task}/submissions/{submission}/grade',
+                        'action' => 'gradeSubmission',
+                        'name' => 'grade-submission'
+                    ],
+                    [
+                        'methods' => ['POST'],
+                        'uri' => '{task}/submit',
+                        'action' => 'submitTask',
+                        'name' => 'submit-task'
+                    ],
+                    [
+                        'methods' => ['GET'],
+                        'uri' => '{task}/submission',
+                        'action' => 'getSubmission',
+                        'name' => 'get-submission'
+                    ],
+                    [
+                        'methods' => ['PUT', 'PATCH'],
+                        'uri' => '{task}/submission',
+                        'action' => 'updateSubmission',
+                        'name' => 'update-submission'
                     ],
                 ],
                 'resource_actions' => ['show', 'destroy'] // Chỉ cho phép xem chi tiết và xóa
@@ -612,7 +672,7 @@ class RouteConfig
             'prefix' => 'v1',
             'student-tasks' => [
                 'prefix' => 'student-tasks',
-                'controller' => StudentTaskController::class,
+                'controller' => StudentTaskControllerClean::class,
                 'name' => 'student-tasks',
                 'additional_routes' => [
                     [
@@ -645,23 +705,24 @@ class RouteConfig
                         'action' => 'getStudentStatistics',
                         'name' => 'statistics'
                     ],
+                    // Routes với {task} parameter - đặt routes cụ thể trước
                     [
-                        'methods' => ['PUT'],
-                        'uri' => '{task}/submission',
-                        'action' => 'updateSubmission',
-                        'name' => 'update-submission'
-                    ],
-                    [
-                        'methods' => ['GET'],
-                        'uri' => '{task}/submission',
-                        'action' => 'getSubmission',
-                        'name' => 'get-submission'
+                        'methods' => ['POST'],
+                        'uri' => '{task}/submit',
+                        'action' => 'submitTask',
+                        'name' => 'submit'
                     ],
                     [
                         'methods' => ['POST'],
                         'uri' => '{task}/upload-file',
                         'action' => 'uploadFile',
                         'name' => 'upload-file'
+                    ],
+                    [
+                        'methods' => ['GET'],
+                        'uri' => '{task}/files',
+                        'action' => 'getFiles',
+                        'name' => 'get-files'
                     ],
                     [
                         'methods' => ['DELETE'],
@@ -671,9 +732,15 @@ class RouteConfig
                     ],
                     [
                         'methods' => ['GET'],
-                        'uri' => '{task}/files',
-                        'action' => 'getFiles',
-                        'name' => 'get-files'
+                        'uri' => '{task}/submission',
+                        'action' => 'getSubmission',
+                        'name' => 'get-submission'
+                    ],
+                    [
+                        'methods' => ['PUT'],
+                        'uri' => '{task}/submission',
+                        'action' => 'updateSubmission',
+                        'name' => 'update-submission'
                     ],
                 ],
                 'resource_actions' => ['show'] // Chỉ cho phép xem chi tiết
@@ -844,6 +911,24 @@ class RouteConfig
                         'action' => 'bulkAction',
                         'name' => 'bulk-action'
                     ],
+                    [
+                        'methods' => ['POST'],
+                        'uri' => '{id}/files',
+                        'action' => 'uploadFiles',
+                        'name' => 'upload-files'
+                    ],
+                    [
+                        'methods' => ['DELETE'],
+                        'uri' => '{id}/files/{file}',
+                        'action' => 'deleteFile',
+                        'name' => 'delete-file'
+                    ],
+                    [
+                        'methods' => ['GET'],
+                        'uri' => '{id}/files/{file}/download',
+                        'action' => 'downloadFile',
+                        'name' => 'download-file'
+                    ],
                 ]
             ],
             'calendar' => [
@@ -859,6 +944,36 @@ class RouteConfig
                     ],
                     [
                         'methods' => ['GET'],
+                        'uri' => 'events/by-date',
+                        'action' => 'getEventsByDate',
+                        'name' => 'events.by-date'
+                    ],
+                    [
+                        'methods' => ['GET'],
+                        'uri' => 'events/by-range',
+                        'action' => 'getEventsByRange',
+                        'name' => 'events.by-range'
+                    ],
+                    [
+                        'methods' => ['GET'],
+                        'uri' => 'events/upcoming',
+                        'action' => 'getUpcomingEvents',
+                        'name' => 'events.upcoming'
+                    ],
+                    [
+                        'methods' => ['GET'],
+                        'uri' => 'events/overdue',
+                        'action' => 'getOverdueEvents',
+                        'name' => 'events.overdue'
+                    ],
+                    [
+                        'methods' => ['GET'],
+                        'uri' => 'events/count-by-status',
+                        'action' => 'getEventsCountByStatus',
+                        'name' => 'events.count-by-status'
+                    ],
+                    [
+                        'methods' => ['GET'],
                         'uri' => 'events/by-type',
                         'action' => 'getEventsByType',
                         'name' => 'events.by-type'
@@ -868,6 +983,24 @@ class RouteConfig
                         'uri' => 'events/recurring',
                         'action' => 'getRecurringEvents',
                         'name' => 'events.recurring'
+                    ],
+                    [
+                        'methods' => ['GET'],
+                        'uri' => 'reminders',
+                        'action' => 'getReminders',
+                        'name' => 'reminders'
+                    ],
+                    [
+                        'methods' => ['POST'],
+                        'uri' => 'reminders',
+                        'action' => 'setReminder',
+                        'name' => 'reminders.store'
+                    ],
+                    [
+                        'methods' => ['POST'],
+                        'uri' => 'events',
+                        'action' => 'createEvent',
+                        'name' => 'events.create'
                     ],
                 ]
             ],

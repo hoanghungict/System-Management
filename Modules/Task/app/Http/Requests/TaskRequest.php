@@ -31,24 +31,45 @@ class TaskRequest extends FormRequest
     {
         $rules = [];
 
-        // Quy tắc cơ bản cho create/update tasks
-        if ($this->isMethod('POST') || $this->isMethod('PUT') || $this->isMethod('PATCH')) {
+        // Quy tắc cho tạo task mới (POST)
+        if ($this->isMethod('POST')) {
             $rules = [
                 'title' => 'required|string|max:255',
                 'description' => 'nullable|string',
-                'due_date' => 'nullable|date|after_or_equal:today', // ✅ Thêm validation cho due_date
+                'due_date' => 'nullable|date|after_or_equal:today',
                 'deadline' => 'nullable|date|after:now',
-                'status' => 'nullable|in:pending,in_progress,completed,overdue',
+                'status' => 'nullable|in:pending,in_progress,completed,overdue,cancelled',
                 'priority' => 'nullable|in:low,medium,high',
                 'receivers' => 'required|array|min:1',
-                'receivers.*.receiver_id' => 'required|integer|min:0', // ✅ Cho phép 0 cho all_students/all_lecturers toàn hệ thống
-                'receivers.*.receiver_type' => 'required|in:student,lecturer,class,all_students,all_lecturers',
+                'receivers.*.receiver_id' => 'required|integer|min:0',
+                'receivers.*.receiver_type' => 'required|in:student,lecturer,classes,department,all_students,all_lecturers',
                 'creator_id' => 'required|integer',
                 'creator_type' => 'required|in:lecturer,student',
-                'assigned_to' => 'nullable|string|max:255', // ✅ Thêm validation cho assigned_to
-                'assigned_to_id' => 'nullable|integer|min:0', // ✅ Thêm validation cho assigned_to_id
+                'assigned_to' => 'nullable|string|max:255',
+                'assigned_to_id' => 'nullable|integer|min:0',
                 'include_new_students' => 'nullable|boolean',
                 'include_new_lecturers' => 'nullable|boolean',
+            ];
+        }
+
+        // Quy tắc cho cập nhật task (PUT/PATCH) - tất cả fields đều optional
+        if ($this->isMethod('PUT') || $this->isMethod('PATCH')) {
+            $rules = [
+                'title' => 'sometimes|string|max:255',
+                'description' => 'sometimes|string',
+                'due_date' => 'sometimes|date|after_or_equal:today',
+                'deadline' => 'sometimes|date|after:now',
+                'status' => 'sometimes|in:pending,in_progress,completed,overdue,cancelled',
+                'priority' => 'sometimes|in:low,medium,high',
+                'receivers' => 'sometimes|array|min:1',
+                'receivers.*.receiver_id' => 'required_with:receivers|integer|min:0',
+                'receivers.*.receiver_type' => 'required_with:receivers|in:student,lecturer,classes,department,all_students,all_lecturers',
+                'creator_id' => 'sometimes|integer',
+                'creator_type' => 'sometimes|in:lecturer,student',
+                'assigned_to' => 'sometimes|string|max:255',
+                'assigned_to_id' => 'sometimes|integer|min:0',
+                'include_new_students' => 'sometimes|boolean',
+                'include_new_lecturers' => 'sometimes|boolean',
             ];
         }
 
@@ -56,7 +77,7 @@ class TaskRequest extends FormRequest
         if ($this->routeIs('tasks.by-receiver')) {
             $rules = [
                 'receiver_id' => 'required|integer',
-                'receiver_type' => 'required|in:student,lecturer,class,all_students,all_lecturers'
+                'receiver_type' => 'required|in:student,lecturer,classes,department,all_students,all_lecturers'
             ];
         }
 
@@ -94,7 +115,7 @@ class TaskRequest extends FormRequest
             'receivers.*.receiver_id.integer' => 'Receiver ID must be an integer.',
             'receivers.*.receiver_id.min' => 'Receiver ID must be 0 or greater.',
             'receivers.*.receiver_type.required' => 'Receiver type is required.',
-            'receivers.*.receiver_type.in' => 'Receiver type must be student, lecturer, class, all_students, or all_lecturers.',
+            'receivers.*.receiver_type.in' => 'Receiver type must be student, lecturer, classes, department, all_students, or all_lecturers.',
             'creator_id.required' => 'Creator ID is required.',
             'creator_id.integer' => 'Creator ID must be an integer.',
             'creator_type.required' => 'Creator type is required.',

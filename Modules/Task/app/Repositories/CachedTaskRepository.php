@@ -248,8 +248,17 @@ class CachedTaskRepository implements CachedTaskRepositoryInterface
      */
     public function clearTaskCache(int $taskId): bool
     {
+        // ✅ Sử dụng generateKey để tạo đúng cache keys
+        $keys = [
+            $this->cacheService->generateKey('task', ['id' => $taskId]),
+            $this->cacheService->generateKey('task_details', ['id' => $taskId])
+        ];
+        
+        // ✅ Xóa specific keys trước
+        $this->cacheService->forgetMultiple($keys);
+        
+        // ✅ Sau đó xóa patterns cho các cache liên quan
         $patterns = [
-            'task:' . $taskId,
             'tasks_*',
             'task_statistics'
         ];
@@ -258,7 +267,10 @@ class CachedTaskRepository implements CachedTaskRepositoryInterface
             $this->cacheService->forgetPattern($pattern);
         }
         
-        Log::info('Task cache cleared', ['task_id' => $taskId]);
+        Log::info('Task cache cleared', [
+            'task_id' => $taskId,
+            'keys_cleared' => $keys
+        ]);
         
         return true;
     }

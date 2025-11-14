@@ -3,6 +3,7 @@
 namespace Modules\Task\app\Services;
 
 use Modules\Task\app\Services\Interfaces\CacheInvalidationServiceInterface;
+use Modules\Task\app\Services\Interfaces\CacheServiceInterface;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -13,23 +14,40 @@ use Illuminate\Support\Facades\Log;
  */
 class CacheInvalidationService implements CacheInvalidationServiceInterface
 {
-    public function __construct()
-    {
-        // Simplified constructor - no dependencies needed for basic cache operations
+    public function __construct(
+        private CacheServiceInterface $cacheService
+    ) {
+        // Inject CacheService for real cache operations
     }
 
     /**
-     * Invalidate student cache (simplified version for API)
+     * Invalidate student cache - REAL implementation
      */
     public function invalidateStudentCache(): array
     {
         try {
-            // Simulate cache clearing
-            Log::info('CacheInvalidationService: Student cache invalidated');
+            // Real cache clearing using pattern matching
+            $patterns = [
+                'student*',
+                'student_tasks*',
+                'student_calendar*',
+                'tasks_user*student*'
+            ];
+            
+            $clearedCount = 0;
+            foreach ($patterns as $pattern) {
+                $clearedCount += $this->cacheService->forgetPattern($pattern);
+            }
+            
+            Log::info('CacheInvalidationService: Student cache invalidated', [
+                'patterns' => $patterns,
+                'cleared_count' => $clearedCount
+            ]);
 
             return [
                 'status' => 'success',
-                'cleared_caches' => ['student', 'student_tasks', 'student_calendar']
+                'cleared_caches' => ['student', 'student_tasks', 'student_calendar'],
+                'cleared_count' => $clearedCount
             ];
         } catch (\Exception $e) {
             Log::error('CacheInvalidationService: Error invalidating student cache', [
@@ -43,17 +61,33 @@ class CacheInvalidationService implements CacheInvalidationServiceInterface
     }
 
     /**
-     * Invalidate lecturer cache (simplified version for API)
+     * Invalidate lecturer cache - REAL implementation
      */
     public function invalidateLecturerCache(): array
     {
         try {
-            // Simulate cache clearing
-            Log::info('CacheInvalidationService: Lecturer cache invalidated');
+            // Real cache clearing using pattern matching
+            $patterns = [
+                'lecturer*',
+                'lecturer_tasks*',
+                'lecturer_calendar*',
+                'tasks_user*lecturer*'
+            ];
+            
+            $clearedCount = 0;
+            foreach ($patterns as $pattern) {
+                $clearedCount += $this->cacheService->forgetPattern($pattern);
+            }
+            
+            Log::info('CacheInvalidationService: Lecturer cache invalidated', [
+                'patterns' => $patterns,
+                'cleared_count' => $clearedCount
+            ]);
 
             return [
                 'status' => 'success',
-                'cleared_caches' => ['lecturer', 'lecturer_tasks', 'lecturer_calendar']
+                'cleared_caches' => ['lecturer', 'lecturer_tasks', 'lecturer_calendar'],
+                'cleared_count' => $clearedCount
             ];
         } catch (\Exception $e) {
             Log::error('CacheInvalidationService: Error invalidating lecturer cache', [
@@ -159,17 +193,37 @@ class CacheInvalidationService implements CacheInvalidationServiceInterface
     }
 
     /**
-     * Invalidate all cache
+     * Invalidate all cache - REAL implementation
      */
     public function invalidateAllCache(): array
     {
         try {
-            // Simulate cache clearing
-            Log::info('CacheInvalidationService: All cache invalidated');
+            // Real cache clearing using pattern matching
+            $patterns = [
+                'task_module:*',
+                'task*',
+                'tasks*',
+                'user*',
+                'student*',
+                'lecturer*',
+                'department*',
+                'class*'
+            ];
+            
+            $clearedCount = 0;
+            foreach ($patterns as $pattern) {
+                $clearedCount += $this->cacheService->forgetPattern($pattern);
+            }
+            
+            Log::info('CacheInvalidationService: All cache invalidated', [
+                'patterns' => $patterns,
+                'cleared_count' => $clearedCount
+            ]);
 
             return [
                 'status' => 'success',
-                'cleared_caches' => ['all']
+                'cleared_caches' => ['all'],
+                'cleared_count' => $clearedCount
             ];
         } catch (\Exception $e) {
             Log::error('CacheInvalidationService: Error invalidating all cache', [
@@ -183,16 +237,45 @@ class CacheInvalidationService implements CacheInvalidationServiceInterface
     }
 
     /**
-     * Invalidate task cache by task ID
+     * Invalidate task cache by task ID - REAL implementation
      */
     public function invalidateTaskCache(int $taskId): array
     {
         try {
-            Log::info('CacheInvalidationService: Task cache invalidated', ['task_id' => $taskId]);
+            // Real cache clearing for specific task
+            $keys = [
+                $this->cacheService->generateKey('task', ['id' => $taskId]),
+                $this->cacheService->generateKey('task_details', ['id' => $taskId]),
+                $this->cacheService->generateKey('task_dependencies', ['id' => $taskId])
+            ];
+            
+            $clearedCount = 0;
+            foreach ($keys as $key) {
+                if ($this->cacheService->forget($key)) {
+                    $clearedCount++;
+                }
+            }
+            
+            // Also clear pattern-based caches
+            $patterns = [
+                'task*' . $taskId . '*',
+                'tasks_*' . $taskId . '*'
+            ];
+            
+            foreach ($patterns as $pattern) {
+                $clearedCount += $this->cacheService->forgetPattern($pattern);
+            }
+            
+            Log::info('CacheInvalidationService: Task cache invalidated', [
+                'task_id' => $taskId,
+                'keys' => $keys,
+                'cleared_count' => $clearedCount
+            ]);
 
             return [
                 'status' => 'success',
-                'cleared_caches' => ['task_' . $taskId, 'task_dependencies_' . $taskId]
+                'cleared_caches' => ['task_' . $taskId, 'task_dependencies_' . $taskId],
+                'cleared_count' => $clearedCount
             ];
         } catch (\Exception $e) {
             Log::error('CacheInvalidationService: Error invalidating task cache', [

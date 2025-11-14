@@ -15,10 +15,16 @@ class AdminOnlyMiddleware
     public function handle(Request $request, Closure $next): Response
     {
         $userType = $request->attributes->get('jwt_user_type');
+        $jwtPayload = $request->attributes->get('jwt_payload');
         $isAdmin = false;
 
-        // Kiểm tra nếu là lecturer, xem có phải admin không
-        if ($userType === 'lecturer') {
+        // Kiểm tra is_admin từ JWT payload trước
+        if ($jwtPayload && isset($jwtPayload->is_admin) && $jwtPayload->is_admin === true) {
+            $isAdmin = true;
+        }
+        
+        // Fallback: Kiểm tra nếu là lecturer, xem có phải admin không
+        if (!$isAdmin && $userType === 'lecturer') {
             $userId = $request->attributes->get('jwt_user_id');
             
             // Kiểm tra trong database xem lecturer có phải admin không
@@ -35,7 +41,12 @@ class AdminOnlyMiddleware
         if (!$isAdmin) {
             return response()->json([
                 'message' => 'Bạn không có quyền truy cập chức năng này',
-                'error' => 'Admin access required'
+                'error' => 'Admin access required',
+                'debug' => [
+                    'user_type' => $userType,
+                    'has_jwt_payload' => $jwtPayload !== null,
+                    'is_admin_in_jwt' => $jwtPayload->is_admin ?? 'not set'
+                ]
             ], 403);
         }
 
