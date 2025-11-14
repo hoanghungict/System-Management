@@ -403,6 +403,210 @@ class LecturerTaskRepository
     }
 
     /**
+     * Lấy danh sách submissions của task (cho lecturer xem)
+     * 
+     * @param int $taskId - Task ID
+     * @param int $lecturerId - Lecturer ID để kiểm tra quyền
+     * @param array $pagination - Pagination params (page, per_page)
+     * @return array Returns submissions data with pagination
+     */
+    public function getTaskSubmissions(int $taskId, int $lecturerId, array $pagination = []): array
+    {
+        try {
+            // Kiểm tra task có tồn tại và lecturer có quyền không
+            $task = $this->findById($taskId);
+            
+            if (!$task) {
+                throw new LecturerTaskException('Task not found', 404);
+            }
+
+            // Kiểm tra lecturer có phải là creator của task không
+            if ($task->creator_id != $lecturerId || $task->creator_type != 'lecturer') {
+                throw new LecturerTaskException('Access denied to this task', 403);
+            }
+
+            // Pagination params
+            $page = $pagination['page'] ?? 1;
+            $perPage = $pagination['per_page'] ?? 15;
+
+            // Lấy submissions của task với pagination
+            $submissionsQuery = app('Modules\Task\app\Models\TaskSubmission')
+                ->where('task_id', $taskId)
+                ->with(['student', 'task'])
+                ->orderBy('submitted_at', 'desc');
+
+            $submissions = $submissionsQuery->paginate($perPage, ['*'], 'page', $page);
+
+            $data = $submissions->map(function($submission) {
+                // Load files nếu có
+                $files = [];
+                $fileIds = $submission->submission_files ?? [];
+                
+                if (!empty($fileIds) && is_array($fileIds)) {
+                    $fileIds = array_map('intval', $fileIds);
+                    $fileIds = array_filter($fileIds, function($id) { return $id > 0; });
+                    
+                    if (!empty($fileIds)) {
+                        try {
+                            $taskFiles = app('Modules\Task\app\Models\TaskFile')
+                                ->whereIn('id', $fileIds)
+                                ->where('task_id', $submission->task_id)
+                                ->get();
+
+                            $files = $taskFiles->map(function($file) {
+                                return [
+                                    'id' => $file->id,
+                                    'file_name' => $file->name ?? basename($file->path ?? ''),
+                                    'file_url' => $file->file_url ?? '',
+                                    'file_size' => $file->size ?? 0,
+                                    'created_at' => $file->created_at ? $file->created_at->toDateTimeString() : null,
+                                ];
+                            })->toArray();
+                        } catch (\Exception $e) {
+                            \Log::warning('Failed to load submission files', [
+                                'submission_id' => $submission->id,
+                                'file_ids' => $fileIds,
+                                'error' => $e->getMessage()
+                            ]);
+                        }
+                    }
+                }
+
+                return [
+                    'id' => $submission->id,
+                    'task_id' => $submission->task_id,
+                    'student_id' => $submission->student_id,
+                    'student_name' => ($submission->student && isset($submission->student->full_name)) 
+                        ? $submission->student->full_name 
+                        : 'N/A',
+                    'submission_content' => $submission->submission_content,
+                    'submitted_at' => $submission->submitted_at ? $submission->submitted_at->toDateTimeString() : null,
+                    'status' => $submission->status ?? 'pending',
+                    'grade' => $submission->grade,
+                    'feedback' => $submission->feedback,
+                    'graded_at' => $submission->graded_at ? $submission->graded_at->toDateTimeString() : null,
+                    'graded_by' => $submission->graded_by,
+                    'files' => $files,
+                    'created_at' => $submission->created_at ? $submission->created_at->toDateTimeString() : null,
+                    'updated_at' => $submission->updated_at ? $submission->updated_at->toDateTimeString() : null,
+                ];
+            })->toArray();
+
+            return [
+                'data' => $data,
+                'pagination' => [
+                    'current_page' => $submissions->currentPage(),
+                    'per_page' => $submissions->perPage(),
+                    'total' => $submissions->total(),
+                    'last_page' => $submissions->lastPage(),
+                    'from' => $submissions->firstItem(),
+                    'to' => $submissions->lastItem(),
+                ]
+            ];
+        } catch (LecturerTaskException $e) {
+            throw $e;
+        } catch (\Exception $e) {
+            \Log::error('Get task submissions error', [
+                'task_id' => $taskId,
+                'lecturer_id' => $lecturerId,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            throw new LecturerTaskException('Failed to retrieve task submissions: ' . $e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * Chấm điểm bài nộp của sinh viên
+     * 
+     * @param int $taskId - Task ID
+     * @param int $submissionId - Submission ID
+     * @param array $data - Data chứa grade, feedback, status
+     * @param int $lecturerId - Lecturer ID
+     * @return array Returns graded submission data
+     */
+    public function gradeTaskSubmission(int $taskId, int $submissionId, array $data, int $lecturerId): array
+    {
+        try {
+            // Kiểm tra submission có tồn tại và thuộc task này không
+            $submission = app('Modules\Task\app\Models\TaskSubmission')
+                ->where('id', $submissionId)
+                ->where('task_id', $taskId)
+                ->first();
+
+            if (!$submission) {
+                throw new LecturerTaskException('Submission not found', 404);
+            }
+
+            // Validate data
+            $grade = $data['grade'] ?? null;
+            $feedback = $data['feedback'] ?? null;
+            $status = $data['status'] ?? 'graded'; // 'graded' hoặc 'returned'
+
+            // Validate grade (nếu có)
+            if ($grade !== null) {
+                $grade = floatval($grade);
+                if ($grade < 0 || $grade > 10) {
+                    throw new LecturerTaskException('Grade must be between 0 and 10', 422);
+                }
+            }
+
+            // Update submission
+            $submission->grade = $grade;
+            $submission->feedback = $feedback;
+            $submission->status = $status;
+            $submission->graded_at = now();
+            $submission->graded_by = $lecturerId;
+            $submission->save();
+
+            // Load files nếu có
+            $files = [];
+            $fileIds = $submission->submission_files ?? [];
+            
+            if (!empty($fileIds) && is_array($fileIds)) {
+                $fileIds = array_map('intval', $fileIds);
+                $fileIds = array_filter($fileIds, function($id) { return $id > 0; });
+                
+                if (!empty($fileIds)) {
+                    $taskFiles = app('Modules\Task\app\Models\TaskFile')
+                        ->whereIn('id', $fileIds)
+                        ->where('task_id', $taskId)
+                        ->get();
+
+                    $files = $taskFiles->map(function($file) {
+                        return [
+                            'id' => $file->id,
+                            'file_name' => $file->name ?? basename($file->path ?? ''),
+                            'file_url' => $file->file_url ?? '',
+                            'file_size' => $file->size ?? 0,
+                            'created_at' => $file->created_at ? $file->created_at->toDateTimeString() : null,
+                        ];
+                    })->toArray();
+                }
+            }
+
+            return [
+                'id' => $submission->id,
+                'task_id' => $submission->task_id,
+                'student_id' => $submission->student_id,
+                'submission_content' => $submission->submission_content,
+                'submitted_at' => $submission->submitted_at ? $submission->submitted_at->toDateTimeString() : null,
+                'status' => $submission->status,
+                'grade' => $submission->grade,
+                'feedback' => $submission->feedback,
+                'graded_at' => $submission->graded_at ? $submission->graded_at->toDateTimeString() : null,
+                'graded_by' => $submission->graded_by,
+                'files' => $files,
+                'updated_at' => $submission->updated_at ? $submission->updated_at->toDateTimeString() : null,
+            ];
+        } catch (LecturerTaskException $e) {
+            throw $e;
+        } catch (\Exception $e) {
+            throw new LecturerTaskException('Failed to grade task submission: ' . $e->getMessage(), 500);
+        }
+    }
+
+    /**
      * Áp dụng filters
      */
     protected function applyFilters($query, TaskFilterDTO $filterDTO)

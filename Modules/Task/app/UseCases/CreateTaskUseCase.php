@@ -38,8 +38,14 @@ class CreateTaskUseCase
             // Tạo DTO
             $taskDTO = TaskDTO::forCreate($data);
 
-            // Tạo task thông qua service
-            $task = $this->taskService->createTask($taskDTO->toArray());
+            // Tạo user context từ data
+            $userContext = (object) [
+                'id' => $data['creator_id'] ?? 1,
+                'user_type' => $data['creator_type'] ?? 'lecturer'
+            ];
+
+            // Tạo task thông qua service với user context
+            $task = $this->taskService->createTask($taskDTO->toArray(), $userContext);
 
             // Load receivers để lấy email
             $task->load('receivers');
@@ -101,6 +107,7 @@ class CreateTaskUseCase
         }
 
         // Kiểm tra creator phải là lecturer hoặc student
+        // Admin thực chất là lecturer với is_admin: true
         if (!in_array($data['creator_type'], ['lecturer', 'student'])) {
             throw TaskException::businessRuleViolation(
                 'Creator type must be lecturer or student',

@@ -5,6 +5,7 @@ namespace Modules\Task\app\Lecturer\UseCases;
 use Modules\Task\app\Lecturer\Repositories\LecturerTaskRepository;
 use Modules\Task\app\Lecturer\DTOs\TaskDTO;
 use Modules\Task\app\Lecturer\Exceptions\LecturerTaskException;
+use Modules\Task\app\Services\Interfaces\TaskServiceInterface;
 
 /**
  * Lecturer Task Use Case
@@ -16,8 +17,10 @@ class LecturerTaskUseCase
 {
     protected $lecturerTaskRepository;
 
-    public function __construct(LecturerTaskRepository $lecturerTaskRepository)
-    {
+    public function __construct(
+        LecturerTaskRepository $lecturerTaskRepository,
+        private TaskServiceInterface $taskService
+    ) {
         $this->lecturerTaskRepository = $lecturerTaskRepository;
     }
 
@@ -27,7 +30,8 @@ class LecturerTaskUseCase
     public function getTaskById($taskId, $lecturerId, $userType)
     {
         try {
-            $task = $this->lecturerTaskRepository->findById($taskId);
+            // ✅ Use TaskService with cache instead of direct database query
+            $task = $this->taskService->getTaskById($taskId);
             
             if (!$task) {
                 throw new LecturerTaskException('Task not found', 404);
@@ -36,6 +40,11 @@ class LecturerTaskUseCase
             // Kiểm tra quyền truy cập
             if (!$this->hasAccessToTask($task, $lecturerId, $userType)) {
                 throw new LecturerTaskException('Access denied to this task', 403);
+            }
+
+            // Load relationships if not already loaded
+            if (!$task->relationLoaded('receivers')) {
+                $task->load(['receivers', 'files']);
             }
 
             return $task;

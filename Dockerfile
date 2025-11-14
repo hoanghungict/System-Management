@@ -18,8 +18,9 @@ RUN apt-get update && apt-get install -y \
     unzip \
     git \
     curl \
+    libicu-dev \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install pdo pdo_mysql gd mbstring exif pcntl bcmath opcache \
+    && docker-php-ext-install pdo pdo_mysql gd mbstring exif pcntl bcmath opcache intl \
     && yes "" | pecl install -f rdkafka \
     && docker-php-ext-enable rdkafka
     # && pecl install redis \

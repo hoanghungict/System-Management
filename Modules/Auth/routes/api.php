@@ -48,6 +48,12 @@ Route::prefix('v1')->group(function () {
         Route::delete('/lecturers/{id}', [LecturerController::class, 'destroy']);
         Route::patch('/lecturers/{id}/admin-status', [LecturerController::class, 'updateAdminStatus']);
     });
+    Route::middleware(['jwt', 'lecturer'])->group(function () {
+        Route::get('/students', [StudentController::class, 'index']);
+        Route::get('/lecturers', [LecturerController::class, 'index']);
+        Route::get('/departments', [DepartmentController::class, 'index']);
+        Route::get('/classes', [ClassController::class, 'index']);
+    });
 
     // Routes cho sinh viên - Chỉ xem thông tin của mình
     Route::middleware(['jwt'])->group(function () {

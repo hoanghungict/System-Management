@@ -59,12 +59,12 @@ class AdminTaskController
     /**
      * Update a task (Admin only)
      */
-    public function updateTask(Request $request, $taskId): JsonResponse
+    public function updateTask(\Modules\Task\app\Http\Requests\TaskRequest $request, $taskId): JsonResponse
     {
         try {
             $userId = $request->attributes->get('jwt_user_id');
             $userType = $request->attributes->get('jwt_user_type');
-            $data = $request->all();
+            $data = $request->validated();
 
             $result = $this->updateTaskUseCase->execute($taskId, $data, $userId, $userType);
 

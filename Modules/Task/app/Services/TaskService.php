@@ -35,6 +35,14 @@ use Modules\Task\app\Jobs\SendTaskGradedNotificationJob;
  */
 class TaskService implements TaskServiceInterface
 {
+    /**
+     * ✅ Helper function để lấy user ID từ JWT (sub) hoặc id
+     */
+    private function getUserId(?object $userContext): ?int
+    {
+        if (!$userContext) return null;
+        return $userContext->id ?? $userContext->sub ?? null;
+    }
     protected $taskRepository;
     protected $cachedTaskRepository;
     protected $cachedUserRepository;
@@ -112,7 +120,7 @@ class TaskService implements TaskServiceInterface
                     'title' => $task->title,
                     'creator_id' => $task->creator_id,
                     'receivers_count' => count($receivers),
-                    'created_by_user' => $userContext ? $userContext->id : 'system'
+                    'created_by_user' => $this->getUserId($userContext) ?? 'system'
                 ]);
                 
                 // ✅ Collect và invalidate affected caches
@@ -150,7 +158,7 @@ class TaskService implements TaskServiceInterface
             } catch (\Exception $e) {
                 Log::error('Error creating task in transaction', [
                     'error' => $e->getMessage(),
-                    'user_context' => $userContext ? $userContext->id : 'system',
+                    'user_context' => $this->getUserId($userContext) ?? 'system',
                     'data' => $data
                 ]);
                 throw $e;
@@ -210,7 +218,7 @@ class TaskService implements TaskServiceInterface
                     'title' => $task->title,
                     'receivers_updated' => $receivers !== null,
                     'cache_keys_affected' => count($affectedCacheKeys),
-                    'updated_by_user' => $userContext ? $userContext->id : 'system'
+                    'updated_by_user' => $this->getUserId($userContext) ?? 'system'
                 ]);
                 
                 // ✅ Bulk cache invalidation thay vì từng cái một
@@ -225,7 +233,7 @@ class TaskService implements TaskServiceInterface
                 if (!empty($changes)) {
                     // Dispatch TaskUpdated event
                     event(new TaskUpdated($task, $changes, [
-                        'updater_id' => $userContext?->id ?? $task->creator_id,
+                        'updater_id' => $this->getUserId($userContext) ?? $task->creator_id,
                         'updater_type' => $userContext?->role ?? $task->creator_type
                     ]));
 
@@ -243,7 +251,7 @@ class TaskService implements TaskServiceInterface
                 Log::error('Error updating task in transaction', [
                     'task_id' => $task->id,
                     'error' => $e->getMessage(),
-                    'user_context' => $userContext ? $userContext->id : 'system'
+                    'user_context' => $this->getUserId($userContext) ?? 'system'
                 ]);
                 throw $e;
             }
@@ -284,7 +292,7 @@ class TaskService implements TaskServiceInterface
                 'task_id' => $taskId,
                 'title' => $taskTitle,
                 'cache_keys_affected' => count($affectedCacheKeys),
-                'deleted_by_user' => $userContext ? $userContext->id : 'system'
+                'deleted_by_user' => $this->getUserId($userContext) ?? 'system'
             ]);
             
             // ✅ Bulk cache invalidation
@@ -375,7 +383,174 @@ class TaskService implements TaskServiceInterface
     private function addReceiversToTask(Task $task, array $receivers): void
     {
         foreach ($receivers as $receiver) {
-            $task->addReceiver($receiver['receiver_id'], $receiver['receiver_type']);
+            $receiverType = $receiver['receiver_type'];
+            $receiverId = $receiver['receiver_id'];
+            
+            // Xử lý đặc biệt cho classes - tự động gán cho tất cả sinh viên trong lớp
+            if ($receiverType === 'classes') {
+                $this->assignTaskToClassStudents($task, $receiverId);
+            }
+            // Xử lý đặc biệt cho department - tự động gán cho tất cả sinh viên trong khoa
+            elseif ($receiverType === 'department') {
+                $this->assignTaskToDepartmentStudents($task, $receiverId);
+            }
+            // Xử lý đặc biệt cho all_students - gán cho tất cả sinh viên hệ thống
+            elseif ($receiverType === 'all_students') {
+                $this->assignTaskToAllStudents($task);
+            }
+            // Xử lý đặc biệt cho all_lecturers - gán cho tất cả giảng viên hệ thống
+            elseif ($receiverType === 'all_lecturers') {
+                $this->assignTaskToAllLecturers($task);
+            }
+            // Xử lý bình thường cho student và lecturer
+            else {
+                $task->addReceiver($receiverId, $receiverType);
+            }
+        }
+    }
+
+    /**
+     * ✅ Gán task cho tất cả sinh viên trong lớp
+     * 
+     * @param Task $task
+     * @param int $classId
+     */
+    private function assignTaskToClassStudents(Task $task, int $classId): void
+    {
+        try {
+            // Lấy danh sách sinh viên trong lớp
+            $students = DB::table('student')
+                ->where('class_id', $classId)
+                ->select('id')
+                ->get();
+
+            Log::info('Assigning task to class students', [
+                'task_id' => $task->id,
+                'class_id' => $classId,
+                'students_count' => $students->count()
+            ]);
+
+            // Tạo receivers cho từng sinh viên
+            foreach ($students as $student) {
+                $task->addReceiver($student->id, 'student');
+            }
+
+            // Cũng lưu receiver cho lớp để tracking
+            $task->addReceiver($classId, 'classes');
+        } catch (\Exception $e) {
+            Log::error('Failed to assign task to class students', [
+                'task_id' => $task->id,
+                'class_id' => $classId,
+                'error' => $e->getMessage()
+            ]);
+            throw $e;
+        }
+    }
+
+    /**
+     * ✅ Gán task cho tất cả sinh viên trong khoa
+     * 
+     * @param Task $task
+     * @param int $departmentId
+     */
+    private function assignTaskToDepartmentStudents(Task $task, int $departmentId): void
+    {
+        try {
+            // Lấy danh sách sinh viên trong khoa
+            $students = DB::table('student')
+                ->join('class', 'student.class_id', '=', 'class.id')
+                ->where('class.department_id', $departmentId)
+                ->select('student.id')
+                ->get();
+
+            Log::info('Assigning task to department students', [
+                'task_id' => $task->id,
+                'department_id' => $departmentId,
+                'students_count' => $students->count()
+            ]);
+
+            // Tạo receivers cho từng sinh viên
+            foreach ($students as $student) {
+                $task->addReceiver($student->id, 'student');
+            }
+
+            // Cũng lưu receiver cho department để tracking
+            $task->addReceiver($departmentId, 'department');
+        } catch (\Exception $e) {
+            Log::error('Failed to assign task to department students', [
+                'task_id' => $task->id,
+                'department_id' => $departmentId,
+                'error' => $e->getMessage()
+            ]);
+            throw $e;
+        }
+    }
+
+    /**
+     * ✅ Gán task cho tất cả sinh viên hệ thống
+     * 
+     * @param Task $task
+     */
+    private function assignTaskToAllStudents(Task $task): void
+    {
+        try {
+            // Lấy danh sách tất cả sinh viên
+            $students = DB::table('student')
+                ->select('id')
+                ->get();
+
+            Log::info('Assigning task to all students', [
+                'task_id' => $task->id,
+                'students_count' => $students->count()
+            ]);
+
+            // Tạo receivers cho từng sinh viên
+            foreach ($students as $student) {
+                $task->addReceiver($student->id, 'student');
+            }
+
+            // Cũng lưu receiver cho all_students để tracking
+            $task->addReceiver(0, 'all_students');
+        } catch (\Exception $e) {
+            Log::error('Failed to assign task to all students', [
+                'task_id' => $task->id,
+                'error' => $e->getMessage()
+            ]);
+            throw $e;
+        }
+    }
+
+    /**
+     * ✅ Gán task cho tất cả giảng viên hệ thống
+     * 
+     * @param Task $task
+     */
+    private function assignTaskToAllLecturers(Task $task): void
+    {
+        try {
+            // Lấy danh sách tất cả giảng viên
+            $lecturers = DB::table('lecturer')
+                ->select('id')
+                ->get();
+
+            Log::info('Assigning task to all lecturers', [
+                'task_id' => $task->id,
+                'lecturers_count' => $lecturers->count()
+            ]);
+
+            // Tạo receivers cho từng giảng viên
+            foreach ($lecturers as $lecturer) {
+                $task->addReceiver($lecturer->id, 'lecturer');
+            }
+
+            // Cũng lưu receiver cho all_lecturers để tracking
+            $task->addReceiver(0, 'all_lecturers');
+        } catch (\Exception $e) {
+            Log::error('Failed to assign task to all lecturers', [
+                'task_id' => $task->id,
+                'error' => $e->getMessage()
+            ]);
+            throw $e;
         }
     }
 
@@ -535,10 +710,7 @@ class TaskService implements TaskServiceInterface
                 'task_id' => $task->id,
                 'name' => $file->getClientOriginalName(),
                 'size' => $file->getSize(),
-                'mime_type' => $file->getMimeType(),
-                'path' => $file->store('task-files/' . $task->id),
-                'uploaded_by' => $user->id ?? (Auth::user() ? Auth::user()->id : null),
-                'uploaded_at' => now()
+                'path' => $file->store("task-files/{$task->id}", 'public'), // Lưu vào public disk
             ];
             
             $uploadedFile = $this->taskRepository->createTaskFile($fileData);
@@ -564,8 +736,30 @@ class TaskService implements TaskServiceInterface
             return false;
         }
         
-        // Kiểm tra xem user có phải là người upload file không
-        return $file->uploaded_by == $user->id;
+        // Kiểm tra quyền xóa file
+        // Vì không có uploaded_by trong schema, kiểm tra qua task receivers hoặc creator
+        $task = $file->task;
+        
+        // Admin có thể xóa mọi file
+        if ($user->user_type === 'admin') {
+            return true;
+        }
+        
+        // Lecturer có thể xóa file của task họ tạo
+        if ($user->user_type === 'lecturer') {
+            return $task->creator_id === $user->id && $task->creator_type === 'lecturer';
+        }
+        
+        // Student có thể xóa file của task họ được assign
+        if ($user->user_type === 'student' && $task->receivers) {
+            foreach ($task->receivers as $receiver) {
+                if ($receiver->receiver_id == $user->id && $receiver->receiver_type == 'student') {
+                    return true;
+                }
+            }
+        }
+        
+        return false;
     }
 
     /**
@@ -1001,32 +1195,50 @@ class TaskService implements TaskServiceInterface
      */
     private function collectAffectedCacheKeys(Task $task): array
     {
+        // ✅ Sử dụng CacheService để generate keys đúng format
+        $cacheService = app(\Modules\Task\app\Services\Interfaces\CacheServiceInterface::class);
+        
         $keys = [
-            // Task specific cache
-            "task:{$task->id}",
-            "task_details:{$task->id}",
+            // Task specific cache - sử dụng generateKey để đảm bảo format đúng
+            $cacheService->generateKey('task', ['id' => $task->id]),
+            $cacheService->generateKey('task_details', ['id' => $task->id]),
             
             // Creator cache
-            "user_tasks:{$task->creator_type}:{$task->creator_id}",
-            "created_tasks:{$task->creator_type}:{$task->creator_id}",
-            "user_stats:{$task->creator_type}:{$task->creator_id}",
+            $cacheService->generateKey('tasks_user', [
+                'user_id' => $task->creator_id,
+                'user_type' => $task->creator_type
+            ]),
+            $cacheService->generateKey('tasks_created', [
+                'user_id' => $task->creator_id,
+                'user_type' => $task->creator_type
+            ]),
+            $cacheService->generateKey('user_stats', [
+                'user_id' => $task->creator_id,
+                'user_type' => $task->creator_type
+            ]),
             
             // Global caches
-            "task_stats",
-            "overview_stats"
+            $cacheService->generateKey('task_statistics'),
+            $cacheService->generateKey('overview_stats')
         ];
 
         // Receiver specific caches
         foreach ($task->receivers as $receiver) {
-            $keys[] = "user_tasks:{$receiver->receiver_type}:{$receiver->receiver_id}";
-            $keys[] = "user_stats:{$receiver->receiver_type}:{$receiver->receiver_id}";
+            $keys[] = $cacheService->generateKey('tasks_user', [
+                'user_id' => $receiver->receiver_id,
+                'user_type' => $receiver->receiver_type
+            ]);
+            $keys[] = $cacheService->generateKey('user_stats', [
+                'user_id' => $receiver->receiver_id,
+                'user_type' => $receiver->receiver_type
+            ]);
             
             // Special handling for class and all_students
             if ($receiver->receiver_type === 'class') {
-                $keys[] = "class_tasks:{$receiver->receiver_id}";
+                $keys[] = $cacheService->generateKey('class_tasks', ['class_id' => $receiver->receiver_id]);
             } elseif ($receiver->receiver_type === 'all_students') {
-                $keys[] = "department_tasks:{$receiver->receiver_id}";
-                $keys[] = "all_students_tasks";
+                $keys[] = $cacheService->generateKey('department_tasks', ['department_id' => $receiver->receiver_id]);
+                $keys[] = $cacheService->generateKey('all_students_tasks');
             }
         }
 
@@ -1077,22 +1289,19 @@ class TaskService implements TaskServiceInterface
     private function fallbackCacheInvalidation(array $cacheKeys): bool
     {
         $success = true;
+        $cacheService = app(\Modules\Task\app\Services\Interfaces\CacheServiceInterface::class);
         
         foreach ($cacheKeys as $key) {
             try {
-                if (str_contains($key, 'task:')) {
-                    $taskId = (int) str_replace('task:', '', $key);
-                    $this->cachedTaskRepository->clearTaskCache($taskId);
-                } elseif (str_contains($key, 'user_')) {
-                    // Extract user info and clear user cache
-                    $parts = explode(':', $key);
-                    if (count($parts) >= 3) {
-                        $userType = $parts[1];
-                        $userId = (int) $parts[2];
-                        $this->cachedUserRepository->clearUserCache($userId, $userType);
-                    }
-                } elseif (str_contains($key, 'stats')) {
-                    $this->cachedReportRepository->clearAllReportCache();
+                // ✅ Sử dụng CacheService để xóa cache trực tiếp
+                $result = $cacheService->forget($key);
+                
+                if (!$result) {
+                    Log::warning('Individual cache clear failed', [
+                        'key' => $key,
+                        'result' => $result
+                    ]);
+                    $success = false;
                 }
             } catch (\Exception $e) {
                 Log::warning('Individual cache clear failed', [
@@ -1111,14 +1320,22 @@ class TaskService implements TaskServiceInterface
      */
     private function validateCreateTaskPermissions(object $userContext, array $data): void
     {
+        // Debug user context
+        \Log::info('Debug user context in validateCreateTaskPermissions', [
+            'user_context' => $userContext,
+            'user_context_id' => $this->getUserId($userContext) ?? 'NOT_SET',
+            'user_context_type' => $userContext->user_type ?? 'NOT_SET',
+            'user_context_class' => get_class($userContext)
+        ]);
+        
         // Validate user context
         $this->permissionService->validateUserContext($userContext);
         
         // Check basic create permission
         if (!$this->permissionService->canCreateTasks($userContext)) {
             throw TaskException::unauthorized('tasks', 'create', [
-                'user_id' => $userContext->id,
-                'user_type' => $userContext->user_type
+                'user_id' => $this->getUserId($userContext) ?? 'unknown',
+                'user_type' => $userContext->user_type ?? 'unknown'
             ]);
         }
         
@@ -1141,7 +1358,7 @@ class TaskService implements TaskServiceInterface
             $receiverId = $receiver['receiver_id'] ?? 0;
             
             // Validate receiver type
-            $validTypes = ['student', 'lecturer', 'class', 'all_students', 'all_lecturers'];
+            $validTypes = ['student', 'lecturer', 'classes', 'department', 'all_students', 'all_lecturers'];
             if (!in_array($receiverType, $validTypes)) {
                 throw TaskException::validationFailed('receiver_type', 'Invalid receiver type', [
                     'received' => $receiverType,
@@ -1152,7 +1369,7 @@ class TaskService implements TaskServiceInterface
             // Security check: Lecturer không thể gán task cho lecturer khác (trừ admin)
             if ($receiverType === 'lecturer' && !$this->permissionService->isAdmin($userContext)) {
                 throw TaskException::securityViolation('Lecturer cannot assign tasks to other lecturers', [
-                    'user_id' => $userContext->id,
+                    'user_id' => $this->getUserId($userContext),
                     'receiver_type' => $receiverType,
                     'receiver_id' => $receiverId
                 ]);
@@ -1161,7 +1378,7 @@ class TaskService implements TaskServiceInterface
             // Security check: All students chỉ admin mới được dùng
             if ($receiverType === 'all_students' && !$this->permissionService->isAdmin($userContext)) {
                 throw TaskException::securityViolation('Only admin can assign tasks to all students', [
-                    'user_id' => $userContext->id,
+                    'user_id' => $this->getUserId($userContext),
                     'receiver_type' => $receiverType
                 ]);
             }
@@ -1183,11 +1400,27 @@ class TaskService implements TaskServiceInterface
         
         // Security: Creator phải match với user context (nếu có)
         if ($userContext) {
-            if ($data['creator_id'] != $userContext->id || $data['creator_type'] != $userContext->user_type) {
-                throw TaskException::securityViolation('Creator mismatch with authenticated user', [
-                    'expected_creator' => [$userContext->id, $userContext->user_type],
-                    'provided_creator' => [$data['creator_id'], $data['creator_type']]
-                ]);
+            $userId = $this->getUserId($userContext);
+            $userType = $userContext->user_type ?? 'unknown';
+            
+            // Admin có thể tạo task với bất kỳ creator_type nào
+            $isAdmin = $userContext->is_admin ?? false;
+            
+            if (!$isAdmin) {
+                if ($data['creator_id'] != $userId || $data['creator_type'] != $userType) {
+                    throw TaskException::securityViolation('Creator mismatch with authenticated user', [
+                        'expected_creator' => [$userId, $userType],
+                        'provided_creator' => [$data['creator_id'], $data['creator_type']]
+                    ]);
+                }
+            } else {
+                // Admin chỉ cần kiểm tra creator_id
+                if ($data['creator_id'] != $userId) {
+                    throw TaskException::securityViolation('Creator ID mismatch with authenticated user', [
+                        'expected_creator_id' => $userId,
+                        'provided_creator_id' => $data['creator_id']
+                    ]);
+                }
             }
         }
         
@@ -1287,12 +1520,28 @@ class TaskService implements TaskServiceInterface
         }
         
         // Security: Không cho phép thay đổi creator (trừ admin)
-        if ((isset($data['creator_id']) || isset($data['creator_type'])) && 
-            $userContext && !$this->permissionService->isAdmin($userContext)) {
-            throw TaskException::securityViolation('Only admin can change task creator', [
-                'user_id' => $userContext->id,
-                'original_creator' => [$originalTask->creator_id, $originalTask->creator_type]
-            ]);
+        // Chỉ reject nếu creator thực sự thay đổi, không phải chỉ vì có trong request
+        if ($userContext && !$this->permissionService->isAdmin($userContext)) {
+            // Check if creator is being changed
+            if (isset($data['creator_id']) && $data['creator_id'] != $originalTask->creator_id) {
+                throw TaskException::securityViolation('Only admin can change task creator', [
+                    'user_id' => $userContext->id,
+                    'original_creator' => [$originalTask->creator_id, $originalTask->creator_type],
+                    'attempted_creator_id' => $data['creator_id']
+                ]);
+            }
+            
+            if (isset($data['creator_type']) && $data['creator_type'] != $originalTask->creator_type) {
+                throw TaskException::securityViolation('Only admin can change task creator type', [
+                    'user_id' => $userContext->id,
+                    'original_creator' => [$originalTask->creator_id, $originalTask->creator_type],
+                    'attempted_creator_type' => $data['creator_type']
+                ]);
+            }
+            
+            // Remove creator fields from data if not admin (to prevent accidental inclusion)
+            unset($data['creator_id']);
+            unset($data['creator_type']);
         }
         
         // Validate receivers if being updated

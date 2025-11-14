@@ -19,7 +19,10 @@ use Modules\Task\app\Jobs\ProcessTaskFileJob;
 use Modules\Task\app\Jobs\GenerateTaskReportJob;
 use Modules\Task\app\Services\FileService;
 use Modules\Task\app\Services\ReportService;
+use Modules\Task\app\Models\TaskFile;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
  * TaskController - Controller quản lý các thao tác với Task
@@ -102,6 +105,14 @@ class TaskController extends Controller
                 'success' => false,
                 'message' => 'Task not found'
             ], 404);
+        }
+
+        // ✅ Load relationships (files và receivers) để đảm bảo có trong response
+        if (!$taskData->relationLoaded('receivers')) {
+            $taskData->load('receivers');
+        }
+        if (!$taskData->relationLoaded('files')) {
+            $taskData->load('files');
         }
 
         return response()->json([
@@ -498,6 +509,66 @@ class TaskController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'An error occurred while deleting file: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Download file from task with original filename
+     */
+    public function downloadFile(Request $request, Task $task, int $fileId): StreamedResponse|JsonResponse
+    {
+        try {
+            $userId = $request->attributes->get('jwt_user_id');
+            $userType = $request->attributes->get('jwt_user_type');
+
+            if (!$userId || !$userType) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'User not authenticated'
+                ], 401);
+            }
+
+            // Find file record
+            $taskFile = TaskFile::where('task_id', $task->id)->find($fileId);
+
+            if (!$taskFile) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'File not found for this task'
+                ], 404);
+            }
+
+            // Check if file exists in storage
+            if (!Storage::disk('public')->exists($taskFile->path)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'File not found in storage'
+                ], 404);
+            }
+
+            // Check permission
+            $user = (object) [
+                'id' => $userId,
+                'user_type' => $userType
+            ];
+
+            if (!$this->fileService->canUserDownloadFile($taskFile, $user)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Access denied to download this file'
+                ], 403);
+            }
+
+            // Download file with original filename using Content-Disposition header
+            $originalFileName = $taskFile->name ?: basename($taskFile->path);
+            
+            return Storage::disk('public')->download($taskFile->path, $originalFileName);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to download file: ' . $e->getMessage()
             ], 500);
         }
     }

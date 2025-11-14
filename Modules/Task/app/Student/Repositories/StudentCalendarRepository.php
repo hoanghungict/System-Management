@@ -105,6 +105,15 @@ class StudentCalendarRepository
     public function getEventsByRange($studentId, $startDate, $endDate)
     {
         try {
+            // Ensure datetime format
+            if (strlen($startDate) === 10) {
+                $startDate .= ' 00:00:00';
+            }
+            if (strlen($endDate) === 10) {
+                $endDate .= ' 23:59:59';
+            }
+            
+            // Get tasks assigned to student
             $tasks = \Modules\Task\app\Models\Task::whereBetween('deadline', [$startDate, $endDate])
                 ->whereHas('receivers', function ($query) use ($studentId) {
                     $query->where('receiver_id', $studentId)
@@ -113,13 +122,32 @@ class StudentCalendarRepository
                 ->with(['creator', 'receivers'])
                 ->get();
             
-            return $tasks->map(function ($task) {
+            // Also get calendar events (system-wide events from admin)
+            $studentIdForQuery = $studentId; // Extract to avoid IDE warnings
+            $calendarEvents = \Modules\Task\app\Models\Calendar::where(function ($q) use ($studentIdForQuery) {
+                // Events created by student
+                $q->where(function ($creatorQuery) use ($studentIdForQuery) {
+                    $creatorQuery->where('creator_id', $studentIdForQuery)
+                                 ->where('creator_type', 'student');
+                })
+                // OR system-wide events (created by admin)
+                ->orWhere('creator_type', 'admin')
+                // OR standalone calendar events (not linked to task = system-wide announcements)
+                ->orWhereNull('task_id');
+            })
+            ->whereBetween('start_time', [$startDate, $endDate])
+            ->get();
+            
+            // Map tasks to events
+            $taskEvents = $tasks->map(function ($task) {
                 return [
                     'id' => $task->id,
                     'title' => $task->title,
                     'description' => $task->description,
                     'start' => $task->deadline,
                     'end' => $task->deadline,
+                    'start_time' => $task->deadline,
+                    'end_time' => $task->deadline,
                     'event_type' => 'task',
                     'task_id' => $task->id,
                     'status' => $task->status,
@@ -130,6 +158,35 @@ class StudentCalendarRepository
                     ]
                 ];
             })->toArray();
+            
+            // Map calendar events
+            $calendarEventsArray = $calendarEvents->map(function ($event) {
+                return [
+                    'id' => $event->id,
+                    'title' => $event->title,
+                    'description' => $event->description ?? '',
+                    'start' => $event->start_time?->toDateTimeString(),
+                    'end' => $event->end_time?->toDateTimeString(),
+                    'start_time' => $event->start_time?->toDateTimeString(),
+                    'end_time' => $event->end_time?->toDateTimeString(),
+                    'event_type' => $event->event_type ?? 'event',
+                    'task_id' => $event->task_id,
+                    'status' => 'scheduled',
+                    'priority' => 'medium',
+                    'creator' => [
+                        'id' => $event->creator_id,
+                        'type' => $event->creator_type ?? 'unknown',
+                    ],
+                ];
+            })->toArray();
+            
+            // Merge and sort
+            $allEvents = array_merge($taskEvents, $calendarEventsArray);
+            usort($allEvents, function ($a, $b) {
+                return strtotime($a['start'] ?? $a['start_time']) <=> strtotime($b['start'] ?? $b['start_time']);
+            });
+            
+            return $allEvents;
         } catch (\Exception $e) {
             Log::error('StudentCalendarRepository: Error getting events by range', [
                 'student_id' => $studentId,

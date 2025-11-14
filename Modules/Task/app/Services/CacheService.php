@@ -99,6 +99,8 @@ class CacheService implements CacheServiceInterface
     public function forgetPattern(string $pattern): bool
     {
         $fullPattern = $this->generateFullKey($pattern);
+        $storePrefix = method_exists(Cache::getStore(), 'getPrefix') ? (string) Cache::getStore()->getPrefix() : '';
+        $redisMatchPattern = $storePrefix . $fullPattern;
         
         try {
             // ✅ Implement proper Redis pattern matching
@@ -111,7 +113,7 @@ class CacheService implements CacheServiceInterface
                 
                 do {
                     $result = $redis->scan($iterator, [
-                        'MATCH' => $fullPattern,
+                        'MATCH' => $redisMatchPattern,
                         'COUNT' => 100
                     ]);
                     
@@ -129,7 +131,7 @@ class CacheService implements CacheServiceInterface
                     }
                     
                     Log::debug('Cache forget pattern success', [
-                        'pattern' => $fullPattern,
+                        'pattern' => $redisMatchPattern,
                         'deleted_keys' => count($matchingKeys)
                     ]);
                     
@@ -243,19 +245,9 @@ class CacheService implements CacheServiceInterface
         try {
             $fullKeys = array_map([$this, 'generateFullKey'], $keys);
             
-            if (config('cache.default') === 'redis') {
-                $redis = \Illuminate\Support\Facades\Redis::connection();
-                
-                // Delete in batches for better performance
-                $chunks = array_chunk($fullKeys, 100);
-                foreach ($chunks as $chunk) {
-                    $redis->del($chunk);
-                }
-            } else {
-                // Fallback for other cache drivers
-                foreach ($fullKeys as $key) {
-                    Cache::forget($key);
-                }
+            // Always use Cache::forget to respect store prefixing
+            foreach ($fullKeys as $key) {
+                Cache::forget($key);
             }
             
             Log::debug('Cache forget multiple', [

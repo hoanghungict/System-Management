@@ -9,7 +9,12 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Modules\Task\app\Services\Interfaces\TaskServiceInterface;
 use Modules\Task\app\Services\ReportService;
+use Modules\Task\app\Services\FileService;
 use Modules\Task\app\Http\Requests\TaskRequest;
+use Modules\Task\app\Admin\UseCases\GetTaskDetailUseCase;
+use Modules\Task\app\Models\TaskFile;
+use Illuminate\Support\Facades\Storage;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
  * Admin Task Controller
@@ -25,7 +30,9 @@ class AdminTaskController extends Controller
 {
     public function __construct(
         private readonly TaskServiceInterface $taskService,
-        private readonly ReportService $reportService
+        private readonly ReportService $reportService,
+        private readonly GetTaskDetailUseCase $getTaskDetailUseCase,
+        private readonly FileService $fileService
     ) {}
 
     /**
@@ -90,7 +97,8 @@ class AdminTaskController extends Controller
 
             $data = $request->validated();
             $data['creator_id'] = $userId;
-            $data['creator_type'] = 'admin';
+            // Admin thực chất là lecturer với is_admin: true
+            $data['creator_type'] = $userData->user_type ?? 'lecturer';
 
             $task = $this->taskService->createTask($data, $userData);
 
@@ -111,29 +119,21 @@ class AdminTaskController extends Controller
     /**
      * Get a specific task (Admin can view any task)
      */
-    public function show(int $id): JsonResponse
+    public function show(Request $request, int $id): JsonResponse
     {
         try {
-            $task = $this->taskService->getTaskById($id);
+            $userId = $request->attributes->get('jwt_user_id');
+            $userType = $request->attributes->get('jwt_user_type');
 
-            if (!$task) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Task not found'
-                ], 404);
-            }
+            // ✅ Use GetTaskDetailUseCase instead of direct TaskService call
+            $result = $this->getTaskDetailUseCase->execute($id, $userId, $userType);
 
-            return response()->json([
-                'success' => true,
-                'data' => $task,
-                'message' => 'Task retrieved successfully'
-            ]);
+            return response()->json($result, 200);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to retrieve task',
-                'error' => $e->getMessage()
-            ], 500);
+                'message' => $e->getMessage()
+            ], $e->getMessage() === 'Unauthorized: Admin access required' ? 403 : ($e->getMessage() === 'Task not found' ? 404 : 500));
         }
     }
 
@@ -143,9 +143,10 @@ class AdminTaskController extends Controller
     public function update(TaskRequest $request, int $id): JsonResponse
     {
         try {
-            $userData = $this->getUserData($request);
+            $userId = $this->getUserId($request);
+            $userType = $request->attributes->get('jwt_user_type');
             
-            if (!$userData) {
+            if (!$userId) {
                 return response()->json([
                     'success' => false,
                     'message' => 'User not authenticated'
@@ -162,7 +163,15 @@ class AdminTaskController extends Controller
             }
 
             $data = $request->validated();
-            $updatedTask = $this->taskService->updateTask($task, $data, $userData);
+            
+            // Create user context object với đúng format
+            $userContext = (object) [
+                'id' => $userId,
+                'user_type' => $userType ?? 'admin',
+                'role' => 'admin', // For permission check
+            ];
+            
+            $updatedTask = $this->taskService->updateTask($task, $data, $userContext);
 
             return response()->json([
                 'success' => true,
@@ -170,6 +179,13 @@ class AdminTaskController extends Controller
                 'message' => 'Task updated successfully'
             ]);
         } catch (\Exception $e) {
+            \Log::error('Admin update task error', [
+                'task_id' => $id,
+                'admin_id' => $request->attributes->get('jwt_user_id'),
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to update task',
@@ -342,6 +358,183 @@ class AdminTaskController extends Controller
                 'success' => false,
                 'message' => 'Failed to perform bulk action',
                 'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Upload files to task
+     */
+    public function uploadFiles(Request $request, int $id): JsonResponse
+    {
+        try {
+            // Find task manually to avoid route model binding issues
+            $task = \Modules\Task\app\Models\Task::with('receivers')->find($id);
+
+            if (!$task) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Task not found'
+                ], 404);
+            }
+
+            $userId = $request->attributes->get('jwt_user_id');
+            $userType = $request->attributes->get('jwt_user_type');
+
+            if (!$userId || !$userType) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'User not authenticated'
+                ], 401);
+            }
+
+            $user = (object) [
+                'id' => $userId,
+                'user_type' => $userType
+            ];
+
+            // Admin can always upload files
+            // Check permission
+            if (!$this->fileService->canUserUploadFiles($task, $user)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Bạn không có quyền upload files cho task này'
+                ], 403);
+            }
+
+            // Get files from request
+            $uploadedFiles = $request->file('files');
+
+            // Handle both single file and multiple files
+            $files = [];
+            if ($uploadedFiles) {
+                if (is_array($uploadedFiles)) {
+                    $files = $uploadedFiles;
+                } else {
+                    $files = [$uploadedFiles]; // Convert single file to array
+                }
+            }
+
+            if (empty($files)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Không có files nào được upload'
+                ], 400);
+            }
+
+            $result = $this->fileService->uploadFilesToTask($task, $files, $user);
+
+            return response()->json([
+                'files' => $result['files']
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred while uploading files: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Delete file from task
+     */
+    public function deleteFile(Request $request, int $id, int $file): JsonResponse
+    {
+        try {
+            $userId = $request->attributes->get('jwt_user_id');
+            $userType = $request->attributes->get('jwt_user_type');
+
+            if (!$userId || !$userType) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'User not authenticated'
+                ], 401);
+            }
+
+            $user = (object) [
+                'id' => $userId,
+                'user_type' => $userType
+            ];
+
+            $result = $this->fileService->deleteFile($file, $user);
+
+            if ($result) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'File deleted successfully'
+                ], 200);
+            } else {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to delete file'
+                ], 500);
+            }
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred while deleting file: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Download file from task with original filename
+     */
+    public function downloadFile(Request $request, int $id, int $file): StreamedResponse|JsonResponse
+    {
+        try {
+            $userId = $request->attributes->get('jwt_user_id');
+            $userType = $request->attributes->get('jwt_user_type');
+
+            if (!$userId || !$userType) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'User not authenticated'
+                ], 401);
+            }
+
+            // Find file record
+            $taskFile = TaskFile::where('task_id', $id)->find($file);
+
+            if (!$taskFile) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'File not found for this task'
+                ], 404);
+            }
+
+            // Check if file exists in storage
+            if (!Storage::disk('public')->exists($taskFile->path)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'File not found in storage'
+                ], 404);
+            }
+
+            // Check permission (reuse delete permission logic)
+            $user = (object) [
+                'id' => $userId,
+                'user_type' => $userType
+            ];
+
+            // Check permission via FileService
+            if (!$this->fileService->canUserDownloadFile($taskFile, $user)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Access denied to download this file'
+                ], 403);
+            }
+
+            // Download file with original filename using Content-Disposition header
+            // Lấy tên file gốc từ column 'name' trong database
+            $originalFileName = $taskFile->name ?: basename($taskFile->path);
+            
+            return Storage::disk('public')->download($taskFile->path, $originalFileName);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to download file: ' . $e->getMessage()
             ], 500);
         }
     }

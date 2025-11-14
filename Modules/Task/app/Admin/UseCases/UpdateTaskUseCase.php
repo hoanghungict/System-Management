@@ -73,7 +73,7 @@ class UpdateTaskUseCase
                 'deadline' => 'sometimes|date|after:now',
                 'receivers' => 'sometimes|array|min:1',
                 'receivers.*.receiver_id' => 'required_with:receivers|integer|min:0',
-                'receivers.*.receiver_type' => 'required_with:receivers|in:student,lecturer,class,all_students,all_lecturers',
+                'receivers.*.receiver_type' => 'required_with:receivers|in:student,lecturer,classes,department,all_students,all_lecturers',
                 'include_new_students' => 'sometimes|boolean',
                 'include_new_lecturers' => 'sometimes|boolean'
             ]);
