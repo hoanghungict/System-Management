@@ -231,9 +231,9 @@ class ProcessTaskFileJob implements ShouldQueue
             
             foreach ($taskFiles as $taskFile) {
                 // Xóa file khỏi storage
-                if (Storage::exists($taskFile->file_path)) {
-                    Storage::delete($taskFile->file_path);
-                    Log::info('File deleted from storage', ['file_path' => $taskFile->file_path]);
+                if ($taskFile->path && Storage::disk('public')->exists($taskFile->path)) {
+                    Storage::disk('public')->delete($taskFile->path);
+                    Log::info('File deleted from storage', ['path' => $taskFile->path]);
                 }
                 
                 // Xóa record khỏi database

@@ -32,7 +32,8 @@ class TaskFilterDTO
         $this->date_from = $data['date_from'] ?? null;
         $this->date_to = $data['date_to'] ?? null;
         $this->search = $data['search'] ?? null;
-        $this->per_page = $data['per_page'] ?? 15;
+        // Hỗ trợ cả 'limit' và 'per_page'
+        $this->per_page = $data['limit'] ?? $data['per_page'] ?? 15;
         $this->page = $data['page'] ?? 1;
         $this->sort_by = $data['sort_by'] ?? 'created_at';
         $this->sort_order = $data['sort_order'] ?? 'desc';

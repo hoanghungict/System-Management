@@ -24,7 +24,7 @@ class TaskReceiver extends Model
     /**
      * Các loại receiver được phép
      */
-    const ALLOWED_RECEIVER_TYPES = ['student', 'lecturer', 'class', 'all_students', 'all_lecturers'];
+    const ALLOWED_RECEIVER_TYPES = ['student', 'lecturer', 'classes', 'department', 'all_students', 'all_lecturers'];
 
     /**
      * ✅ Lấy task liên quan với correct namespace

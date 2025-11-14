@@ -1,12 +1,20 @@
 <?php
     return [
 
-    'paths' => ['api/*', 'sanctum/csrf-cookie'],
+    'paths' => ['api/*', 'sanctum/csrf-cookie', 'storage/*'],
 
     'allowed_methods' => ['*'],
 
     // ⚠️ KHÔNG để '*' khi dùng credentials
-    'allowed_origins' => ['http://localhost:3001','http://localhost:3000'],
+    // Cho phép các origin FE phổ biến trong môi trường dev
+    'allowed_origins' => [
+        'http://localhost:3000',
+        'http://localhost:3001',
+        'http://127.0.0.1:3000',
+        'http://127.0.0.1:3001',
+        'http://localhost:5173',
+        'http://127.0.0.1:5173',
+    ],
 
     'allowed_origins_patterns' => [],
 
@@ -14,11 +22,9 @@
 
     'exposed_headers' => [],
 
-    // Cache preflight requests trong 1 giờ để giảm số lượng preflight requests
     'max_age' => 3600,
 
-    // Không cần supports_credentials vì đang dùng Bearer token thay vì cookies
+    // ⚠️ BẮT BUỘC PHẢI TRUE nếu dùng cookie/session
     'supports_credentials' => true,
-    // 'supports_credentials' => false,
     ];
 ?>

@@ -5,6 +5,8 @@ namespace Modules\Task\app\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Modules\Auth\app\Models\Student;
+use Modules\Auth\app\Models\Lecturer;
 
 class TaskSubmission extends Model
 {

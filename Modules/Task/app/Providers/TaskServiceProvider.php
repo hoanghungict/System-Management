@@ -103,6 +103,7 @@ class TaskServiceProvider extends ServiceProvider
         $this->app->bind(\Modules\Task\app\Admin\UseCases\AssignTaskToLecturersUseCase::class, \Modules\Task\app\Admin\UseCases\AssignTaskToLecturersUseCase::class);
         $this->app->bind(\Modules\Task\app\Admin\UseCases\GetAssignedTasksUseCase::class, \Modules\Task\app\Admin\UseCases\GetAssignedTasksUseCase::class);
         $this->app->bind(\Modules\Task\app\Admin\UseCases\GetTaskDetailUseCase::class, \Modules\Task\app\Admin\UseCases\GetTaskDetailUseCase::class);
+        $this->app->bind(\Modules\Task\app\Admin\UseCases\ShowTaskUseCase::class, \Modules\Task\app\Admin\UseCases\ShowTaskUseCase::class);
         $this->app->bind(\Modules\Task\app\Admin\UseCases\CheckAdminRoleUseCase::class, \Modules\Task\app\Admin\UseCases\CheckAdminRoleUseCase::class);
 
         // Bind Lecturer-specific Use Cases (only existing ones)

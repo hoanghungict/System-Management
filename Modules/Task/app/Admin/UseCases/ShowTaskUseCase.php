@@ -7,6 +7,7 @@ namespace Modules\Task\app\Admin\UseCases;
 use Modules\Task\app\Models\Task;
 use Modules\Task\app\Services\PermissionService;
 use Modules\Task\app\Services\CacheInvalidationService;
+use Modules\Task\app\Services\Interfaces\TaskServiceInterface;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -19,7 +20,8 @@ class ShowTaskUseCase
 {
     public function __construct(
         private PermissionService $permissionService,
-        private CacheInvalidationService $cacheInvalidationService
+        private CacheInvalidationService $cacheInvalidationService,
+        private TaskServiceInterface $taskService
     ) {}
 
     /**
@@ -44,17 +46,22 @@ class ShowTaskUseCase
                 throw new \Exception('Unauthorized: Admin access required');
             }
 
-            // Find the task with relationships
-            $task = Task::with([
-                'receivers',
-                'files',
-                'submissions',
-                'creator',
-                'receivers.receiver'
-            ])->find($taskId);
+            // ✅ Use TaskService with cache instead of direct database query
+            $task = $this->taskService->getTaskById($taskId);
 
             if (!$task) {
                 throw new \Exception('Task not found');
+            }
+
+            // Load relationships if not already loaded
+            if (!$task->relationLoaded('receivers')) {
+                $task->load([
+                    'receivers',
+                    'files',
+                    'submissions',
+                    'creator',
+                    'receivers.receiver'
+                ]);
             }
 
             Log::info('Task retrieved successfully', [
