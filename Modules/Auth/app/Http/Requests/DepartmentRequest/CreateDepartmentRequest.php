@@ -20,7 +20,7 @@ class CreateDepartmentRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => 'required|string|max:255',
+            'name' => 'required|unique:department,name|string|max:255',
             'type' => 'required|string|in:school,faculty,department',
             'parent_id' => 'nullable|exists:department,id'
         ];
@@ -33,6 +33,7 @@ class CreateDepartmentRequest extends FormRequest
     {
         return [
             'name.required' => 'Tên department là bắt buộc',
+            'name.unique' => 'Tên department đã tồn tại',
             'name.max' => 'Tên department không được vượt quá 255 ký tự',
             'type.required' => 'Loại department là bắt buộc',
             'type.in' => 'Loại department không hợp lệ',

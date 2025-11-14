@@ -23,7 +23,7 @@ class UpdateDepartmentRequest extends FormRequest
         $departmentId = $this->route('id');
         
         return [
-            'name' => 'sometimes|string|max:255',
+            'name' => 'sometimes|unique:department,name|string|max:255',
             'type' => 'sometimes|string|in:school,faculty,department',
             'parent_id' => [
                 'sometimes',
@@ -41,6 +41,7 @@ class UpdateDepartmentRequest extends FormRequest
     {
         return [
             'name.max' => 'Tên department không được vượt quá 255 ký tự',
+            'name.unique' => 'Tên department đã tồn tại',
             'type.in' => 'Loại department không hợp lệ',
             'parent_id.exists' => 'Department cha không tồn tại',
             'parent_id.not_in' => 'Không thể set department cha là chính mình'
