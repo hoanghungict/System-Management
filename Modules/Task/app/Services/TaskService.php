@@ -112,13 +112,32 @@ class TaskService implements TaskServiceInterface
                 // Thêm receivers cho task trong cùng transaction
                 $this->addReceiversToTask($task, $receivers);
                 
-                // ✅ Load receivers để collect cache keys
-                $task->load('receivers');
+                // ✅ Load receivers với relations để lấy thông tin user
+                $task->load(['receivers.student', 'receivers.lecturer']);
+                
+                // ✅ Lấy thông tin creator để gửi assigner_name
+                $assignerName = 'Unknown';
+                if ($task->creator_type === 'lecturer' && $task->creator_id) {
+                    $lecturer = \Modules\Auth\app\Models\Lecturer::find($task->creator_id);
+                    if ($lecturer) {
+                        $assignerName = $lecturer->full_name ?? $lecturer->name ?? 'Unknown';
+                    }
+                } elseif ($task->creator_type === 'student' && $task->creator_id) {
+                    $student = \Modules\Auth\app\Models\Student::find($task->creator_id);
+                    if ($student) {
+                        $assignerName = $student->full_name ?? $student->name ?? 'Unknown';
+                    }
+                } elseif ($task->creator_type === 'admin' && $task->creator_id) {
+                    // Nếu có admin model, load ở đây
+                    $assignerName = 'Admin';
+                }
                 
                 Log::info('Task created', [
                     'task_id' => $task->id,
                     'title' => $task->title,
                     'creator_id' => $task->creator_id,
+                    'creator_type' => $task->creator_type,
+                    'assigner_name' => $assignerName,
                     'receivers_count' => count($receivers),
                     'created_by_user' => $this->getUserId($userContext) ?? 'system'
                 ]);
@@ -127,32 +146,58 @@ class TaskService implements TaskServiceInterface
                 $affectedCacheKeys = $this->collectAffectedCacheKeys($task);
                 $this->invalidateMultipleCaches($affectedCacheKeys);
 
-                $this->kafkaProducer->send('task.assigned', [
-                    'user_id' => $task->creator_id,
-                    'name' => $task->creator_name ?? "Unknown",
-                    'user_name' =>$task->creator_name ?? "Unknown",
-                    'user_email' => $task->creator_email ?? 'no-email@example.com'
-                ]);
+                // ✅ Gửi Kafka message cho từng receiver thực tế (student/lecturer)
+                foreach ($task->receivers as $receiver) {
+                    // Chỉ gửi cho student và lecturer (bỏ qua classes, department, all_students, all_lecturers)
+                    if (!in_array($receiver->receiver_type, ['student', 'lecturer'])) {
+                        continue;
+                    }
+
+                    // Lấy tên người dùng từ relation
+                    $userName = 'Unknown';
+                    if ($receiver->receiver_type === 'student') {
+                        $userName = $receiver->student->full_name ?? $receiver->student->name ?? 'Unknown';
+                    } elseif ($receiver->receiver_type === 'lecturer') {
+                        $userName = $receiver->lecturer->full_name ?? $receiver->lecturer->name ?? 'Unknown';
+                    }
+
+                    $this->kafkaProducer->send('task.assigned', [
+                            'user_id'        => $receiver->receiver_id,
+                            'user_type'      => $receiver->receiver_type,
+                            'user_name'      => $userName,
+                            'task_name'      => $task->title,
+                            'task_description' => $task->description ?? '',
+                            'assigner_name'  => $assignerName,
+                            'assigner_id'    => $task->creator_id,
+                            'assigner_type'  => $task->creator_type,
+                            'deadline'       => optional($task->deadline)->format('Y-m-d H:i:s'),
+                            'task_url'       => url("/tasks/{$task->id}"),
+                            'priority' => 'medium',
+                            'key'      => "task_{$task->id}_user_{$receiver->receiver_id}_" . now()->format('YmdHis')
+                        ]
+                    );
+                }
+                
 
                 // ✅ Create automatic reminders for task
                 if ($task->deadline) {
                     $this->reminderService->createAutomaticReminders($task);
                 }
 
-                // ✅ Dispatch TaskCreated event for notifications
-                event(new TaskCreated($task, [
-                    'creator_id' => $task->creator_id,
-                    'creator_type' => $task->creator_type,
-                    'receivers' => $receivers
-                ]));
+                // // ✅ Dispatch TaskCreated event for notifications
+                // event(new TaskCreated($task, [
+                //     'creator_id' => $task->creator_id,
+                //     'creator_type' => $task->creator_type,
+                //     'receivers' => $receivers
+                // ]));
 
-                // ✅ Dispatch notification jobs for each receiver
-                foreach ($task->receivers as $receiver) {
-                    SendTaskCreatedNotificationJob::dispatch(new TaskCreated($task, [
-                        'receiver_id' => $receiver->id,
-                        'receiver_type' => $receiver->type
-                    ]));
-                }
+                // // ✅ Dispatch notification jobs for each receiver
+                // foreach ($task->receivers as $receiver) {
+                //     SendTaskCreatedNotificationJob::dispatch(new TaskCreated($task, [
+                //         'receiver_id' => $receiver->id,
+                //         'receiver_type' => $receiver->type
+                //     ]));
+                // }
 
                 return $task;
             } catch (\Exception $e) {
@@ -1321,7 +1366,7 @@ class TaskService implements TaskServiceInterface
     private function validateCreateTaskPermissions(object $userContext, array $data): void
     {
         // Debug user context
-        \Log::info('Debug user context in validateCreateTaskPermissions', [
+        Log:info('Debug user context in validateCreateTaskPermissions', [
             'user_context' => $userContext,
             'user_context_id' => $this->getUserId($userContext) ?? 'NOT_SET',
             'user_context_type' => $userContext->user_type ?? 'NOT_SET',

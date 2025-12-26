@@ -36,3 +36,19 @@ Broadcast::channel('notifications.user.{userId}', function ($user, $userId) {
 Broadcast::channel('App.Models.User.{id}', function ($user, $id) {
     return (int) ($user->id ?? 0) === (int) $id;
 });
+
+// Authorize private import job channels
+Broadcast::channel('import-job.{importJobId}', function ($user, $importJobId) {
+    if (!$user || !isset($user->id)) {
+        return false;
+    }
+    
+    // Check if user is the owner of the import job
+    $importJob = \Modules\Auth\app\Models\ImportJob::find($importJobId);
+    
+    if (!$importJob) {
+        return false;
+    }
+    
+    return (int) $user->id === (int) $importJob->user_id;
+});

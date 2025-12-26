@@ -12,6 +12,7 @@ RUN apt-get update && apt-get install -y \
     libssl-dev \
     zlib1g-dev \
     libzstd-dev \
+    libzip-dev \
     pkg-config \
     build-essential \
     zip \
@@ -20,11 +21,19 @@ RUN apt-get update && apt-get install -y \
     curl \
     libicu-dev \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install pdo pdo_mysql gd mbstring exif pcntl bcmath opcache intl \
+    && docker-php-ext-install \
+        pdo \
+        pdo_mysql \
+        gd \
+        mbstring \
+        exif \
+        pcntl \
+        bcmath \
+        opcache \
+        intl \
+        zip \
     && yes "" | pecl install -f rdkafka \
     && docker-php-ext-enable rdkafka
-    # && pecl install redis \
-    # && docker-php-ext-enable redis
 
 # Cài Composer
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
