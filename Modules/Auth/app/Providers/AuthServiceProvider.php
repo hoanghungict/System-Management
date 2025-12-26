@@ -37,7 +37,9 @@ class AuthServiceProvider extends ServiceProvider
         $this->app->register(EventServiceProvider::class);
         $this->app->register(RouteServiceProvider::class);
         
-        // Bind Repository Interface
+        // =====================================================================
+        // Bind Repository Interface (OLD - Roll Call cũ)
+        // =====================================================================
         $this->app->bind(
             \Modules\Auth\app\Repositories\Interfaces\AuthRepositoryInterface::class,
             \Modules\Auth\app\Repositories\AuthUserRepository\AuthRepository::class
@@ -53,11 +55,40 @@ class AuthServiceProvider extends ServiceProvider
             \Modules\Auth\app\Repositories\RollCallRepository\RollCallDetailRepository::class
         );
         
-        // Bind Services
+        // =====================================================================
+        // Bind Repositories - NEW Attendance System
+        // =====================================================================
+        $this->app->bind(
+            \Modules\Auth\app\Repositories\AttendanceRepository\SemesterRepository::class
+        );
+        $this->app->bind(
+            \Modules\Auth\app\Repositories\AttendanceRepository\CourseRepository::class
+        );
+        $this->app->bind(
+            \Modules\Auth\app\Repositories\AttendanceRepository\CourseEnrollmentRepository::class
+        );
+        $this->app->bind(
+            \Modules\Auth\app\Repositories\AttendanceRepository\AttendanceSessionRepository::class
+        );
+        $this->app->bind(
+            \Modules\Auth\app\Repositories\AttendanceRepository\AttendanceRepository::class
+        );
+        
+        // =====================================================================
+        // Bind Services (OLD)
+        // =====================================================================
         $this->app->bind(\Modules\Auth\app\Services\AuthUserService\AuthService::class);
         $this->app->bind(\Modules\Auth\app\Services\AuthUserService\StudentService::class);
         $this->app->bind(\Modules\Auth\app\Services\AuthUserService\LecturerService::class);
         $this->app->bind(\Modules\Auth\app\Services\RollCallService\RollCallService::class);
+        
+        // =====================================================================
+        // Bind Services - NEW Attendance System
+        // =====================================================================
+        $this->app->bind(\Modules\Auth\app\Services\AttendanceService\SemesterService::class);
+        $this->app->bind(\Modules\Auth\app\Services\AttendanceService\CourseService::class);
+        $this->app->bind(\Modules\Auth\app\Services\AttendanceService\AttendanceService::class);
+        $this->app->bind(\Modules\Auth\app\Services\AttendanceService\EnrollmentService::class);
     }
 
     /**

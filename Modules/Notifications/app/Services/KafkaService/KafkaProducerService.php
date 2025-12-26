@@ -13,6 +13,13 @@ class KafkaProducerService
 
     public function __construct()
     {
+        // RdKafka extension may not be available in local dev; guard against that.
+        if (!class_exists(Conf::class)) {
+            Log::channel('daily')->warning('RdKafka extension not available; Kafka producer disabled.');
+            $this->producer = null;
+            return;
+        }
+
         $conf = new Conf();
         $conf->set('metadata.broker.list', config('kafka.brokers'));
         $this->producer = new RdKafkaProducer($conf);
@@ -23,6 +30,12 @@ class KafkaProducerService
      */
     public function send(string $topic, array $payload, ?string $key = null, array $headers = []): void
     {
+        if ($this->producer === null) {
+            // Kafka disabled in this environment
+            Log::channel('daily')->info('Kafka producer disabled; skipping sending event', ['topic' => $topic]);
+            return;
+        }
+
         $topicHandle = $this->producer->newTopic($topic);
 
         $data = json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);

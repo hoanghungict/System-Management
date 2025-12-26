@@ -27,6 +27,15 @@ class RouteServiceProvider extends ServiceProvider
     {
         $this->mapApiRoutes();
         $this->mapWebRoutes();
+        $this->mapAttendanceRoutes();
+    }
+
+    /**
+     * Define the "attendance" routes for the new attendance system.
+     */
+    protected function mapAttendanceRoutes(): void
+    {
+        Route::middleware('api')->prefix('api')->name('api.attendance.')->group(module_path($this->name, '/routes/attendance.php'));
     }
 
     /**

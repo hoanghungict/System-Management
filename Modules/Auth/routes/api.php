@@ -8,6 +8,7 @@ use Modules\Auth\app\Http\Controllers\AuthUserController\PasswordController;
 use Modules\Auth\app\Http\Controllers\DepartmentController\DepartmentController;
 use Modules\Auth\app\Http\Controllers\ClassController\ClassController;
 use Modules\Auth\app\Http\Controllers\RollCallController\RollCallController;
+use Modules\Auth\app\Http\Controllers\ImportExcelController\ImportDataExcelController;
 
 // Auth routes (không cần authentication)
 Route::prefix('v1')->group(function () {
@@ -119,5 +120,12 @@ Route::prefix('v1')->group(function () {
         
         // Thống kê
         Route::get('/roll-calls/statistics/class/{classId}', [RollCallController::class, 'statistics']);
+    });
+
+    // Import Excel routes (chỉ admin mới được import)
+    Route::middleware(['jwt', 'admin'])->group(function () {
+        Route::post('/import/students', [ImportDataExcelController::class, 'ImportStudent']); // Upload file Excel, tạo job import
+        Route::get('/import/students/progress/{id}', [ImportDataExcelController::class, 'getProgress']); // Lấy tiến trình import (polling)
+        Route::get('/import/students/{id}', [ImportDataExcelController::class, 'show']); // Lấy chi tiết job + lỗi
     });
 });

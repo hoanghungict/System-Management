@@ -37,5 +37,10 @@ class AppServiceProvider extends ServiceProvider
         if (function_exists('json_encode')) {
             ini_set('default_charset', 'UTF-8');
         }
+
+        // Ensure PHP runtime timezone matches application timezone
+        if (function_exists('date_default_timezone_set')) {
+            date_default_timezone_set(config('app.timezone'));
+        }
     }
 }

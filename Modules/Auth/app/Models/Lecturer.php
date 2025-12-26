@@ -3,6 +3,8 @@
 namespace Modules\Auth\app\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 class Lecturer extends Model
 {
@@ -46,5 +48,21 @@ class Lecturer extends Model
     public function classes()
     {
         return $this->hasMany(Classroom::class, 'lecturer_id');
+    }
+
+    /**
+     * Get audit logs for this lecturer
+     */
+    public function auditLogs(): MorphMany
+    {
+        return $this->morphMany(AuditLog::class, 'target');
+    }
+
+    /**
+     * Get audit logs where this lecturer is the user
+     */
+    public function performedAuditLogs(): HasMany
+    {
+        return $this->hasMany(AuditLog::class, 'user_id');
     }
 }
