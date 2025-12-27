@@ -5,12 +5,6 @@ namespace Modules\Task\app\Providers;
 use Illuminate\Support\ServiceProvider;
 use Modules\Task\app\Repositories\Interfaces\TaskRepositoryInterface;
 use Modules\Task\app\Repositories\TaskRepository;
-use Modules\Task\app\Repositories\Interfaces\CachedTaskRepositoryInterface;
-use Modules\Task\app\Repositories\CachedTaskRepository;
-use Modules\Task\app\Repositories\Interfaces\CachedUserRepositoryInterface;
-use Modules\Task\app\Repositories\CachedUserRepository;
-use Modules\Task\app\Repositories\Interfaces\CachedReportRepositoryInterface;
-use Modules\Task\app\Repositories\CachedReportRepository;
 use Modules\Task\app\Calendar\Contracts\CalendarRepositoryInterface;
 use Modules\Task\app\Calendar\Repositories\CalendarRepository;
 use Modules\Task\app\Calendar\Services\CalendarService;
@@ -29,15 +23,8 @@ use Modules\Task\app\Services\UserContextService;
 use Modules\Task\app\Admin\Services\AdminTaskService;
 use Modules\Task\app\UseCases\CreateTaskUseCase;
 use Modules\Task\app\UseCases\CreateTaskWithPermissionsUseCase;
-use Modules\Task\app\UseCases\GetFacultiesUseCase;
-use Modules\Task\app\UseCases\GetClassesByDepartmentUseCase;
-use Modules\Task\app\UseCases\GetStudentsByClassUseCase;
-use Modules\Task\app\UseCases\GetLecturersUseCase;
 use Modules\Task\app\Admin\Providers\AdminServiceProvider;
-use Modules\Task\app\Repositories\Interfaces\TaskDependencyRepositoryInterface;
-use Modules\Task\app\Repositories\TaskDependencyRepository;
-use Modules\Task\app\Services\Interfaces\TaskDependencyServiceInterface;
-use Modules\Task\app\Services\TaskDependencyService;
+
 use Modules\Task\app\Repositories\Interfaces\ReminderRepositoryInterface;
 use Modules\Task\app\Repositories\ReminderRepository;
 use Modules\Task\app\Services\ReminderService;
@@ -60,10 +47,12 @@ class TaskServiceProvider extends ServiceProvider
         // Bind TaskRepository interface với implementation
         $this->app->bind(TaskRepositoryInterface::class, TaskRepository::class);
 
-        // Bind Cached Repositories
-        $this->app->bind(CachedTaskRepositoryInterface::class, CachedTaskRepository::class);
-        $this->app->bind(CachedUserRepositoryInterface::class, CachedUserRepository::class);
-        $this->app->bind(CachedReportRepositoryInterface::class, CachedReportRepository::class);
+        // Bind Calendar Services
+        $this->app->bind(CalendarRepositoryInterface::class, CalendarRepository::class);
+        $this->app->bind(CalendarService::class, CalendarService::class);
+
+        // Bind TaskService interface với implementation
+        $this->app->bind(TaskServiceInterface::class, TaskService::class);
 
         // Bind Calendar Services
         $this->app->bind(CalendarRepositoryInterface::class, CalendarRepository::class);
@@ -92,10 +81,7 @@ class TaskServiceProvider extends ServiceProvider
         // Bind Use Cases
         $this->app->bind(CreateTaskUseCase::class, CreateTaskUseCase::class);
         $this->app->bind(CreateTaskWithPermissionsUseCase::class, CreateTaskWithPermissionsUseCase::class);
-        $this->app->bind(GetFacultiesUseCase::class, GetFacultiesUseCase::class);
-        $this->app->bind(GetClassesByDepartmentUseCase::class, GetClassesByDepartmentUseCase::class);
-        $this->app->bind(GetStudentsByClassUseCase::class, GetStudentsByClassUseCase::class);
-        $this->app->bind(GetLecturersUseCase::class, GetLecturersUseCase::class);
+
 
         // Bind Admin Use Cases
         $this->app->bind(\Modules\Task\app\Admin\UseCases\ForceDeleteTaskUseCase::class, \Modules\Task\app\Admin\UseCases\ForceDeleteTaskUseCase::class);
@@ -115,9 +101,7 @@ class TaskServiceProvider extends ServiceProvider
         // Bind Lecturer Repository
         $this->app->bind(\Modules\Task\app\Lecturer\Repositories\LecturerTaskRepository::class, \Modules\Task\app\Lecturer\Repositories\LecturerTaskRepository::class);
 
-        // Bind TaskDependency Services
-        $this->app->bind(TaskDependencyRepositoryInterface::class, TaskDependencyRepository::class);
-        $this->app->bind(TaskDependencyServiceInterface::class, TaskDependencyService::class);
+
 
         // Bind Reminder Services
         $this->app->bind(ReminderRepositoryInterface::class, ReminderRepository::class);

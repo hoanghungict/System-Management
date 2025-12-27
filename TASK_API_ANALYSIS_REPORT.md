@@ -166,10 +166,13 @@ Modules/Task/app/Http/Controllers/Lecturer/LecturerTaskController.php
 ✅ POST   /v1/tasks/{task}/submit              - Submit task
 ✅ POST   /v1/tasks/{task}/files               - Upload files
 ✅ DELETE /v1/tasks/{task}/files/{file}        - Delete file
-✅ GET    /v1/tasks/departments                - List departments
-✅ GET    /v1/tasks/classes/by-department      - List classes
-✅ GET    /v1/tasks/students/by-class          - List students
-✅ GET    /v1/tasks/lecturers                  - List lecturers
+```
+
+> **Note:** Departments, Classes, Students, Lecturers data is now provided by Auth module:
+> - `GET /v1/departments` - List departments
+> - `GET /v1/classes` - List classes  
+> - `GET /v1/lecturers` - List lecturers
+> - `GET /v1/students` - List students
 ```
 
 ---

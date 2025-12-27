@@ -52,28 +52,9 @@ class TaskServiceProvider extends ServiceProvider
         
         // Đăng ký app TaskServiceProvider chứa tất cả bindings
         $this->app->register(\Modules\Task\app\Providers\TaskServiceProvider::class);
-
-        // Đăng ký TaskDependency services
-        $this->registerTaskDependencyServices();
     }
 
-    /**
-     * Đăng ký TaskDependency services
-     */
-    protected function registerTaskDependencyServices(): void
-    {
-        // Bind Repository Interface to Implementation
-        $this->app->bind(
-            \Modules\Task\app\Repositories\Interfaces\TaskDependencyRepositoryInterface::class,
-            \Modules\Task\app\Repositories\TaskDependencyRepository::class
-        );
 
-        // Bind Service Interface to Implementation
-        $this->app->bind(
-            \Modules\Task\app\Services\Interfaces\TaskDependencyServiceInterface::class,
-            \Modules\Task\app\Services\TaskDependencyService::class
-        );
-    }
 
     /**
      * Đăng ký commands theo format Command::class

@@ -90,57 +90,7 @@ class Task extends Model
         return $this->hasMany(TaskSubmission::class, 'task_id');
     }
 
-    /**
-     * Lấy danh sách dependencies mà task này là predecessor (các task phụ thuộc vào task này)
-     * 
-     * @return HasMany Relationship với TaskDependency
-     */
-    public function dependentTasks(): HasMany
-    {
-        return $this->hasMany(TaskDependency::class, 'predecessor_task_id');
-    }
 
-    /**
-     * Lấy danh sách dependencies mà task này là successor (task này phụ thuộc vào các task khác)
-     * 
-     * @return HasMany Relationship với TaskDependency
-     */
-    public function dependencies(): HasMany
-    {
-        return $this->hasMany(TaskDependency::class, 'successor_task_id');
-    }
-
-    /**
-     * Lấy danh sách tasks mà task này phụ thuộc vào (predecessor tasks)
-     * 
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsToMany
-     */
-    public function predecessors()
-    {
-        return $this->belongsToMany(
-            Task::class,
-            'task_dependencies',
-            'successor_task_id',
-            'predecessor_task_id'
-        )->withPivot(['dependency_type', 'lag_days', 'metadata', 'created_at'])
-            ->withTimestamps();
-    }
-
-    /**
-     * Lấy danh sách tasks phụ thuộc vào task này (successor tasks)
-     * 
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsToMany
-     */
-    public function successors()
-    {
-        return $this->belongsToMany(
-            Task::class,
-            'task_dependencies',
-            'predecessor_task_id',
-            'successor_task_id'
-        )->withPivot(['dependency_type', 'lag_days', 'metadata', 'created_at'])
-            ->withTimestamps();
-    }
 
     // ❌ Calendar events relationship removed - không cần thiết cho task system
 

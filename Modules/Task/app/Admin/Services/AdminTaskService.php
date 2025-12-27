@@ -106,24 +106,4 @@ class AdminTaskService
             'tasks_this_week' => $tasksThisWeek
         ];
     }
-
-    /**
-     * Get lecturers for admin assignment
-     * 
-     * @return \Illuminate\Database\Eloquent\Collection
-     */
-    public function getLecturers()
-    {
-        return Lecturer::with('faculty')->get();
-    }
-
-    /**
-     * Get departments for admin
-     * 
-     * @return \Illuminate\Database\Eloquent\Collection
-     */
-    public function getDepartments()
-    {
-        return Department::all();
-    }
 }

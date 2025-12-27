@@ -406,38 +406,17 @@
             </div>
 
             <div class="endpoint-group">
-                <h3 class="group-title">🔍 Data Lookup</h3>
-                
-                <div class="endpoint">
-                    <div class="endpoint-header">
-                        <span class="method get">GET</span>
-                        <span class="endpoint-url">/api/v1/tasks/departments</span>
+                <h3 class="group-title">🔍 Data Lookup (Auth Module)</h3>
+                <div class="auth-info" style="background: linear-gradient(45deg, #fff3cd, #ffeeba); border-color: #ffc107;">
+                    <div class="auth-title" style="color: #856404;">📌 Đã chuyển sang Auth Module</div>
+                    <div class="auth-content" style="color: #856404;">
+                        Các endpoints lấy dữ liệu departments, classes, students, lecturers giờ được cung cấp bởi <strong>Auth Module</strong>:<br><br>
+                        <code>GET /api/v1/departments</code> - Lấy danh sách khoa<br>
+                        <code>GET /api/v1/classes</code> - Lấy danh sách lớp<br>
+                        <code>GET /api/v1/lecturers</code> - Lấy danh sách giảng viên<br>
+                        <code>GET /api/v1/students</code> - Lấy danh sách sinh viên<br>
+                        <code>GET /api/v1/student/class/{classId}</code> - Lấy sinh viên theo lớp
                     </div>
-                    <div class="endpoint-description">Lấy danh sách khoa</div>
-                </div>
-
-                <div class="endpoint">
-                    <div class="endpoint-header">
-                        <span class="method get">GET</span>
-                        <span class="endpoint-url">/api/v1/tasks/classes/by-department</span>
-                    </div>
-                    <div class="endpoint-description">Lấy lớp theo khoa</div>
-                </div>
-
-                <div class="endpoint">
-                    <div class="endpoint-header">
-                        <span class="method get">GET</span>
-                        <span class="endpoint-url">/api/v1/tasks/students/by-class</span>
-                    </div>
-                    <div class="endpoint-description">Lấy sinh viên theo lớp</div>
-                </div>
-
-                <div class="endpoint">
-                    <div class="endpoint-header">
-                        <span class="method get">GET</span>
-                        <span class="endpoint-url">/api/v1/tasks/lecturers</span>
-                    </div>
-                    <div class="endpoint-description">Lấy danh sách giảng viên</div>
                 </div>
             </div>
         </div>

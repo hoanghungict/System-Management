@@ -8,7 +8,6 @@ use Modules\Task\app\Models\Task;
 use Modules\Task\app\Services\PermissionService;
 use Modules\Task\app\Services\CacheInvalidationService;
 use Modules\Task\app\Admin\UseCases\TaskCacheEvent;
-use Modules\Task\app\Services\TaskStatusService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
@@ -23,8 +22,7 @@ class UpdateTaskUseCase
 {
     public function __construct(
         private PermissionService $permissionService,
-        private CacheInvalidationService $cacheInvalidationService,
-        private TaskStatusService $taskStatusService
+        private CacheInvalidationService $cacheInvalidationService
     ) {}
 
     /**
@@ -54,13 +52,6 @@ class UpdateTaskUseCase
             $task = Task::find($taskId);
             if (!$task) {
                 throw new \Exception('Task not found');
-            }
-
-            // Check if trying to complete task - validate dependencies first
-            if (isset($data['status']) && $data['status'] === 'completed') {
-                if (!$this->taskStatusService->canTaskBeCompleted($taskId)) {
-                    throw new \Exception('Cannot complete task: Not all dependencies are completed');
-                }
             }
 
             // Validate input data
@@ -131,12 +122,6 @@ class UpdateTaskUseCase
                     'user_type' => $userType,
                     'updated_fields' => array_keys($updateData)
                 ]);
-
-                // Check if task status was updated to completed
-                if (isset($updateData['status']) && $updateData['status'] === 'completed') {
-                    // Trigger status check for dependent tasks
-                    $this->taskStatusService->processPendingTasks();
-                }
 
                 return [
                     'success' => true,

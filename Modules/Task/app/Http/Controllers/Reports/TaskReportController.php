@@ -189,7 +189,6 @@ class TaskReportController extends Controller
                 'department_breakdown' => $this->reportService->getTaskBreakdownByDepartment($filters),
                 'submission_rate' => $this->reportService->getTaskSubmissionRate($filters),
                 'grading_status' => $this->reportService->getTaskGradingStatus($filters),
-                'dependency_statistics' => $this->reportService->getTaskDependencyStatistics($filters),
             ];
 
             return response()->json([

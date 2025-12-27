@@ -85,8 +85,7 @@ class AdminServiceProvider extends ServiceProvider
         $this->app->singleton(UpdateTaskUseCase::class, function ($app) {
             return new UpdateTaskUseCase(
                 $app->make(PermissionService::class),
-                $app->make(\Modules\Task\app\Services\CacheInvalidationService::class),
-                $app->make(\Modules\Task\app\Services\TaskStatusService::class)
+                $app->make(\Modules\Task\app\Services\CacheInvalidationService::class)
             );
         });
 

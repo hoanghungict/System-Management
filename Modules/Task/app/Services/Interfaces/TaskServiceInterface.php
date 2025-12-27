@@ -139,11 +139,6 @@ interface TaskServiceInterface
     public function getAllTasks(array $filters, int $perPage = 15): LengthAwarePaginator;
 
     /**
-     * Lấy danh sách classes theo department cho user
-     */
-    public function getClassesByDepartmentForUser($user, int $departmentId): array;
-
-    /**
      * Kiểm tra quyền tạo task cho receiver
      */
     public function canCreateTaskForReceiver($user, array $taskData): bool;
@@ -152,16 +147,6 @@ interface TaskServiceInterface
      * Lấy danh sách faculties cho user
      */
     public function getFacultiesForUser($user): array;
-
-    /**
-     * Lấy danh sách students theo class cho user
-     */
-    public function getStudentsByClassForUser($user, int $classId): array;
-
-    /**
-     * Lấy danh sách lecturers cho user
-     */
-    public function getLecturersForUser($user): array;
 
     /**
      * Lấy danh sách tất cả students cho user

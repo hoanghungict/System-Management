@@ -4,9 +4,6 @@ namespace Modules\Task\app\Services;
 
 use Modules\Task\app\Models\Task;
 use Modules\Task\app\Repositories\Interfaces\TaskRepositoryInterface;
-use Modules\Task\app\Repositories\Interfaces\CachedTaskRepositoryInterface;
-use Modules\Task\app\Repositories\Interfaces\CachedUserRepositoryInterface;
-use Modules\Task\app\Repositories\Interfaces\CachedReportRepositoryInterface;
 use Modules\Task\app\Services\Interfaces\TaskServiceInterface;
 use Modules\Task\app\DTOs\TaskDTO;
 use Modules\Task\app\Services\PermissionService;
@@ -27,10 +24,18 @@ use Modules\Task\app\Jobs\SendTaskUpdatedNotificationJob;
 use Modules\Task\app\Jobs\SendTaskAssignedNotificationJob;
 use Modules\Task\app\Jobs\SendTaskSubmittedNotificationJob;
 use Modules\Task\app\Jobs\SendTaskGradedNotificationJob;
+// Import sub-services
+use Modules\Task\app\Services\Task\TaskAssignmentService;
+use Modules\Task\app\Services\Task\TaskQueryService;
+use Modules\Task\app\Services\Task\TaskFileService;
+use Modules\Task\app\Services\Task\TaskStatisticsService;
+use Modules\Task\app\Services\Task\TaskValidationService;
+use Modules\Task\app\Services\Task\TaskCacheService;
+
 /**
  * Service chứa business logic cho Task
  * 
- * Service này chứa tất cả logic nghiệp vụ liên quan đến Task
+ * Service này hoạt động như facade, ủy quyền logic cho các sub-services
  * Tuân thủ Clean Architecture: chỉ chứa business logic, không xử lý data access trực tiếp
  */
 class TaskService implements TaskServiceInterface
@@ -43,42 +48,47 @@ class TaskService implements TaskServiceInterface
         if (!$userContext) return null;
         return $userContext->id ?? $userContext->sub ?? null;
     }
+    
     protected $taskRepository;
-    protected $cachedTaskRepository;
-    protected $cachedUserRepository;
-    protected $cachedReportRepository;
     protected $reminderService;
     protected $permissionService;
     protected $kafkaProducer;
+    
+    // Sub-services
+    protected $assignmentService;
+    protected $queryService;
+    protected $fileService;
+    protected $statisticsService;
+    protected $validationService;
+    protected $cacheService;
 
     /**
      * Khởi tạo service với dependency injection
-     * 
-     * @param TaskRepositoryInterface $taskRepository Repository xử lý data access
-     * @param CachedTaskRepositoryInterface $cachedTaskRepository Repository có cache cho đọc dữ liệu
-     * @param CachedUserRepositoryInterface $cachedUserRepository Repository có cache cho user data
-     * @param CachedReportRepositoryInterface $cachedReportRepository Repository có cache cho reports
-     * @param PermissionService $permissionService Service xử lý permissions
-     * @param ReminderService $reminderService Service xử lý reminders
-     * @param KafkaProducerService $kafkaProducer Service xử lý kafka
      */
     public function __construct(
         TaskRepositoryInterface $taskRepository, 
-        CachedTaskRepositoryInterface $cachedTaskRepository,
-        CachedUserRepositoryInterface $cachedUserRepository,
-        CachedReportRepositoryInterface $cachedReportRepository,
         PermissionService $permissionService,
         ReminderService $reminderService,
-        KafkaProducerService $kafkaProducer
-
+        KafkaProducerService $kafkaProducer,
+        // Inject sub-services
+        TaskAssignmentService $assignmentService,
+        TaskQueryService $queryService,
+        TaskFileService $fileService,
+        TaskStatisticsService $statisticsService,
+        TaskValidationService $validationService,
+        TaskCacheService $cacheService
     ) {
         $this->taskRepository = $taskRepository;
-        $this->cachedTaskRepository = $cachedTaskRepository;
-        $this->cachedUserRepository = $cachedUserRepository;
-        $this->cachedReportRepository = $cachedReportRepository;
         $this->permissionService = $permissionService;
         $this->reminderService = $reminderService;
         $this->kafkaProducer = $kafkaProducer;
+        // Initialize sub-services
+        $this->assignmentService = $assignmentService;
+        $this->queryService = $queryService;
+        $this->fileService = $fileService;
+        $this->statisticsService = $statisticsService;
+        $this->validationService = $validationService;
+        $this->cacheService = $cacheService;
     }
 
     /**
@@ -94,23 +104,23 @@ class TaskService implements TaskServiceInterface
         // ✅ Use database transaction to ensure data consistency
         return DB::transaction(function () use ($data, $userContext) {
             try {
-                // ✅ Security validation
+                // ✅ Security validation (delegated to validationService)
                 if ($userContext) {
-                    $this->validateCreateTaskPermissions($userContext, $data);
+                    $this->validationService->validateCreateTaskPermissions($userContext, $data);
                 }
                 
                 // Tách receivers ra khỏi data chính
                 $receivers = $data['receivers'] ?? [];
                 unset($data['receivers']);
                 
-                // ✅ Validate business rules with security context
-                $this->validateTaskData($data, $receivers, $userContext);
+                // ✅ Validate business rules (delegated to validationService)
+                $this->validationService->validateTaskData($data, $receivers, $userContext);
                 
                 // Tạo task
                 $task = $this->taskRepository->create($data);
                 
-                // Thêm receivers cho task trong cùng transaction
-                $this->addReceiversToTask($task, $receivers);
+                // Thêm receivers cho task (delegated to assignmentService)
+                $this->assignmentService->addReceiversToTask($task, $receivers);
                 
                 // ✅ Load receivers với relations để lấy thông tin user
                 $task->load(['receivers.student', 'receivers.lecturer']);
@@ -142,9 +152,9 @@ class TaskService implements TaskServiceInterface
                     'created_by_user' => $this->getUserId($userContext) ?? 'system'
                 ]);
                 
-                // ✅ Collect và invalidate affected caches
-                $affectedCacheKeys = $this->collectAffectedCacheKeys($task);
-                $this->invalidateMultipleCaches($affectedCacheKeys);
+                // ✅ Collect và invalidate affected caches (delegated to cacheService)
+                $affectedCacheKeys = $this->cacheService->collectAffectedCacheKeys($task);
+                $this->cacheService->invalidateMultipleCaches($affectedCacheKeys);
 
                 // ✅ Gửi Kafka message cho từng receiver thực tế (student/lecturer)
                 foreach ($task->receivers as $receiver) {
@@ -225,9 +235,9 @@ class TaskService implements TaskServiceInterface
         // ✅ Use database transaction to ensure data consistency
         return DB::transaction(function () use ($task, $data, $userContext) {
             try {
-                // ✅ Security validation
+                // ✅ Security validation (delegated to validationService)
                 if ($userContext) {
-                    $this->validateEditTaskPermission($userContext, $task->id);
+                    $this->validationService->validateEditTaskPermission($userContext, $task->id);
                 }
                 
                 // ✅ Load receivers trước để tránh N+1 queries
@@ -236,26 +246,26 @@ class TaskService implements TaskServiceInterface
                 // ✅ Track changes for notifications
                 $originalData = $task->toArray();
                 
-                // Collect cache keys trước khi update
-                $affectedCacheKeys = $this->collectAffectedCacheKeys($task);
+                // Collect cache keys trước khi update (delegated to cacheService)
+                $affectedCacheKeys = $this->cacheService->collectAffectedCacheKeys($task);
                 
                 // Tách receivers ra khỏi data chính
                 $receivers = $data['receivers'] ?? null;
                 unset($data['receivers']);
                 
-                // ✅ Validate update data
-                $this->validateUpdateData($data, $receivers, $userContext, $task);
+                // ✅ Validate update data (delegated to validationService)
+                $this->validationService->validateUpdateData($data, $receivers, $userContext, $task);
                 
                 // Cập nhật task
                 $task = $this->taskRepository->update($task, $data);
                 
                 // Cập nhật receivers nếu có (trong transaction)
                 if ($receivers !== null) {
-                    $this->updateReceiversForTask($task, $receivers);
+                    $this->assignmentService->updateReceiversForTask($task, $receivers);
                     // Refresh task với receivers mới
                     $task->load('receivers');
                     // Add new cache keys
-                    $affectedCacheKeys = array_merge($affectedCacheKeys, $this->collectAffectedCacheKeys($task));
+                    $affectedCacheKeys = array_merge($affectedCacheKeys, $this->cacheService->collectAffectedCacheKeys($task));
                 }
                 
                 Log::info('Task updated', [
@@ -266,11 +276,11 @@ class TaskService implements TaskServiceInterface
                     'updated_by_user' => $this->getUserId($userContext) ?? 'system'
                 ]);
                 
-                // ✅ Bulk cache invalidation thay vì từng cái một
-                $this->invalidateMultipleCaches($affectedCacheKeys);
+                // ✅ Bulk cache invalidation (delegated to cacheService)
+                $this->cacheService->invalidateMultipleCaches($affectedCacheKeys);
                 
-                // ✅ Clear permission cache
-                $this->clearTaskPermissionCache($task);
+                // ✅ Clear permission cache (delegated to cacheService)
+                $this->cacheService->clearTaskPermissionCache($task);
 
                 // ✅ Track changes and dispatch events
                 $changes = $this->trackChanges($originalData, $task->toArray());
@@ -314,22 +324,22 @@ class TaskService implements TaskServiceInterface
     public function deleteTask(Task $task, ?object $userContext = null): bool
     {
         try {
-            // ✅ Security validation
+            // ✅ Security validation (delegated to validationService)
             if ($userContext) {
-                $this->validateDeleteTaskPermission($userContext, $task->id);
+                $this->validationService->validateDeleteTaskPermission($userContext, $task->id);
             }
             
             // ✅ Load receivers trước để tránh N+1 queries
             $task->load('receivers');
             
-            // Collect cache keys trước khi delete
-            $affectedCacheKeys = $this->collectAffectedCacheKeys($task);
+            // Collect cache keys trước khi delete (delegated to cacheService)
+            $affectedCacheKeys = $this->cacheService->collectAffectedCacheKeys($task);
             
             $taskId = $task->id;
             $taskTitle = $task->title;
             
-            // ✅ Clear permission cache trước khi delete
-            $this->clearTaskPermissionCache($task);
+            // ✅ Clear permission cache trước khi delete (delegated to cacheService)
+            $this->cacheService->clearTaskPermissionCache($task);
             
             $result = $this->taskRepository->delete($task);
             
@@ -340,8 +350,8 @@ class TaskService implements TaskServiceInterface
                 'deleted_by_user' => $this->getUserId($userContext) ?? 'system'
             ]);
             
-            // ✅ Bulk cache invalidation
-            $this->invalidateMultipleCaches($affectedCacheKeys);
+            // ✅ Bulk cache invalidation (delegated to cacheService)
+            $this->cacheService->invalidateMultipleCaches($affectedCacheKeys);
 
             return $result;
         } catch (\Exception $e) {
@@ -1099,105 +1109,6 @@ class TaskService implements TaskServiceInterface
             $lecturer = \Modules\Auth\app\Models\Lecturer::with('department')->find($user->id);
             if ($lecturer && $lecturer->department) {
                 return [$lecturer->department->toArray()];
-            }
-        }
-        
-        return [];
-    }
-
-    /**
-     * Lấy danh sách classes theo department cho user
-     * 
-     * @param mixed $user User hiện tại
-     * @param int $departmentId ID của department
-     * @return array
-     */
-    public function getClassesByDepartmentForUser($user, int $departmentId): array
-    {
-        $userType = $this->getUserType($user);
-        
-        // ✅ Admin có thể xem tất cả classes - eager load department
-        if ($userType === 'admin') {
-            return \Modules\Auth\app\Models\Classroom::with('department')
-                ->where('department_id', $departmentId)
-                ->get()
-                ->toArray();
-        }
-        
-        // ✅ Lecturer chỉ có thể xem classes thuộc department của mình - tối ưu query
-        if ($userType === 'lecturer') {
-            $lecturer = \Modules\Auth\app\Models\Lecturer::select('id', 'department_id')->find($user->id);
-            if ($lecturer && $lecturer->department_id == $departmentId) {
-                return \Modules\Auth\app\Models\Classroom::with('department')
-                    ->where('department_id', $departmentId)
-                    ->get()
-                    ->toArray();
-            }
-        }
-        
-        return [];
-    }
-
-    /**
-     * Lấy danh sách students theo class cho user
-     * 
-     * @param mixed $user User hiện tại
-     * @param int $classId ID của class
-     * @return array
-     */
-    public function getStudentsByClassForUser($user, int $classId): array
-    {
-        $userType = $this->getUserType($user);
-        
-        // ✅ Admin có thể xem tất cả students - eager load classroom
-        if ($userType === 'admin') {
-            return \Modules\Auth\app\Models\Student::with('classroom')
-                ->where('class_id', $classId)
-                ->get()
-                ->toArray();
-        }
-        
-        // ✅ Lecturer chỉ có thể xem students thuộc department của mình - tối ưu query
-        if ($userType === 'lecturer') {
-            $lecturer = \Modules\Auth\app\Models\Lecturer::select('id', 'department_id')->find($user->id);
-            if ($lecturer && $lecturer->department_id) {
-                // Single query với join thay vì 2 queries riêng biệt
-                return \Modules\Auth\app\Models\Student::with('classroom')
-                    ->whereHas('classroom', function($query) use ($classId, $lecturer) {
-                        $query->where('id', $classId)
-                              ->where('department_id', $lecturer->department_id);
-                    })
-                    ->get()
-                    ->toArray();
-            }
-        }
-        
-        return [];
-    }
-
-    /**
-     * Lấy danh sách lecturers cho user
-     * 
-     * @param mixed $user User hiện tại
-     * @return array
-     */
-    public function getLecturersForUser($user): array
-    {
-        $userType = $this->getUserType($user);
-        
-        // Admin có thể xem tất cả lecturers
-        if ($userType === 'admin') {
-            return \Modules\Auth\app\Models\Lecturer::with('department')->get()->toArray();
-        }
-        
-        // Lecturer có thể xem lecturers trong cùng department
-        if ($userType === 'lecturer') {
-            $lecturer = \Modules\Auth\app\Models\Lecturer::with('department')->find($user->id);
-            if ($lecturer && $lecturer->department_id) {
-                return \Modules\Auth\app\Models\Lecturer::with('department')
-                    ->where('department_id', $lecturer->department_id)
-                    ->get()
-                    ->toArray();
             }
         }
         
