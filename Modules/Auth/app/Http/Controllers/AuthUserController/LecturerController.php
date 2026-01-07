@@ -10,6 +10,9 @@ use Modules\Auth\app\Http\Requests\AuthUserRequest\UpdateLecturerRequest;
 use Modules\Auth\app\Http\Requests\AuthUserRequest\UpdateAdminStatusRequest;
 use Modules\Auth\app\Http\Resources\AuthUserResources\UserResource;
 use Illuminate\Http\JsonResponse;
+use Modules\Auth\app\Http\Requests\AuthUserRequest\UpdateAccountRequest;
+use Illuminate\Support\Facades\Hash;
+
 
 class LecturerController extends Controller
 {
@@ -234,6 +237,88 @@ class LecturerController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Có lỗi xảy ra khi cập nhật thông tin giảng viên',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Lấy thông tin tài khoản của giảng viên
+     */
+    public function getAccount(int $id): JsonResponse
+    {
+        try {
+            $lecturer = $this->lecturerService->getLecturerById($id);
+            
+            if (!$lecturer) {
+                return response()->json([
+                    'message' => 'Không tìm thấy giảng viên'
+                ], 404);
+            }
+            
+            // Load relation account
+            $account = $lecturer->account;
+            
+            if (!$account) {
+                return response()->json([
+                    'message' => 'Giảng viên chưa có tài khoản'
+                ], 404);
+            }
+            
+            return response()->json([
+                'username' => $account->username,
+                'is_admin' => (bool)$account->is_admin
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Có lỗi xảy ra khi lấy thông tin tài khoản',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Cập nhật thông tin tài khoản giảng viên
+     */
+    public function updateAccount(UpdateAccountRequest $request, int $id): JsonResponse
+    {
+        try {
+            $lecturer = $this->lecturerService->getLecturerById($id);
+            
+            if (!$lecturer) {
+                return response()->json([
+                    'message' => 'Không tìm thấy giảng viên'
+                ], 404);
+            }
+            
+            $account = $lecturer->account;
+            
+            if (!$account) {
+                return response()->json([
+                    'message' => 'Giảng viên chưa có tài khoản'
+                ], 404);
+            }
+            
+            if ($request->filled('password')) {
+                $account->password = Hash::make($request->password);
+            }
+
+            if ($request->has('is_admin')) {
+                $account->is_admin = $request->boolean('is_admin') ? 1 : 0;
+            }
+            
+            $account->save();
+            
+            return response()->json([
+                'message' => 'Cập nhật tài khoản thành công',
+                'data' => [
+                    'username' => $account->username,
+                    'is_admin' => (bool)$account->is_admin
+                ]
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Có lỗi xảy ra khi cập nhật tài khoản',
                 'error' => $e->getMessage()
             ], 500);
         }
