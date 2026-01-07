@@ -3,7 +3,7 @@
 namespace Modules\Auth\app\Http\Controllers\AuthUserController;
 
 use App\Http\Controllers\Controller;
-use App\Models\Student;
+use Modules\Auth\app\Models\Student;
 use Illuminate\Http\Request;
 use Modules\Auth\app\Services\AuthUserService\StudentService;
 use Modules\Auth\app\Http\Requests\AuthUserRequest\CreateStudentRequest;
@@ -11,6 +11,9 @@ use Modules\Auth\app\Http\Requests\AuthUserRequest\UpdateStudentRequest;
 use Modules\Auth\app\Http\Resources\AuthUserResources\UserResource;
 use Illuminate\Http\JsonResponse;
 use Modules\Notifications\app\Services\KafkaService\KafkaProducerService;
+use Modules\Auth\app\Http\Requests\AuthUserRequest\UpdateAccountRequest;
+use Illuminate\Support\Facades\Hash;
+
 
 class StudentController extends Controller
 {
@@ -218,5 +221,80 @@ class StudentController extends Controller
     {
         $students = $this->studentService->getStudentByClassId($classId);
         return response()->json(UserResource::collection($students));
+    }
+
+    /**
+     * Lấy thông tin tài khoản của sinh viên
+     */
+    public function getAccount(int $id): JsonResponse
+    {
+        try {
+            $student = $this->studentService->getStudentById($id);
+            
+            if (!$student) {
+                return response()->json([
+                    'message' => 'Không tìm thấy sinh viên'
+                ], 404);
+            }
+            
+            // Load relation account
+            $account = $student->account;
+            
+            if (!$account) {
+                return response()->json([
+                    'message' => 'Sinh viên chưa có tài khoản'
+                ], 404);
+            }
+            
+            return response()->json([
+                'username' => $account->username,
+                'account_status' => $student->account_status
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Có lỗi xảy ra khi lấy thông tin tài khoản',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Cập nhật thông tin tài khoản sinh viên (đổi mật khẩu)
+     */
+    public function updateAccount(UpdateAccountRequest $request, int $id): JsonResponse
+    {
+        try {
+            $student = $this->studentService->getStudentById($id);
+            
+            if (!$student) {
+                return response()->json([
+                    'message' => 'Không tìm thấy sinh viên'
+                ], 404);
+            }
+            
+            $account = $student->account;
+            
+            if (!$account) {
+                return response()->json([
+                    'message' => 'Sinh viên chưa có tài khoản'
+                ], 404);
+            }
+            
+            if ($request->filled('password')) {
+                $account->password = Hash::make($request->password);
+                $account->save();
+            }
+            
+            // Nếu muốn update account_status thì cần update bảng student, hiện tại request chưa support field này nhưng có thể mở rộng sau
+            
+            return response()->json([
+                'message' => 'Cập nhật tài khoản thành công'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Có lỗi xảy ra khi cập nhật tài khoản',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 }

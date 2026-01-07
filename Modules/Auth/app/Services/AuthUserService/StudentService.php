@@ -122,7 +122,12 @@ class StudentService
     }
     
     /**
-     * Xóa sinh viên và tài khoản liên quan
+     * Xóa sinh viên và tài khoản liên quan (xóa thật khỏi DB)
+     * 
+     * NOTE: Đang dùng forceDelete() - xóa thật hoàn toàn khỏi DB
+     * Nếu muốn dùng soft delete (chỉ set deleted_at):
+     * 1. Uncomment SoftDeletes trong Model Student
+     * 2. Đổi forceDelete() thành delete() ở đây
      */
     public function deleteStudent(Student $student): bool
     {
@@ -131,8 +136,8 @@ class StudentService
             $student->account->delete();
         }
         
-        // Xóa sinh viên
-        $deleted = $student->delete();
+        // Xóa thật sinh viên (forceDelete xóa hoàn toàn, không dùng soft delete)
+        $deleted = $student->forceDelete();
         
         if ($deleted) {
             // Xóa cache students
@@ -180,9 +185,9 @@ class StudentService
     }
     
     /**
-     * Xóa tất cả cache students
+     * Xóa tất cả cache students (public để có thể gọi từ import job)
      */
-    private function clearStudentsCache(): void
+    public function clearStudentsCache(): void
     {
         Cache::forget('students:all');
         Cache::forget('classrooms:all');

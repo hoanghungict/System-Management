@@ -33,6 +33,10 @@ Route::prefix('v1')->group(function () {
         Route::get('/students/{id}', [StudentController::class, 'show']);
         Route::put('/students/{id}', [StudentController::class, 'update']);
         Route::delete('/students/{id}', [StudentController::class, 'destroy']);
+        
+        // Account Management
+        Route::get('/students/{id}/account', [StudentController::class, 'getAccount']);
+        Route::put('/students/{id}/account', [StudentController::class, 'updateAccount']);
     });
     Route::middleware(['jwt', 'lecturer'])->group(function () {
         Route::get('/students', [StudentController::class, 'index']);
@@ -48,6 +52,10 @@ Route::prefix('v1')->group(function () {
         Route::put('/lecturers/{id}', [LecturerController::class, 'update']);
         Route::delete('/lecturers/{id}', [LecturerController::class, 'destroy']);
         Route::patch('/lecturers/{id}/admin-status', [LecturerController::class, 'updateAdminStatus']);
+
+        // Account Management
+        Route::get('/lecturers/{id}/account', [LecturerController::class, 'getAccount']);
+        Route::put('/lecturers/{id}/account', [LecturerController::class, 'updateAccount']);
     });
     Route::middleware(['jwt', 'lecturer'])->group(function () {
         Route::get('/students', [StudentController::class, 'index']);
@@ -124,8 +132,15 @@ Route::prefix('v1')->group(function () {
 
     // Import Excel routes (chỉ admin mới được import)
     Route::middleware(['jwt', 'admin'])->group(function () {
+        // Student import
         Route::post('/import/students', [ImportDataExcelController::class, 'ImportStudent']); // Upload file Excel, tạo job import
         Route::get('/import/students/progress/{id}', [ImportDataExcelController::class, 'getProgress']); // Lấy tiến trình import (polling)
         Route::get('/import/students/{id}', [ImportDataExcelController::class, 'show']); // Lấy chi tiết job + lỗi
+        
+        // Lecturer import
+        Route::post('/import/lecturers', [ImportDataExcelController::class, 'ImportLecturer']); // Upload file Excel giảng viên
+        Route::get('/import/lecturers/progress/{id}', [ImportDataExcelController::class, 'getProgress']); // Lấy tiến trình import (dùng chung)
+        Route::get('/import/lecturers/{id}', [ImportDataExcelController::class, 'show']); // Lấy chi tiết job + lỗi (dùng chung)
     });
 });
+

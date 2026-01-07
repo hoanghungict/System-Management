@@ -161,6 +161,14 @@ class AddListStudent implements ShouldQueue
                 $importService->importAllRows($importJob->file_path, $importJob);
             });
             
+            // Clear students cache to prevent stale data
+            $studentService = app(\Modules\Auth\app\Services\AuthUserService\StudentService::class);
+            $studentService->clearStudentsCache();
+            
+            Log::channel('daily')->info('Cleared students cache after import', [
+                'import_job_id' => $this->importJobId
+            ]);
+            
             // Update status to done
             $importJob->update(['status' => 'done']);
             
