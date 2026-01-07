@@ -152,15 +152,17 @@ cp .env.example .env
 php artisan key:generate
 
 # Run migrations
-php artisan migrate
+php artisan migrate --path=database/migrations
 
-# Seed database (optional)
-php artisan db:seed
+# Seed database (optional) để chạy lệnh tạo tài khoản mẫu
+amdin | 123456
+php artisan db:seed AdminSeeder
+php artisan db:seed NotificationTemplateSeeder
 
-# Generate Swagger documentation
+# Generate Swagger documentation // có thể chạy hoặc không
 php artisan l5-swagger:generate
 
-# Start server
+# Start server // nếu dùng docker k cần
 php artisan serve
 ```
 
@@ -200,5 +202,6 @@ php artisan optimize:clear
 ## 📄 License
 
 MIT License
+
 
 
