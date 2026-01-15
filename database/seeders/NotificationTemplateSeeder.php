@@ -12,15 +12,6 @@ class NotificationTemplateSeeder extends Seeder
      */
     public function run(): void
     {
-        // Disable foreign key checks
-        DB::statement('SET FOREIGN_KEY_CHECKS=0;');
-        
-        // Truncate table if exists
-        DB::table('notification_templates')->truncate();
-        
-        // Enable foreign key checks
-        DB::statement('SET FOREIGN_KEY_CHECKS=1;');
-
         $templates = [
             [
                 'id' => 1,
@@ -143,8 +134,7 @@ class NotificationTemplateSeeder extends Seeder
                                             "
                                         >
                                             <b>Thông tin đăng nhập:</b><br />
-                                            📧 Tài khoản: <b>{{user_name}}</b
-                                            ><br />
+                                            📧 Tài khoản: <b>{{user_name}}</b><br />
                                             🔑 Mật khẩu: <b>{{password}}</b>
                                         </td>
                                     </tr>
@@ -249,8 +239,8 @@ class NotificationTemplateSeeder extends Seeder
                 'category' => 'user',
                 'description' => 'Email tạo tài khoản sinh viên',
                 'is_active' => 1,
-                'created_at' => now(),
-                'updated_at' => now(),
+                'created_at' => null,
+                'updated_at' => null,
             ],
             [
                 'id' => 2,
@@ -374,8 +364,7 @@ class NotificationTemplateSeeder extends Seeder
                                             "
                                         >
                                             <b>Thông tin đăng nhập:</b><br />
-                                            📧 Tài khoản: <b>{{username}}</b
-                                            ><br />
+                                            📧 Tài khoản: <b>{{username}}</b><br />
                                             🔑 Mật khẩu: <b>{{password}}</b>
                                         </td>
                                     </tr>
@@ -481,8 +470,8 @@ class NotificationTemplateSeeder extends Seeder
                 'category' => 'user',
                 'description' => 'Email tạo tài khoản giảng viên',
                 'is_active' => 1,
-                'created_at' => now(),
-                'updated_at' => now(),
+                'created_at' => null,
+                'updated_at' => null,
             ],
             [
                 'id' => 3,
@@ -673,8 +662,8 @@ class NotificationTemplateSeeder extends Seeder
                 'category' => 'system',
                 'description' => 'Email thông báo bảo trì có HTML đẹp',
                 'is_active' => 1,
-                'created_at' => now(),
-                'updated_at' => now(),
+                'created_at' => null,
+                'updated_at' => null,
             ],
             [
                 'id' => 4,
@@ -764,8 +753,8 @@ class NotificationTemplateSeeder extends Seeder
                 'category' => 'task',
                 'description' => 'Email thông báo công việc mới được giao',
                 'is_active' => 1,
-                'created_at' => now(),
-                'updated_at' => now(),
+                'created_at' => null,
+                'updated_at' => null,
             ],
             [
                 'id' => 6,
@@ -996,7 +985,7 @@ class NotificationTemplateSeeder extends Seeder
                             <td>
                                 <div class="header">
                                     <div class="logo" aria-hidden="true">
-                                        <img src="{{ asset(\'assets/img/LogoHPC.png\') }}" alt="HPC Logo" width="56" height="56" style="display:block;border-radius:10px;object-fit:contain;background:rgba(255,255,255,0.15);" />
+                                        HPC
                                     </div>
                                     <div>
                                         <div class="header-title">
@@ -1220,8 +1209,8 @@ class NotificationTemplateSeeder extends Seeder
                 'category' => 'official_dispatch',
                 'description' => 'Template thông báo công văn chính thức được phân công - Thiết kế chuyên nghiệp với brand HPC',
                 'is_active' => 1,
-                'created_at' => now(),
-                'updated_at' => now(),
+                'created_at' => '2025-09-23 03:44:12',
+                'updated_at' => '2025-09-23 03:44:12',
             ],
             [
                 'id' => 7,
@@ -1396,8 +1385,8 @@ class NotificationTemplateSeeder extends Seeder
                 'category' => 'official_dispatch',
                 'description' => 'Template thông báo công băn',
                 'is_active' => 1,
-                'created_at' => now(),
-                'updated_at' => now(),
+                'created_at' => null,
+                'updated_at' => null,
             ],
             [
                 'id' => 8,
@@ -1487,8 +1476,8 @@ class NotificationTemplateSeeder extends Seeder
                 'category' => 'quiz',
                 'description' => 'Trả kết quả kiểm tra',
                 'is_active' => 1,
-                'created_at' => now(),
-                'updated_at' => now(),
+                'created_at' => null,
+                'updated_at' => null,
             ],
             [
                 'id' => 9,
@@ -1620,8 +1609,7 @@ class NotificationTemplateSeeder extends Seeder
                                 </p>
 
                                 <p style="margin-top: 30px">
-                                    Thời gian tạo: <strong>{{date}}</strong
-                                    ><br />
+                                    Thời gian tạo: <strong>{{date}}</strong><br />
                                     Trân trọng,<br />
                                     <strong
                                         >Hệ thống Quản lý Khóa học HPC</strong
@@ -1660,16 +1648,16 @@ class NotificationTemplateSeeder extends Seeder
                 'category' => 'course',
                 'description' => 'Phê duyệt khóa học',
                 'is_active' => 1,
-                'created_at' => now(),
-                'updated_at' => now(),
+                'created_at' => null,
+                'updated_at' => null,
             ],
         ];
 
-        // Insert templates
         foreach ($templates as $template) {
-            DB::table('notification_templates')->insert($template);
+            DB::table('notification_templates')->updateOrInsert(
+                ['name' => $template['name']],
+                $template
+            );
         }
-
-        $this->command->info('Notification templates seeded successfully!');
     }
 }

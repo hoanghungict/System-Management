@@ -60,7 +60,15 @@ class AttendanceController extends Controller
     public function startSession(Request $request, int $sessionId): JsonResponse
     {
         try {
-            $lecturerId = $request->user()->id;
+            // Get user ID from JWT middleware (stored in request attributes)
+            $lecturerId = $request->attributes->get('jwt_user_id');
+            if (!$lecturerId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized - Vui lòng đăng nhập lại',
+                ], 401);
+            }
+            
             $session = $this->attendanceService->startSession($sessionId, $lecturerId);
 
             return response()->json([
@@ -83,7 +91,14 @@ class AttendanceController extends Controller
     public function updateAttendance(UpdateAttendanceRequest $request, int $sessionId): JsonResponse
     {
         try {
-            $lecturerId = $request->user()->id;
+            $lecturerId = $request->attributes->get('jwt_user_id');
+            if (!$lecturerId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized - Vui lòng đăng nhập lại',
+                ], 401);
+            }
+
             $data = $request->validated();
             
             $additionalData = [];
@@ -126,7 +141,14 @@ class AttendanceController extends Controller
     public function bulkUpdateAttendance(BulkUpdateAttendanceRequest $request, int $sessionId): JsonResponse
     {
         try {
-            $lecturerId = $request->user()->id;
+            $lecturerId = $request->attributes->get('jwt_user_id');
+            if (!$lecturerId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized - Vui lòng đăng nhập lại',
+                ], 401);
+            }
+
             $attendances = $request->validated()['attendances'];
             
             $updatedCount = $this->attendanceService->bulkUpdateAttendance($sessionId, $attendances, $lecturerId);
@@ -151,7 +173,14 @@ class AttendanceController extends Controller
     public function markAllPresent(Request $request, int $sessionId): JsonResponse
     {
         try {
-            $lecturerId = $request->user()->id;
+            $lecturerId = $request->attributes->get('jwt_user_id');
+            if (!$lecturerId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized - Vui lòng đăng nhập lại',
+                ], 401);
+            }
+
             $count = $this->attendanceService->markAllPresent($sessionId, $lecturerId);
 
             return response()->json([
@@ -176,7 +205,14 @@ class AttendanceController extends Controller
     public function completeSession(Request $request, int $sessionId): JsonResponse
     {
         try {
-            $lecturerId = $request->user()->id;
+            $lecturerId = $request->attributes->get('jwt_user_id');
+            if (!$lecturerId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized - Vui lòng đăng nhập lại',
+                ], 401);
+            }
+
             $success = $this->attendanceService->completeSession($sessionId, $lecturerId);
 
             if (!$success) {
@@ -302,6 +338,29 @@ class AttendanceController extends Controller
             ]);
         } catch (\Exception $e) {
             Log::error('Failed to get at-risk students', ['course_id' => $courseId, 'error' => $e->getMessage()]);
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 400);
+        }
+    }
+
+    /**
+     * Lấy tổng hợp điểm danh môn học
+     * 
+     * Trả về dữ liệu dạng bảng: sessions là cột, students là hàng
+     */
+    public function getCourseSummary(int $courseId): JsonResponse
+    {
+        try {
+            $summary = $this->attendanceService->getCourseSummary($courseId);
+
+            return response()->json([
+                'success' => true,
+                'data' => $summary,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Failed to get course summary', ['course_id' => $courseId, 'error' => $e->getMessage()]);
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage(),

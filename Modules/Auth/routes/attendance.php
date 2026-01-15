@@ -92,6 +92,7 @@ Route::prefix('v1/attendance')->group(function () {
         // ----- THỐNG KÊ -----
         Route::get('/courses/{courseId}/students/{studentId}/stats', [AttendanceController::class, 'getStudentStats']);
         Route::get('/courses/{courseId}/at-risk-students', [AttendanceController::class, 'getAtRiskStudents']);
+        Route::get('/courses/{courseId}/summary', [AttendanceController::class, 'getCourseSummary']);
     });
 
     // =====================================================================

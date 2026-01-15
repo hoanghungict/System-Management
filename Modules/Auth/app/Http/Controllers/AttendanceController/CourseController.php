@@ -263,7 +263,15 @@ class CourseController extends Controller
     public function getMyCourses(Request $request): JsonResponse
     {
         try {
-            $lecturerId = $request->user()->id; // Giả sử user là lecturer
+            $lecturerId = $request->attributes->get('jwt_user_id');
+            
+            if (!$lecturerId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized - Vui lòng đăng nhập lại',
+                ], 401);
+            }
+
             $semesterId = $request->get('semester_id');
             
             $courses = $this->courseService->getCoursesByLecturer($lecturerId, $semesterId);
