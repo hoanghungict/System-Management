@@ -128,6 +128,18 @@ class AttendanceRepository
     }
 
     /**
+     * Lấy tất cả điểm danh của môn học
+     */
+    public function getByCourseId(int $courseId): Collection
+    {
+        return $this->model->with(['session', 'student'])
+            ->whereHas('session', function ($q) use ($courseId) {
+                $q->where('course_id', $courseId);
+            })
+            ->get();
+    }
+
+    /**
      * Đếm số buổi vắng của sinh viên trong môn
      */
     public function countAbsentByStudentAndCourse(int $studentId, int $courseId): int

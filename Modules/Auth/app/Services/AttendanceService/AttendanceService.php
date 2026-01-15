@@ -428,4 +428,135 @@ class AttendanceService
 
         return $atRiskStudents;
     }
+
+    /**
+     * Lấy tổng hợp điểm danh của môn học
+     * 
+     * Trả về dữ liệu dạng bảng tổng hợp:
+     * - Cột: các buổi học trong học kỳ
+     * - Hàng: danh sách sinh viên với trạng thái điểm danh mỗi buổi
+     */
+    public function getCourseSummary(int $courseId): array
+    {
+        $course = $this->courseRepository->findById($courseId);
+        
+        if (!$course) {
+            throw new \Exception('Không tìm thấy môn học');
+        }
+
+        // Lấy tất cả buổi học của môn, sắp xếp theo số buổi
+        $sessions = $this->sessionRepository->getByCourse($courseId)
+            ->sortBy('session_number')
+            ->values();
+
+        // Lấy tất cả sinh viên đang đăng ký môn
+        $enrollments = $this->enrollmentRepository->getActiveStudentsByCourse($courseId);
+
+        // Lấy tất cả attendance records của môn này
+        $allAttendances = $this->attendanceRepository->getByCourseId($courseId);
+
+        // Build students data với attendance per session
+        $studentsData = [];
+        
+        foreach ($enrollments as $enrollment) {
+            $student = $enrollment->student;
+            $studentAttendances = $allAttendances->where('student_id', $student->id);
+            
+            // Build attendance map: session_id => status
+            $attendanceMap = [];
+            $stats = [
+                'present' => 0,
+                'absent' => 0,
+                'late' => 0,
+                'excused' => 0,
+                'not_marked' => 0,
+            ];
+            
+            foreach ($sessions as $session) {
+                $attendance = $studentAttendances->firstWhere('session_id', $session->id);
+                $status = $attendance ? $attendance->status : 'not_enrolled';
+                $attendanceMap[(string)$session->id] = $status;
+                
+                // Count stats (only for completed sessions)
+                if ($attendance && in_array($session->status, ['completed', 'in_progress'])) {
+                    if (isset($stats[$status])) {
+                        $stats[$status]++;
+                    }
+                }
+            }
+            
+            // Calculate attendance rate
+            $totalMarked = $stats['present'] + $stats['absent'] + $stats['late'] + $stats['excused'];
+            $attended = $stats['present'] + $stats['late'];
+            $attendanceRate = $totalMarked > 0 ? round(($attended / $totalMarked) * 100, 2) : 0;
+            
+            // Check if at risk
+            $isAtRisk = $stats['absent'] >= ($course->absence_warning ?? 3);
+            $isExceeded = $stats['absent'] > ($course->max_absences ?? 5);
+            
+            $studentsData[] = [
+                'id' => $student->id,
+                'student_code' => $student->student_code,
+                'name' => $student->full_name,
+                'class' => $student->class->class_name ?? null,
+                'attendance' => $attendanceMap,
+                'summary' => [
+                    'total_sessions' => $sessions->count(),
+                    'present' => $stats['present'],
+                    'late' => $stats['late'],
+                    'absent' => $stats['absent'],
+                    'excused' => $stats['excused'],
+                    'not_marked' => $stats['not_marked'],
+                    'attendance_rate' => $attendanceRate,
+                    'is_at_risk' => $isAtRisk,
+                    'is_exceeded' => $isExceeded,
+                ],
+            ];
+        }
+
+        // Sort students by name
+        usort($studentsData, fn($a, $b) => strcmp($a['name'], $b['name']));
+
+        // Build sessions response
+        $sessionsData = $sessions->map(function ($session) {
+            return [
+                'id' => $session->id,
+                'session_number' => $session->session_number,
+                'date' => $session->session_date->format('Y-m-d'),
+                'day_of_week' => $session->day_of_week,
+                'day_of_week_text' => $session->day_of_week_text,
+                'status' => $session->status,
+                'topic' => $session->topic,
+            ];
+        })->values()->toArray();
+
+        // Calculate overall statistics
+        $totalStudents = count($studentsData);
+        $atRiskCount = collect($studentsData)->filter(fn($s) => $s['summary']['is_at_risk'])->count();
+        $avgAttendanceRate = $totalStudents > 0 
+            ? round(collect($studentsData)->avg('summary.attendance_rate'), 2) 
+            : 0;
+
+        return [
+            'course' => [
+                'id' => $course->id,
+                'code' => $course->code,
+                'name' => $course->name,
+                'semester' => $course->semester ? $course->semester->name : null,
+                'lecturer' => $course->lecturer ? $course->lecturer->full_name : null,
+                'total_sessions' => $course->total_sessions,
+                'max_absences' => $course->max_absences,
+                'absence_warning' => $course->absence_warning,
+            ],
+            'sessions' => $sessionsData,
+            'students' => $studentsData,
+            'statistics' => [
+                'total_students' => $totalStudents,
+                'at_risk_count' => $atRiskCount,
+                'average_attendance_rate' => $avgAttendanceRate,
+                'completed_sessions' => $sessions->where('status', 'completed')->count(),
+                'total_sessions' => $sessions->count(),
+            ],
+        ];
+    }
 }
