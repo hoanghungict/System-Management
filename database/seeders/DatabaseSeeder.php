@@ -23,7 +23,6 @@ class DatabaseSeeder extends Seeder
         // Chạy các seeders để tạo dữ liệu mẫu
         $this->call([
             AdminSeeder::class,
-            NotificationTemplateSeeder::class,
         ]);
     }
 }

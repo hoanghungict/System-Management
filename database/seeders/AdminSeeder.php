@@ -13,6 +13,9 @@ class AdminSeeder extends Seeder
      */
     public function run(): void
     {
+        // Chạy seeder cho mẫu thông báo
+        $this->call(NotificationTemplateSeeder::class);
+
         // Kiểm tra và tạo đơn vị mẫu (unit)
         $unit = DB::table('department')->where('name', 'Khoa Công nghệ Thông tin')->first();
         if (!$unit) {

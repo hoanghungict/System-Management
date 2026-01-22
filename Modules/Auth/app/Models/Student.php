@@ -9,17 +9,25 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
-use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
+// use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Student extends Model
 {
-    use SoftDeletes, HasFactory;
-
-    protected static function newFactory()
-    {
-        return new \Modules\Auth\database\factories\StudentFactory();
-    }
+    /**
+     * NOTE: SoftDeletes đã được disabled để xóa thật trong DB
+     * 
+     * Nếu muốn sử dụng lại soft delete (chỉ set deleted_at thay vì xóa thật):
+     * 1. Uncomment dòng: use Illuminate\Database\Eloquent\SoftDeletes;
+     * 2. Uncomment dòng: use SoftDeletes;
+     * 3. Trong StudentService::deleteStudent(), đổi forceDelete() thành delete()
+     * 
+     * Khi dùng SoftDeletes:
+     * - delete() chỉ set deleted_at = now(), không xóa thật
+     * - forceDelete() xóa thật khỏi DB
+     * - restore() phục hồi record đã xóa
+     * - withTrashed() query bao gồm cả records đã xóa
+     */
+    // use SoftDeletes;
 
     protected $table = 'student';
 
