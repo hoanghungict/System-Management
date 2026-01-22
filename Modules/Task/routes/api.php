@@ -11,6 +11,10 @@ use Modules\Task\app\Http\Controllers\Statistics\TaskStatisticsController;
 use Modules\Task\app\Http\Controllers\Calendar\CalendarController;
 use Modules\Task\app\Http\Controllers\Reminder\ReminderController;
 use Modules\Task\app\Http\Controllers\Email\EmailController;
+use Modules\Task\app\Http\Controllers\Assignment\LecturerAssignmentController;
+use Modules\Task\app\Http\Controllers\Assignment\LecturerQuestionController;
+use Modules\Task\app\Http\Controllers\Assignment\StudentAssignmentController;
+use Modules\Task\app\Http\Controllers\Assignment\ExtensionController;
 
 /*
 |--------------------------------------------------------------------------
@@ -64,6 +68,53 @@ Route::middleware(['jwt', 'lecturer'])
         
         // Lecturer calendar routes
         Route::apiResource('lecturer-calendar', CalendarController::class);
+
+        // ================= NEW ASSIGNMENT SYSTEM ROUTES =================
+        Route::prefix('lecturer')->group(function () {
+            // Assignments
+            Route::apiResource('assignments', LecturerAssignmentController::class);
+            Route::post('assignments/{id}/publish', [LecturerAssignmentController::class, 'publish']);
+            Route::post('assignments/{id}/close', [LecturerAssignmentController::class, 'close']);
+
+            // Submissions & Grading
+            Route::get('assignments/{id}/submissions', [LecturerAssignmentController::class, 'getSubmissions']);
+            Route::get('submissions/{submissionId}', [LecturerAssignmentController::class, 'getSubmission']);
+            Route::post('submissions/{submissionId}/grade', [LecturerAssignmentController::class, 'gradeSubmission']);
+            Route::post('assignments/{id}/export-grades', [LecturerAssignmentController::class, 'exportGrades']);
+
+            // Questions
+            Route::get('assignments/{assignment}/questions', [LecturerQuestionController::class, 'index']);
+            Route::post('assignments/{assignment}/questions', [LecturerQuestionController::class, 'store']);
+            Route::post('assignments/{assignment}/import-questions', [LecturerQuestionController::class, 'import']);
+            
+            Route::put('questions/{id}', [LecturerQuestionController::class, 'update']);
+            Route::delete('questions/{id}', [LecturerQuestionController::class, 'destroy']);
+
+            // Extension Requests
+            Route::get('extension-requests', [ExtensionController::class, 'index']);
+            Route::post('extension-requests/{id}/approve', [ExtensionController::class, 'approve']);
+            Route::post('extension-requests/{id}/reject', [ExtensionController::class, 'reject']);
+
+            // ================= QUESTION BANK ROUTES =================
+            Route::apiResource('question-banks', \Modules\Task\app\Http\Controllers\QuestionBankController::class);
+            Route::get('question-banks/{id}/questions', [\Modules\Task\app\Http\Controllers\QuestionBankController::class, 'getQuestions']);
+            Route::post('question-banks/{id}/import', [\Modules\Task\app\Http\Controllers\QuestionBankController::class, 'importQuestions']);
+            Route::post('question-banks/{id}/chapters', [\Modules\Task\app\Http\Controllers\QuestionBankController::class, 'addChapter']);
+            Route::put('question-banks/{id}/chapters/{chapterId}', [\Modules\Task\app\Http\Controllers\QuestionBankController::class, 'updateChapter']);
+            Route::delete('question-banks/{id}/chapters/{chapterId}', [\Modules\Task\app\Http\Controllers\QuestionBankController::class, 'deleteChapter']);
+
+            // ================= EXAM ROUTES =================
+            Route::apiResource('exams', \Modules\Task\app\Http\Controllers\Exam\LecturerExamController::class);
+            Route::post('exams/{id}/generate-codes', [\Modules\Task\app\Http\Controllers\Exam\LecturerExamController::class, 'generateCodes']);
+            Route::get('exams/{id}/codes', [\Modules\Task\app\Http\Controllers\Exam\LecturerExamController::class, 'getExamCodes']);
+            Route::post('exams/{id}/publish', [\Modules\Task\app\Http\Controllers\Exam\LecturerExamController::class, 'publish']);
+            Route::post('exams/{id}/close', [\Modules\Task\app\Http\Controllers\Exam\LecturerExamController::class, 'close']);
+            Route::get('exams/{id}/submissions', [\Modules\Task\app\Http\Controllers\Exam\LecturerExamController::class, 'getSubmissions']);
+            Route::get('exam-submissions/{submissionId}', [\Modules\Task\app\Http\Controllers\Exam\LecturerExamController::class, 'getSubmission']);
+            Route::post('exam-submissions/{submissionId}/grade', [\Modules\Task\app\Http\Controllers\Exam\LecturerExamController::class, 'gradeSubmission']);
+            Route::get('exam-config/suggested', [\Modules\Task\app\Http\Controllers\Exam\LecturerExamController::class, 'getSuggestedConfig']);
+        });
+        // ================================================================
     });
 
 // =============================================================================
@@ -87,6 +138,29 @@ Route::middleware(['jwt', 'student'])
         
         // Student calendar routes
         Route::apiResource('student-calendar', CalendarController::class);
+
+        // ================= NEW ASSIGNMENT SYSTEM ROUTES =================
+        Route::prefix('student')->group(function () {
+            Route::get('assignments', [StudentAssignmentController::class, 'index']);
+            Route::get('assignments/{id}', [StudentAssignmentController::class, 'show']);
+            Route::post('assignments/{id}/start', [StudentAssignmentController::class, 'start']);
+            Route::get('/assignments/{id}/result', [StudentAssignmentController::class, 'getResult']);
+            Route::post('/assignments/{id}/submit', [StudentAssignmentController::class, 'submit']);
+            Route::post('/assignments/upload', [StudentAssignmentController::class, 'uploadFile']);
+            Route::post('/assignments/{id}/extension', [ExtensionController::class, 'request']);
+            Route::get('submissions/{submissionId}/result', [StudentAssignmentController::class, 'getResult']);
+            Route::post('assignments/{id}/extension', [ExtensionController::class, 'requestExtension']);
+
+            // ================= EXAM ROUTES =================
+            Route::get('exams', [\Modules\Task\app\Http\Controllers\Exam\StudentExamController::class, 'index']);
+            Route::get('exams/{id}', [\Modules\Task\app\Http\Controllers\Exam\StudentExamController::class, 'show']);
+            Route::post('exams/{id}/start', [\Modules\Task\app\Http\Controllers\Exam\StudentExamController::class, 'start']);
+            Route::post('exam-submissions/{submissionId}/save-answer', [\Modules\Task\app\Http\Controllers\Exam\StudentExamController::class, 'saveAnswer']);
+            Route::post('exam-submissions/{submissionId}/submit', [\Modules\Task\app\Http\Controllers\Exam\StudentExamController::class, 'submit']);
+            Route::get('exam-submissions/{submissionId}/result', [\Modules\Task\app\Http\Controllers\Exam\StudentExamController::class, 'getResult']);
+            Route::post('exam-submissions/{submissionId}/violation', [\Modules\Task\app\Http\Controllers\Exam\StudentExamController::class, 'logViolation']);
+        });
+        // ================================================================
     });
 
 // =============================================================================

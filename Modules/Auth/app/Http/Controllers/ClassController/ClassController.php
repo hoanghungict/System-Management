@@ -233,4 +233,48 @@ class ClassController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Lấy danh sách lớp học của giảng viên đang đăng nhập
+     */
+    public function getMyClasses(Request $request): JsonResponse
+    {
+        try {
+            $lecturerId = $request->attributes->get('jwt_user_id') ?? ($request->user() ? $request->user()->id : null);
+            
+            if (!$lecturerId) {
+                 return response()->json([
+                    'message' => 'Không tìm thấy thông tin giảng viên'
+                ], 401);
+            }
+            
+            // Try to get from cache first
+            $cacheKey = "auth:classes:lecturer:{$lecturerId}";
+            $cachedClasses = Cache::get($cacheKey);
+            
+            if ($cachedClasses) {
+                 return response()->json([
+                    'message' => 'Danh sách lớp theo giảng viên (from cache)',
+                    'data' => ClassResource::collection($cachedClasses),
+                    'source' => 'cache'
+                ]);
+            }
+
+            $classes = $this->classService->getClassesByLecturer($lecturerId);
+            
+             // Cache for 1 hour (3600 seconds)
+            Cache::put($cacheKey, $classes, 3600);
+            
+            return response()->json([
+                'message' => 'Danh sách lớp theo giảng viên',
+                'data' => ClassResource::collection($classes),
+                'source' => 'database'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Có lỗi xảy ra khi lấy danh sách lớp học',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
 }

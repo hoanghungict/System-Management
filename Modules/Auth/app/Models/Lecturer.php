@@ -5,9 +5,17 @@ namespace Modules\Auth\app\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Lecturer extends Model
 {
+    use HasFactory;
+
+    protected static function newFactory()
+    {
+        return new \Modules\Auth\database\factories\LecturerFactory();
+    }
+    public $timestamps = false;
     protected $table = 'lecturer';
 
     protected $fillable = [

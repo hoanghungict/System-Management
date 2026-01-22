@@ -263,12 +263,13 @@ class CourseController extends Controller
     public function getMyCourses(Request $request): JsonResponse
     {
         try {
-            $lecturerId = $request->attributes->get('jwt_user_id');
+            // Lấy ID từ attributes (do JwtMiddleware set) hoặc fallback sang user()->id
+            $lecturerId = $request->attributes->get('jwt_user_id') ?? ($request->user() ? $request->user()->id : null);
             
             if (!$lecturerId) {
-                return response()->json([
+                 return response()->json([
                     'success' => false,
-                    'message' => 'Unauthorized - Vui lòng đăng nhập lại',
+                    'message' => 'Không tìm thấy thông tin giảng viên',
                 ], 401);
             }
 

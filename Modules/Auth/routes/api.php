@@ -9,6 +9,8 @@ use Modules\Auth\app\Http\Controllers\DepartmentController\DepartmentController;
 use Modules\Auth\app\Http\Controllers\ClassController\ClassController;
 use Modules\Auth\app\Http\Controllers\RollCallController\RollCallController;
 use Modules\Auth\app\Http\Controllers\ImportExcelController\ImportDataExcelController;
+use Modules\Auth\app\Http\Controllers\AttendanceController\CourseController;
+use Modules\Auth\app\Http\Controllers\AttendanceController\SemesterController;
 
 // Auth routes (không cần authentication)
 Route::prefix('v1')->group(function () {
@@ -62,6 +64,10 @@ Route::prefix('v1')->group(function () {
         Route::get('/lecturers', [LecturerController::class, 'index']);
         Route::get('/departments', [DepartmentController::class, 'index']);
         Route::get('/classes', [ClassController::class, 'index']);
+        Route::get('/classes/my', [ClassController::class, 'getMyClasses']);
+        Route::get('/courses/my', [CourseController::class, 'getMyCourses']);
+        Route::get('/courses', [CourseController::class, 'index']);
+        Route::get('/semesters', [SemesterController::class, 'index']);
     });
 
     // Routes cho sinh viên - Chỉ xem thông tin của mình

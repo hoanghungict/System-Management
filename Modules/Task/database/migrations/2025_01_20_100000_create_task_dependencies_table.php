@@ -28,9 +28,9 @@ return new class extends Migration
             $table->timestamps();
 
             // Foreign keys
-            $table->foreign('predecessor_task_id')->references('id')->on('tasks')->onDelete('cascade');
-            $table->foreign('successor_task_id')->references('id')->on('tasks')->onDelete('cascade');
-            $table->foreign('created_by')->references('id')->on('users')->onDelete('set null');
+            $table->foreign('predecessor_task_id')->references('id')->on('task')->onDelete('cascade');
+            $table->foreign('successor_task_id')->references('id')->on('task')->onDelete('cascade');
+            // $table->foreign('created_by')->references('id')->on('users')->onDelete('set null');
 
             // Indexes
             $table->index(['predecessor_task_id', 'successor_task_id'], 'idx_task_dependency_pair');
