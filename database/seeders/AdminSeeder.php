@@ -26,7 +26,12 @@ class AdminSeeder extends Seeder
         }
 
         // Kiểm tra và tạo giảng viên admin
-        $lecturer = DB::table('lecturer')->where('email', 'admin@system.com')->first();
+        // Check by code OR email
+        $lecturer = DB::table('lecturer')
+            ->where('lecturer_code', 'GV001')
+            ->orWhere('email', 'admin@system.com')
+            ->first();
+            
         if (!$lecturer) {
             $lecturerId = DB::table('lecturer')->insertGetId([
                 'full_name' => 'Admin System',
@@ -61,13 +66,19 @@ class AdminSeeder extends Seeder
                 'department_id' => $unitId,
                 'lecturer_id' => $lecturerId,
                 'school_year' => '2024-2025',
+                'created_at' => now(),
+                'updated_at' => now()
             ]);
         } else {
             $classId = $class->id;
         }
 
         // Kiểm tra và tạo sinh viên mẫu
-        $student = DB::table('student')->where('email', 'sinhvien@test.com')->first();
+        $student = DB::table('student')
+            ->where('student_code', 'SV001')
+            ->orWhere('email', 'sinhvien@test.com')
+            ->first();
+            
         if (!$student) {
             $studentId = DB::table('student')->insertGetId([
                 'full_name' => 'Sinh Viên Mẫu',
@@ -78,6 +89,8 @@ class AdminSeeder extends Seeder
                 'phone' => '0987654321',
                 'student_code' => 'SV001',
                 'class_id' => $classId,
+                'created_at' => now(),
+                'updated_at' => now()
             ]);
         } else {
             $studentId = $student->id;
@@ -91,6 +104,47 @@ class AdminSeeder extends Seeder
                 'username' => 'sv_sv001',
                 'password' => Hash::make('123456'),
             ]);
+        }
+
+        // --- NEW: Create Semester and Database Course for Lecturer ---
+        
+        // 1. Create Semester
+        $semester = DB::table('semesters')->where('code', 'HK1-2425')->first();
+        if (!$semester) {
+            $semesterId = DB::table('semesters')->insertGetId([
+                'name' => 'Học kỳ 1 năm học 2024-2025',
+                'code' => 'HK1-2425',
+                'academic_year' => '2024-2025',
+                'semester_type' => '1',
+                'start_date' => '2024-09-01',
+                'end_date' => '2025-01-31',
+                'is_active' => 1,
+                'created_at' => now(),
+                'updated_at' => now()
+            ]);
+        } else {
+            $semesterId = $semester->id;
+        }
+
+        // 2. Create Course "Cơ sở dữ liệu" assigned to Lecturer
+        $course = DB::table('courses')->where('code', 'CSDL_01')->first();
+        if (!$course) {
+            $courseId = DB::table('courses')->insertGetId([
+                'code' => 'CSDL_01',
+                'name' => 'Cơ sở dữ liệu - Lớp 1',
+                'credits' => 3,
+                'semester_id' => $semesterId,
+                'lecturer_id' => $lecturerId,
+                'department_id' => $unitId,
+                'start_date' => '2024-09-05',
+                'end_date' => '2025-01-15',
+                'status' => 'active',
+                'created_at' => now(),
+                'updated_at' => now()
+            ]);
+            $this->command->info('✅ Đã tạo Môn học: Cơ sở dữ liệu - Lớp 1 (CSDL_01) cho GV Admin.');
+        } else {
+             $this->command->info('ℹ️ Môn học CSDL_01 đã tồn tại.');
         }
 
         $this->command->info('✅ Đã tạo dữ liệu mẫu thành công!');

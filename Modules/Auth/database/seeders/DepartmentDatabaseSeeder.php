@@ -4,7 +4,6 @@ namespace Modules\Auth\database\seeders;
 
 use Illuminate\Database\Seeder;
 use Modules\Auth\app\Models\Department;
-use Modules\Auth\app\Models\Department;
 
 class DepartmentDatabaseSeeder extends Seeder
 {
@@ -14,12 +13,10 @@ class DepartmentDatabaseSeeder extends Seeder
     public function run(): void
     {
         // Tạo University (Trường đại học)
-        $university = Department::create([
-        $university = Department::create([
-            'name' => 'Đại học Công nghệ Thông tin',
-            'type' => 'school'
-            'type' => 'school'
-        ]);
+        $university = Department::firstOrCreate(
+            ['name' => 'Đại học Công nghệ Thông tin'],
+            ['type' => 'school']
+        );
 
         // Tạo các Faculty (Khoa)
         $faculties = [
@@ -36,26 +33,33 @@ class DepartmentDatabaseSeeder extends Seeder
         ];
 
         foreach ($faculties as $facultyData) {
-            $faculty = Department::create($facultyData);
-            $faculty = Department::create($facultyData);
+            $faculty = Department::firstOrCreate(
+                ['name' => $facultyData['name']],
+                [
+                    'type' => $facultyData['type'],
+                    'parent_id' => $facultyData['parent_id']
+                ]
+            );
 
             // Tạo các Department (Tổ) cho mỗi khoa
             if ($faculty->name === 'Khoa Công nghệ Thông tin') {
-                Department::create([
-                Department::create([
-                    'name' => 'Tổ Công nghệ Phần mềm',
-                    'type' => 'department',
-                    'parent_id' => $faculty->id
-                ]);
+                Department::firstOrCreate(
+                    ['name' => 'Tổ Công nghệ Phần mềm'],
+                    [
+                        'type' => 'department',
+                        'parent_id' => $faculty->id
+                    ]
+                );
             }
 
             if ($faculty->name === 'Khoa Kỹ thuật Điện tử - Viễn thông') {
-                Department::create([
-                Department::create([
-                    'name' => 'Tổ Điện tử',
-                    'type' => 'department',
-                    'parent_id' => $faculty->id
-                ]);
+                Department::firstOrCreate(
+                    ['name' => 'Tổ Điện tử'],
+                    [
+                        'type' => 'department',
+                        'parent_id' => $faculty->id
+                    ]
+                );
             }
         }
     }

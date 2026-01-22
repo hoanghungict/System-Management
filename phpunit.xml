@@ -10,10 +10,20 @@
         <testsuite name="Feature">
             <directory>tests/Feature</directory>
         </testsuite>
+        <testsuite name="Modules">
+            <directory>Modules/*/tests</directory>
+        </testsuite>
+        <testsuite name="TaskModule">
+            <directory>Modules/Task/tests</directory>
+        </testsuite>
+        <testsuite name="AuthModule">
+            <directory>Modules/Auth/tests</directory>
+        </testsuite>
     </testsuites>
     <source>
         <include>
             <directory>app</directory>
+            <directory>Modules/*/app</directory>
         </include>
     </source>
     <php>

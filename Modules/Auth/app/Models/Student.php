@@ -10,10 +10,16 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Student extends Model
 {
-    use SoftDeletes;
+    use SoftDeletes, HasFactory;
+
+    protected static function newFactory()
+    {
+        return new \Modules\Auth\database\factories\StudentFactory();
+    }
 
     protected $table = 'student';
 
