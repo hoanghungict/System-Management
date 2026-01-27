@@ -23,6 +23,7 @@ class AdminSeeder extends Seeder
                 'name' => 'Khoa Công nghệ Thông tin',
                 'type' => 'faculty',
                 'parent_id' => null,
+                'staff_count' => 0,
             ]);
         } else {
             $unitId = $unit->id;
