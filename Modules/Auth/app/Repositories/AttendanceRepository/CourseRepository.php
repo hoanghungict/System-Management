@@ -24,6 +24,7 @@ class CourseRepository
     public function all(): Collection
     {
         return $this->model->with(['semester', 'lecturer', 'department'])
+            ->withCount('enrollments as students_count')
             ->orderBy('created_at', 'desc')
             ->get();
     }
@@ -33,7 +34,8 @@ class CourseRepository
      */
     public function paginate(array $filters = [], int $perPage = 15): LengthAwarePaginator
     {
-        $query = $this->model->with(['semester', 'lecturer', 'department']);
+        $query = $this->model->with(['semester', 'lecturer', 'department'])
+            ->withCount('enrollments as students_count');
 
         // Filter theo học kỳ
         if (!empty($filters['semester_id'])) {
@@ -73,6 +75,7 @@ class CourseRepository
     public function findById(int $id): ?Course
     {
         return $this->model->with(['semester', 'lecturer', 'department', 'sessions'])
+            ->withCount('enrollments as students_count')
             ->find($id);
     }
 
@@ -139,6 +142,7 @@ class CourseRepository
     public function getBySemester(int $semesterId): Collection
     {
         return $this->model->with(['lecturer', 'department'])
+            ->withCount('enrollments as students_count')
             ->where('semester_id', $semesterId)
             ->orderBy('name')
             ->get();

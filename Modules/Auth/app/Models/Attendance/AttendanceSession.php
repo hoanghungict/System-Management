@@ -26,6 +26,7 @@ class AttendanceSession extends Model
         'day_of_week',
         'start_time',
         'end_time',
+        'shift',
         'topic',
         'room',
         'notes',
@@ -50,6 +51,24 @@ class AttendanceSession extends Model
     const STATUS_COMPLETED = 'completed';
     const STATUS_CANCELLED = 'cancelled';
     const STATUS_HOLIDAY = 'holiday';
+
+    // ==================== SHIFTS ====================
+
+    const SHIFT_MORNING = 'morning';
+    const SHIFT_AFTERNOON = 'afternoon';
+    const SHIFT_EVENING = 'evening';
+
+    /**
+     * Lấy nhãn ca học
+     */
+    public static function getShiftLabels(): array
+    {
+        return [
+            self::SHIFT_MORNING => 'Sáng',
+            self::SHIFT_AFTERNOON => 'Chiều',
+            self::SHIFT_EVENING => 'Tối',
+        ];
+    }
 
     // ==================== RELATIONSHIPS ====================
 
@@ -220,6 +239,14 @@ class AttendanceSession extends Model
             8 => 'Chủ nhật',
         ];
         return $dayNames[$this->day_of_week] ?? "Ngày {$this->day_of_week}";
+    }
+
+    /**
+     * Lấy tên ca học hiển thị
+     */
+    public function getShiftLabelAttribute(): string
+    {
+        return self::getShiftLabels()[$this->shift] ?? $this->shift;
     }
 
     /**

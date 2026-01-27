@@ -59,7 +59,29 @@ class AttendanceRepository
      */
     public function createMany(array $attendances): bool
     {
-        return $this->model->insert($attendances);
+        if (empty($attendances)) {
+            return false;
+        }
+        
+        try {
+            $result = $this->model->insert($attendances);
+            
+            \Log::info('AttendanceRepository::createMany', [
+                'count' => count($attendances),
+                'result' => $result,
+                'sample_data' => $attendances[0] ?? null,
+            ]);
+            
+            return $result;
+        } catch (\Exception $e) {
+            \Log::error('Error in AttendanceRepository::createMany', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'count' => count($attendances),
+                'sample_data' => $attendances[0] ?? null,
+            ]);
+            throw $e;
+        }
     }
 
     /**

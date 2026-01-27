@@ -39,7 +39,34 @@ class AttendanceService
      */
     public function getSessionDetails(int $sessionId): ?AttendanceSession
     {
-        return $this->sessionRepository->findById($sessionId);
+        $session = $this->sessionRepository->findById($sessionId);
+        
+        if (!$session) {
+            return null;
+        }
+        
+        // Nếu session đang in_progress nhưng không có attendances, tự động tạo lại
+        if ($session->status === AttendanceSession::STATUS_IN_PROGRESS) {
+            $attendanceCount = $session->attendances->count();
+            $enrollmentCount = count($this->enrollmentRepository->getStudentIdsByCourse($session->course_id));
+            
+            if ($attendanceCount === 0 && $enrollmentCount > 0) {
+                Log::warning('Session in_progress but no attendances, creating attendance records', [
+                    'session_id' => $sessionId,
+                    'course_id' => $session->course_id,
+                    'enrollment_count' => $enrollmentCount,
+                ]);
+                
+                // Tạo attendance records
+                $this->createAttendanceRecordsForSession($session);
+                
+                // Refresh để load attendances mới tạo
+                $session->refresh();
+                $session->load(['attendances.student']);
+            }
+        }
+        
+        return $session;
     }
 
     /**
@@ -73,15 +100,39 @@ class AttendanceService
 
             DB::commit();
 
+            // Refresh session để load attendances mới tạo
+            $session->refresh();
+            $session->load(['attendances.student']);
+
+            // Verify attendances were created
+            $attendanceCount = $session->attendances->count();
+            $enrollmentCount = $this->enrollmentRepository->getStudentIdsByCourse($session->course_id);
+            
             Log::info('Session started', [
                 'session_id' => $sessionId,
                 'lecturer_id' => $lecturerId,
+                'attendance_count' => $attendanceCount,
+                'enrollment_count' => count($enrollmentCount),
             ]);
 
-            return $session->fresh(['attendances.student']);
+            if ($attendanceCount === 0 && count($enrollmentCount) > 0) {
+                Log::warning('No attendance records found after creation', [
+                    'session_id' => $sessionId,
+                    'course_id' => $session->course_id,
+                    'enrollment_count' => count($enrollmentCount),
+                ]);
+            }
+
+            return $session;
 
         } catch (\Exception $e) {
             DB::rollBack();
+            Log::error('Error starting session', [
+                'session_id' => $sessionId,
+                'lecturer_id' => $lecturerId,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
             throw $e;
         }
     }
@@ -94,13 +145,37 @@ class AttendanceService
         // Lấy danh sách sinh viên đã đăng ký môn
         $studentIds = $this->enrollmentRepository->getStudentIdsByCourse($session->course_id);
 
+        Log::info('Creating attendance records for session', [
+            'session_id' => $session->id,
+            'course_id' => $session->course_id,
+            'student_ids_count' => count($studentIds),
+            'student_ids' => $studentIds,
+        ]);
+
         // Lấy danh sách sinh viên đã có attendance
         $existingStudentIds = $session->attendances->pluck('student_id')->toArray();
+
+        Log::info('Existing attendance records', [
+            'session_id' => $session->id,
+            'existing_count' => count($existingStudentIds),
+            'existing_ids' => $existingStudentIds,
+        ]);
 
         // Chỉ tạo cho sinh viên chưa có
         $newStudentIds = array_diff($studentIds, $existingStudentIds);
 
+        Log::info('New students to create attendance', [
+            'session_id' => $session->id,
+            'new_count' => count($newStudentIds),
+            'new_ids' => $newStudentIds,
+        ]);
+
         if (empty($newStudentIds)) {
+            Log::warning('No new students to create attendance records', [
+                'session_id' => $session->id,
+                'total_enrolled' => count($studentIds),
+                'existing_attendance' => count($existingStudentIds),
+            ]);
             return;
         }
 
@@ -117,7 +192,47 @@ class AttendanceService
             ];
         }
 
-        $this->attendanceRepository->createMany($attendances);
+        try {
+            $result = $this->attendanceRepository->createMany($attendances);
+            
+            if ($result) {
+                Log::info('Attendance records created successfully', [
+                    'session_id' => $session->id,
+                    'created_count' => count($attendances),
+                    'student_ids' => $newStudentIds,
+                ]);
+            } else {
+                Log::error('Failed to create attendance records - createMany returned false', [
+                    'session_id' => $session->id,
+                    'attempted_count' => count($attendances),
+                    'student_ids' => $newStudentIds,
+                ]);
+                throw new \Exception('Không thể tạo attendance records');
+            }
+            
+            // Verify records were actually created
+            $createdCount = \Modules\Auth\app\Models\Attendance\Attendance::where('session_id', $session->id)
+                ->whereIn('student_id', $newStudentIds)
+                ->count();
+            
+            if ($createdCount !== count($newStudentIds)) {
+                Log::error('Attendance records count mismatch', [
+                    'session_id' => $session->id,
+                    'expected' => count($newStudentIds),
+                    'actual' => $createdCount,
+                ]);
+                throw new \Exception("Chỉ tạo được {$createdCount} / " . count($newStudentIds) . " attendance records");
+            }
+            
+        } catch (\Exception $e) {
+            Log::error('Error creating attendance records', [
+                'session_id' => $session->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'student_ids' => $newStudentIds,
+            ]);
+            throw $e;
+        }
     }
 
     /**
@@ -340,6 +455,19 @@ class AttendanceService
     }
 
     /**
+     * Cập nhật thông tin buổi học (ví dụ: ca học/shift)
+     */
+    public function updateSession(int $sessionId, array $data): bool
+    {
+        $session = $this->sessionRepository->findById($sessionId);
+        if (!$session) {
+            throw new \Exception('Không tìm thấy buổi học');
+        }
+
+        return $this->sessionRepository->update($sessionId, $data);
+    }
+
+    /**
      * ADMIN: Sửa điểm danh sau khi completed
      */
     public function adminUpdateAttendance(
@@ -525,6 +653,7 @@ class AttendanceService
                 'date' => $session->session_date->format('Y-m-d'),
                 'day_of_week' => $session->day_of_week,
                 'day_of_week_text' => $session->day_of_week_text,
+                'shift' => $session->shift,
                 'status' => $session->status,
                 'topic' => $session->topic,
             ];

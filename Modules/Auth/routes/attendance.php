@@ -6,6 +6,7 @@ use Modules\Auth\app\Http\Controllers\AttendanceController\CourseController;
 use Modules\Auth\app\Http\Controllers\AttendanceController\AttendanceController;
 use Modules\Auth\app\Http\Controllers\AttendanceController\AdminAttendanceController;
 use Modules\Auth\app\Http\Controllers\AttendanceController\EnrollmentController;
+use Modules\Auth\app\Http\Controllers\AttendanceController\EnrollmentImportController;
 
 /*
 |--------------------------------------------------------------------------
@@ -26,11 +27,13 @@ Route::prefix('v1/attendance')->group(function () {
         
         // Lấy học kỳ đang hoạt động
         Route::get('/semesters/active', [SemesterController::class, 'getActive']);
-        
         // Danh sách học kỳ (chỉ xem)
         Route::get('/semesters', [SemesterController::class, 'index']);
         Route::get('/semesters/{id}', [SemesterController::class, 'show']);
     });
+
+    // Download template (Public for easy access)
+    Route::get('/import-enrollments/download-template', [EnrollmentImportController::class, 'downloadTemplate']);
 
     // =====================================================================
     // ADMIN ROUTES - Quản trị hệ thống
@@ -61,6 +64,12 @@ Route::prefix('v1/attendance')->group(function () {
         Route::post('/courses/{courseId}/enroll-late', [EnrollmentController::class, 'addLateEnrollment']);
         Route::delete('/courses/{courseId}/enrollments/{studentId}', [EnrollmentController::class, 'unenrollStudent']);
         
+        // ----- IMPORT ĐĂNG KÝ MÔN HỌC TỪ EXCEL -----
+        Route::post('/courses/{courseId}/import-enrollments', [EnrollmentImportController::class, 'upload']); // Upload & validate
+        Route::post('/courses/{courseId}/import-enrollments/{importJobId}/process', [EnrollmentImportController::class, 'process']); // Process import
+        Route::get('/import-enrollments/{importJobId}/progress', [EnrollmentImportController::class, 'getProgress']); // Lấy progress
+        Route::get('/import-enrollments/{importJobId}', [EnrollmentImportController::class, 'show']); // Chi tiết import job
+        
         // ----- ADMIN: QUẢN TRỊ ĐIỂM DANH (SỬA SAU KHI COMPLETED) -----
         Route::put('/admin/attendances/{attendanceId}', [AdminAttendanceController::class, 'updateAttendance']);
         Route::put('/admin/sessions/{sessionId}', [AdminAttendanceController::class, 'updateSession']);
@@ -81,6 +90,7 @@ Route::prefix('v1/attendance')->group(function () {
         
         // ----- ĐIỂM DANH -----
         Route::get('/sessions/{sessionId}', [AttendanceController::class, 'getSessionDetails']);
+        Route::put('/sessions/{sessionId}', [AttendanceController::class, 'updateSession']);
         Route::post('/sessions/{sessionId}/start', [AttendanceController::class, 'startSession']);
         Route::put('/sessions/{sessionId}/attendance', [AttendanceController::class, 'updateAttendance']);
         Route::put('/sessions/{sessionId}/attendance/bulk', [AttendanceController::class, 'bulkUpdateAttendance']);

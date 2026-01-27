@@ -154,9 +154,35 @@ class CourseEnrollmentRepository
      */
     public function getStudentIdsByCourse(int $courseId): array
     {
-        return $this->model->where('course_id', $courseId)
-            ->where('status', CourseEnrollment::STATUS_ACTIVE)
+        // Lấy tất cả enrollments (không filter status) để đảm bảo không bỏ sót
+        // Chỉ loại trừ những enrollment đã dropped
+        // Xử lý cả trường hợp status = NULL (enrollments cũ có thể không có status)
+        $enrollments = $this->model->where('course_id', $courseId)
+            ->where(function($query) {
+                $query->where('status', '!=', CourseEnrollment::STATUS_DROPPED)
+                      ->orWhereNull('status');
+            })
             ->pluck('student_id')
             ->toArray();
+        
+        // Log để debug
+        \Log::info('Getting student IDs by course', [
+            'course_id' => $courseId,
+            'total_enrollments' => $this->model->where('course_id', $courseId)->count(),
+            'active_enrollments' => $this->model->where('course_id', $courseId)
+                ->where('status', CourseEnrollment::STATUS_ACTIVE)
+                ->count(),
+            'null_status_enrollments' => $this->model->where('course_id', $courseId)
+                ->whereNull('status')
+                ->count(),
+            'returned_student_ids_count' => count($enrollments),
+            'statuses' => $this->model->where('course_id', $courseId)
+                ->select('status')
+                ->distinct()
+                ->pluck('status')
+                ->toArray(),
+        ]);
+        
+        return $enrollments;
     }
 }

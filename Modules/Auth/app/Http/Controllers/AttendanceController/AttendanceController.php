@@ -40,17 +40,68 @@ class AttendanceController extends Controller
                 ], 404);
             }
 
+            // Log để debug
+            $attendancesCount = $session->attendances ? $session->attendances->count() : 0;
+            Log::info('Getting session details', [
+                'session_id' => $sessionId,
+                'course_id' => $session->course_id,
+                'status' => $session->status,
+                'attendances_count' => $attendancesCount,
+                'attendances_loaded' => $session->relationLoaded('attendances'),
+                'sample_attendance' => $session->attendances->first() ? [
+                    'id' => $session->attendances->first()->id,
+                    'student_id' => $session->attendances->first()->student_id,
+                    'status' => $session->attendances->first()->status,
+                ] : null,
+            ]);
+
+            // Đảm bảo attendances được serialize
+            $sessionData = $session->toArray();
+            
+            Log::info('Session data to return', [
+                'session_id' => $sessionId,
+                'has_attendances_key' => isset($sessionData['attendances']),
+                'attendances_count_in_array' => isset($sessionData['attendances']) ? count($sessionData['attendances']) : 0,
+            ]);
+
             return response()->json([
                 'success' => true,
                 'data' => $session,
             ]);
         } catch (\Exception $e) {
-            Log::error('Failed to get session details', ['session_id' => $sessionId, 'error' => $e->getMessage()]);
+            Log::error('Failed to get session details', [
+                'session_id' => $sessionId,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
             return response()->json([
                 'success' => false,
                 'message' => 'Có lỗi xảy ra',
                 'error' => $e->getMessage(),
             ], 500);
+        }
+    }
+
+    /**
+     * Cập nhật thông tin buổi học
+     */
+    public function updateSession(Request $request, int $sessionId): JsonResponse
+    {
+        try {
+            $data = $request->all();
+            $session = $this->attendanceService->updateSession($sessionId, $data);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Cập nhật buổi học thành công',
+                'data' => $session,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Failed to update session', ['session_id' => $sessionId, 'error' => $e->getMessage()]);
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 400);
         }
     }
 
