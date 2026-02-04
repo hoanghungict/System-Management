@@ -34,7 +34,10 @@ class UpdateLecturerRequest extends FormRequest
             'phone' => 'sometimes|string|max:20',
             'department_id' => 'sometimes|exists:department,id',
             'birth_date' => 'nullable|date',
-            'experience_number' => 'nullable|integer|min:0|max:50'
+            'experience_number' => 'nullable|integer|min:0|max:50',
+            'bang_cap' => 'nullable|string|max:255',
+            'ngay_bat_dau_lam_viec' => 'nullable|date',
+            'hinh_anh' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048'
         ];
     }
 

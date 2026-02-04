@@ -116,14 +116,14 @@ class PasswordController extends Controller
                 ]);
 
             // Log activity
-            Log::info('Password changed successfully', [
+            /* Log::info('Password changed successfully', [
                 'user_id' => $payload->sub,
                 'user_type' => $payload->user_type,
                 'account_table' => $accountTable,
                 'account_id' => $accountId,
                 'timestamp' => now(),
                 'ip' => $request->ip()
-            ]);
+            ]); */
 
             return response()->json([
                 'success' => true,

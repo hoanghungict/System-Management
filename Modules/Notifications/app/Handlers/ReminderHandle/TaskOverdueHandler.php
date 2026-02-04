@@ -22,10 +22,10 @@ class TaskOverdueHandler implements NotificationEventHandler
     public function handle(string $channel, array $data): void
     {
         try {
-            Log::info('TaskOverdueHandler: Processing overdue task', [
+            /* Log::info('TaskOverdueHandler: Processing overdue task', [
                 'channel' => $channel,
                 'data' => $data
-            ]);
+            ]); */
 
             // Validate required data
             if (!isset($data['user_id'], $data['task_id'], $data['deadline'])) {
@@ -62,11 +62,11 @@ class TaskOverdueHandler implements NotificationEventHandler
             );
 
             if ($result['success']) {
-                Log::info('TaskOverdueHandler: Overdue notification sent successfully', [
+                /* Log::info('TaskOverdueHandler: Overdue notification sent successfully', [
                     'notification_id' => $result['notification_id'],
                     'user_id' => $userId,
                     'task_id' => $taskId
-                ]);
+                ]); */
             } else {
                 Log::error('TaskOverdueHandler: Failed to send overdue notification', [
                     'error' => $result['error'],

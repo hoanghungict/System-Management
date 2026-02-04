@@ -141,12 +141,13 @@ class CourseRepository
      */
     public function getBySemester(int $semesterId): Collection
     {
-        return $this->model->with(['lecturer', 'department'])
+        return $this->model->with(['semester', 'lecturer', 'department'])
             ->withCount('enrollments as students_count')
             ->where('semester_id', $semesterId)
             ->orderBy('name')
             ->get();
     }
+
 
     /**
      * Lấy môn học đang hoạt động của GV trong học kỳ hiện tại

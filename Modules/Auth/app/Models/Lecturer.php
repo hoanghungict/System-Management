@@ -19,7 +19,9 @@ class Lecturer extends Model
     protected $table = 'lecturer';
 
     protected $fillable = [
-        'full_name', 'gender', 'address', 'email', 'phone', 'lecturer_code', 'department_id', 'experience_number', 'birth_date'
+        'full_name', 'gender', 'address', 'email', 'phone', 'lecturer_code', 
+        'department_id', 'experience_number', 'birth_date',
+        'bang_cap', 'ngay_bat_dau_lam_viec', 'hinh_anh'
     ];
 
     protected $casts = [

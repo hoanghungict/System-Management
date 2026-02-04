@@ -43,8 +43,13 @@ class LecturerService
     /**
      * Tạo giảng viên mới và tự động tạo tài khoản
      */
-    public function createLecturerWithAccount(array $lecturerData): Lecturer
+    public function createLecturerWithAccount(array $lecturerData, $imageFile = null): Lecturer
     {
+        // Xử lý upload ảnh nếu có
+        if ($imageFile) {
+            $lecturerData['hinh_anh'] = $this->handleImageUpload($imageFile);
+        }
+        
         // Tạo giảng viên mới
         $lecturer = Lecturer::create($lecturerData);
         
@@ -56,6 +61,16 @@ class LecturerService
         $this->clearLecturersCache();
         
         return $lecturer;
+    }
+    
+    /**
+     * Xử lý upload ảnh
+     */
+    public function handleImageUpload($imageFile): string
+    {
+        $filename = time() . '_' . uniqid() . '.' . $imageFile->getClientOriginalExtension();
+        $path = $imageFile->storeAs('lecturers', $filename, 'public');
+        return '/storage/' . $path;
     }
     
     /**
@@ -176,10 +191,10 @@ class LecturerService
                     ]
                 );
                 
-                Log::info('Notification sent for new lecturer account', [
+                /* Log::info('Notification sent for new lecturer account', [
                     'lecturer_id' => $lecturer->id,
                     'username' => $username
-                ]);
+                ]); */
             } else {
                 Log::warning('Notification service not available');
             }

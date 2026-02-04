@@ -21,8 +21,7 @@ class EmailService
     ): bool {
         try {
             // Queue email để xử lý background
-            SendEmailNotificationJob::dispatch($userId, $userType, $content, $subject)
-                ->onQueue('emails');
+            SendEmailNotificationJob::dispatch($userId, $userType, $content, $subject);
 
             return true;
         } catch (\Exception $e) {

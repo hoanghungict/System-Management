@@ -46,6 +46,10 @@ class UserResource extends JsonResource
                 'lecturer_code' => $user->lecturer_code,
                 'gender' => $user->gender,
                 'experience_number' => $user->experience_number,
+                'birth_date' => $user->birth_date,
+                'bang_cap' => $user->bang_cap,
+                'ngay_bat_dau_lam_viec' => $user->ngay_bat_dau_lam_viec,
+                'hinh_anh' => $user->hinh_anh,
                 'department' => $user->department ? [
                     'id' => $user->department->id,
                     'name' => $user->department->name,

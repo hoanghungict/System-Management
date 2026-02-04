@@ -8,9 +8,11 @@ use Modules\Auth\app\Repositories\AttendanceRepository\CourseRepository;
 use Modules\Auth\app\Repositories\AttendanceRepository\CourseEnrollmentRepository;
 use Modules\Auth\app\Models\Attendance\AttendanceSession;
 use Modules\Auth\app\Models\Attendance\Attendance;
+use Modules\Auth\app\Models\Attendance\CourseEnrollment;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Cache;
 
 /**
  * Service xử lý điểm danh
@@ -108,12 +110,12 @@ class AttendanceService
             $attendanceCount = $session->attendances->count();
             $enrollmentCount = $this->enrollmentRepository->getStudentIdsByCourse($session->course_id);
             
-            Log::info('Session started', [
+            /* Log::info('Session started', [
                 'session_id' => $sessionId,
                 'lecturer_id' => $lecturerId,
                 'attendance_count' => $attendanceCount,
                 'enrollment_count' => count($enrollmentCount),
-            ]);
+            ]); */
 
             if ($attendanceCount === 0 && count($enrollmentCount) > 0) {
                 Log::warning('No attendance records found after creation', [
@@ -145,30 +147,30 @@ class AttendanceService
         // Lấy danh sách sinh viên đã đăng ký môn
         $studentIds = $this->enrollmentRepository->getStudentIdsByCourse($session->course_id);
 
-        Log::info('Creating attendance records for session', [
+        /* Log::info('Creating attendance records for session', [
             'session_id' => $session->id,
             'course_id' => $session->course_id,
             'student_ids_count' => count($studentIds),
             'student_ids' => $studentIds,
-        ]);
+        ]); */
 
         // Lấy danh sách sinh viên đã có attendance
         $existingStudentIds = $session->attendances->pluck('student_id')->toArray();
 
-        Log::info('Existing attendance records', [
+        /* Log::info('Existing attendance records', [
             'session_id' => $session->id,
             'existing_count' => count($existingStudentIds),
             'existing_ids' => $existingStudentIds,
-        ]);
+        ]); */
 
         // Chỉ tạo cho sinh viên chưa có
         $newStudentIds = array_diff($studentIds, $existingStudentIds);
 
-        Log::info('New students to create attendance', [
+        /* Log::info('New students to create attendance', [
             'session_id' => $session->id,
             'new_count' => count($newStudentIds),
             'new_ids' => $newStudentIds,
-        ]);
+        ]); */
 
         if (empty($newStudentIds)) {
             Log::warning('No new students to create attendance records', [
@@ -196,11 +198,11 @@ class AttendanceService
             $result = $this->attendanceRepository->createMany($attendances);
             
             if ($result) {
-                Log::info('Attendance records created successfully', [
+                /* Log::info('Attendance records created successfully', [
                     'session_id' => $session->id,
                     'created_count' => count($attendances),
                     'student_ids' => $newStudentIds,
-                ]);
+                ]); */
             } else {
                 Log::error('Failed to create attendance records - createMany returned false', [
                     'session_id' => $session->id,
@@ -267,12 +269,15 @@ class AttendanceService
         $result = $this->attendanceRepository->updateBySessionAndStudent($sessionId, $studentId, $data);
 
         if ($result) {
-            Log::info('Attendance updated', [
+            /* Log::info('Attendance updated', [
                 'session_id' => $sessionId,
                 'student_id' => $studentId,
                 'status' => $status,
                 'marked_by' => $lecturerId,
-            ]);
+            ]); */
+
+            // Clear cache khi cập nhật điểm danh
+            $this->clearAttendanceCache($session->course_id, null, $studentId);
         }
 
         return $result;
@@ -324,11 +329,19 @@ class AttendanceService
 
             DB::commit();
 
-            Log::info('Bulk attendance updated', [
+            /* Log::info('Bulk attendance updated', [
                 'session_id' => $sessionId,
                 'updated_count' => $updated,
                 'marked_by' => $lecturerId,
-            ]);
+            ]); */
+
+            // Clear cache
+            $this->clearAttendanceCache($session->course_id);
+            
+            // Xóa cache stats cho từng sinh viên trong danh sách bulk
+            foreach ($studentStatuses as $item) {
+                Cache::forget("attendance:student_stats:{$item['student_id']}:course:{$session->course_id}");
+            }
 
             return $updated;
 
@@ -355,11 +368,14 @@ class AttendanceService
 
         $count = $this->attendanceRepository->markAllPresent($sessionId, $lecturerId);
 
-        Log::info('All marked present', [
+        /* Log::info('All marked present', [
             'session_id' => $sessionId,
             'count' => $count,
             'marked_by' => $lecturerId,
-        ]);
+        ]); */
+
+        // Clear cache
+        $this->clearAttendanceCache($session->course_id);
 
         return $count;
     }
@@ -389,10 +405,13 @@ class AttendanceService
         $result = $session->complete();
 
         if ($result) {
-            Log::info('Session completed', [
+            /* Log::info('Session completed', [
                 'session_id' => $sessionId,
                 'lecturer_id' => $lecturerId,
-            ]);
+            ]); */
+
+            // Clear cache
+            $this->clearAttendanceCache($session->course_id);
         }
 
         return $result;
@@ -412,7 +431,10 @@ class AttendanceService
         $result = $session->cancel();
 
         if ($result) {
-            Log::info('Session cancelled', ['session_id' => $sessionId]);
+            /* Log::info('Session cancelled', ['session_id' => $sessionId]); */
+            
+            // Clear cache
+            $this->clearAttendanceCache($session->course_id);
         }
 
         return $result;
@@ -445,10 +467,13 @@ class AttendanceService
         $result = $this->sessionRepository->update($sessionId, $data);
 
         if ($result) {
-            Log::info('Session rescheduled', [
+            /* Log::info('Session rescheduled', [
                 'session_id' => $sessionId,
                 'new_date' => $newDate,
-            ]);
+            ]); */
+
+            // Clear cache
+            $this->clearAttendanceCache($session->course_id);
         }
 
         return $result;
@@ -464,7 +489,14 @@ class AttendanceService
             throw new \Exception('Không tìm thấy buổi học');
         }
 
-        return $this->sessionRepository->update($sessionId, $data);
+        $result = $this->sessionRepository->update($sessionId, $data);
+        
+        if ($result) {
+            // Clear cache
+            $this->clearAttendanceCache($session->course_id);
+        }
+
+        return $result;
     }
 
     /**
@@ -482,14 +514,18 @@ class AttendanceService
             'marked_at' => now(),
         ], $additionalData);
 
+        $attendance = $this->attendanceRepository->findById($attendanceId);
         $result = $this->attendanceRepository->update($attendanceId, $data);
 
-        if ($result) {
-            Log::info('Admin updated attendance', [
+        if ($result && $attendance && $attendance->session) {
+            /* Log::info('Admin updated attendance', [
                 'attendance_id' => $attendanceId,
                 'status' => $status,
                 'admin_id' => $adminId,
-            ]);
+            ]); */
+
+            // Clear cache
+            $this->clearAttendanceCache($attendance->session->course_id, null, $attendance->student_id);
         }
 
         return $result;
@@ -500,28 +536,30 @@ class AttendanceService
      */
     public function getStudentAttendanceStats(int $studentId, int $courseId): array
     {
-        $course = $this->courseRepository->findById($courseId);
-        
-        if (!$course) {
-            throw new \Exception('Không tìm thấy môn học');
-        }
+        return Cache::remember("attendance:student_stats:{$studentId}:course:{$courseId}", 1800, function() use ($studentId, $courseId) {
+            $course = $this->courseRepository->findById($courseId);
+            
+            if (!$course) {
+                throw new \Exception('Không tìm thấy môn học');
+            }
 
-        $stats = $this->attendanceRepository->getStudentStatsInCourse($studentId, $courseId);
-        $absentCount = $stats['absent'];
-        $maxAbsences = $course->max_absences;
-        $warningThreshold = $course->absence_warning;
+            $stats = $this->attendanceRepository->getStudentStatsInCourse($studentId, $courseId);
+            $absentCount = $stats['absent'];
+            $maxAbsences = $course->max_absences;
+            $warningThreshold = $course->absence_warning;
 
-        return [
-            'student_id' => $studentId,
-            'course_id' => $courseId,
-            'course_name' => $course->name,
-            'attendance' => $stats,
-            'max_absences' => $maxAbsences,
-            'remaining_absences' => max(0, $maxAbsences - $absentCount),
-            'is_warning' => $absentCount >= $warningThreshold,
-            'is_exceeded' => $absentCount > $maxAbsences,
-            'status' => $absentCount > $maxAbsences ? 'exceeded' : ($absentCount >= $warningThreshold ? 'warning' : 'ok'),
-        ];
+            return [
+                'student_id' => $studentId,
+                'course_id' => $courseId,
+                'course_name' => $course->name,
+                'attendance' => $stats,
+                'max_absences' => $maxAbsences,
+                'remaining_absences' => max(0, $maxAbsences - $absentCount),
+                'is_warning' => $absentCount >= $warningThreshold,
+                'is_exceeded' => $absentCount > $maxAbsences,
+                'status' => $absentCount > $maxAbsences ? 'exceeded' : ($absentCount >= $warningThreshold ? 'warning' : 'ok'),
+            ];
+        });
     }
 
     /**
@@ -529,42 +567,50 @@ class AttendanceService
      */
     public function getAtRiskStudents(int $courseId): array
     {
-        $course = $this->courseRepository->findById($courseId);
-        
-        if (!$course) {
-            throw new \Exception('Không tìm thấy môn học');
-        }
-
-        $enrollments = $this->enrollmentRepository->getActiveStudentsByCourse($courseId);
-        $atRiskStudents = [];
-
-        foreach ($enrollments as $enrollment) {
-            $stats = $this->getStudentAttendanceStats($enrollment->student_id, $courseId);
+        return Cache::remember("attendance:at_risk_students:course:{$courseId}", 1800, function() use ($courseId) {
+            $course = $this->courseRepository->findById($courseId);
             
-            if ($stats['is_warning'] || $stats['is_exceeded']) {
-                $atRiskStudents[] = [
-                    'student' => $enrollment->student,
-                    'stats' => $stats,
-                ];
+            if (!$course) {
+                throw new \Exception('Không tìm thấy môn học');
             }
-        }
 
-        // Sắp xếp theo số buổi vắng giảm dần
-        usort($atRiskStudents, function ($a, $b) {
-            return $b['stats']['attendance']['absent'] - $a['stats']['attendance']['absent'];
+            $enrollments = $this->enrollmentRepository->getActiveStudentsByCourse($courseId);
+            $atRiskStudents = [];
+
+            foreach ($enrollments as $enrollment) {
+                $stats = $this->getStudentAttendanceStats($enrollment->student_id, $courseId);
+                
+                if ($stats['is_warning'] || $stats['is_exceeded']) {
+                    $atRiskStudents[] = [
+                        'student' => $enrollment->student,
+                        'stats' => $stats,
+                    ];
+                }
+            }
+
+            // Sắp xếp theo số buổi vắng giảm dần
+            usort($atRiskStudents, function ($a, $b) {
+                return $b['stats']['attendance']['absent'] - $a['stats']['attendance']['absent'];
+            });
+
+            return $atRiskStudents;
         });
-
-        return $atRiskStudents;
     }
 
     /**
      * Lấy tổng hợp điểm danh của môn học
-     * 
-     * Trả về dữ liệu dạng bảng tổng hợp:
-     * - Cột: các buổi học trong học kỳ
-     * - Hàng: danh sách sinh viên với trạng thái điểm danh mỗi buổi
      */
     public function getCourseSummary(int $courseId): array
+    {
+        return Cache::remember("attendance:course_summary:{$courseId}", 900, function() use ($courseId) {
+            return $this->buildCourseSummary($courseId);
+        });
+    }
+
+    /**
+     * Xây dựng dữ liệu tổng hợp (internal)
+     */
+    private function buildCourseSummary(int $courseId): array
     {
         $course = $this->courseRepository->findById($courseId);
         
@@ -687,5 +733,201 @@ class AttendanceService
                 'total_sessions' => $sessions->count(),
             ],
         ];
+    }
+    
+    /**
+     * Kiểm tra giảng viên có dạy môn học này không
+     */
+    public function isLecturerOfCourse(int $lecturerId, int $courseId): bool
+    {
+        $course = $this->courseRepository->findById($courseId);
+        return $course && $course->lecturer_id == $lecturerId;
+    }
+
+    /**
+     * Lấy dữ liệu tổng quan cho cả học kỳ (Timeline)
+     */
+    public function getSemesterTimeline(int $semesterId, ?int $lecturerId = null): array
+    {
+        $cacheKey = $lecturerId 
+            ? "attendance:semester_timeline:{$semesterId}:lecturer:{$lecturerId}"
+            : "attendance:semester_timeline:{$semesterId}";
+        
+        return Cache::remember($cacheKey, 900, function() use ($semesterId, $lecturerId) {
+            return $this->buildSemesterTimeline($semesterId, $lecturerId);
+        });
+    }
+
+    /**
+     * Xây dựng dữ liệu timeline (internal)
+     */
+    private function buildSemesterTimeline(int $semesterId, ?int $lecturerId = null): array
+    {
+        /* Log::info('getSemesterTimeline query start (optimized)', [
+            'semester_id' => $semesterId,
+            'lecturer_id' => $lecturerId
+        ]); */
+
+        // 1. Lấy danh sách môn học
+        if ($lecturerId) {
+            $courses = $this->courseRepository->getByLecturer($lecturerId, $semesterId);
+        } else {
+            $courses = $this->courseRepository->getBySemester($semesterId);
+        }
+
+
+        if ($courses->isEmpty()) {
+            return [
+                'students' => [],
+                'columns' => [],
+                'attendance' => [],
+                'semester_name' => 'Trống'
+            ];
+        }
+        
+        $semesterName = $courses->first()->semester ? $courses->first()->semester->name : 'Học kỳ';
+        $courseIds = $courses->pluck('id')->toArray();
+
+        // 2. Lấy tất cả các buổi học (sessions) của các môn này
+        $sessions = AttendanceSession::whereIn('course_id', $courseIds)
+            ->orderBy('session_date')
+            ->orderBy('shift')
+            ->get();
+
+        // Xử lý cột - Nhóm theo date-shift để có timeline chung
+        $columnsMap = [];
+        $sessionsByDateShift = []; // date-shift -> session_ids[]
+        
+        foreach ($sessions as $sess) {
+            $date = $sess->session_date->format('Y-m-d');
+            $shift = $sess->shift ?: 'morning';
+            $colKey = "{$date}-{$shift}";
+            
+            if (!isset($columnsMap[$colKey])) {
+                $columnsMap[$colKey] = [
+                    'date' => $date,
+                    'shift' => $shift,
+                ];
+            }
+            $sessionsByDateShift[$colKey][] = $sess->id;
+        }
+
+        // 3. Lấy tất cả sinh viên đăng ký các môn này
+        $enrollments = CourseEnrollment::whereIn('course_id', $courseIds)
+            ->where('status', 'active')
+            ->with(['student.classroom'])
+            ->get();
+
+        $allStudentsMap = [];
+        foreach ($enrollments as $en) {
+            $student = $en->student;
+            if (!$student) continue;
+            
+            if (!isset($allStudentsMap[$student->id])) {
+                $allStudentsMap[$student->id] = [
+                    'id' => $student->id,
+                    'name' => $student->full_name,
+                    'student_code' => $student->student_code,
+                    'class' => $student->classroom->class_name ?? 'Chưa xếp lớp'
+                ];
+            }
+        }
+
+        // 4. Lấy tất cả dữ liệu điểm danh
+        $allSessionIds = $sessions->pluck('id')->toArray();
+        $attendances = Attendance::whereIn('session_id', $allSessionIds)->get();
+        
+        // Group attendance by "studentId-sessionId"
+        $attendanceMap = [];
+        foreach ($attendances as $att) {
+            $attendanceMap["{$att->student_id}-{$att->session_id}"] = $att->status;
+        }
+
+        // 5. Tổng hợp matrix Timeline
+        $rawAttendance = []; // "studentId-date-shift" -> status[]
+        foreach ($allStudentsMap as $studentId => $s) {
+            foreach ($sessionsByDateShift as $colKey => $sessionIds) {
+                foreach ($sessionIds as $sessionId) {
+                    $key = "{$studentId}-{$sessionId}";
+                    if (isset($attendanceMap[$key])) {
+                        $status = $attendanceMap[$key];
+                        $matrixKey = "{$studentId}-{$columnsMap[$colKey]['date']}-{$columnsMap[$colKey]['shift']}";
+                        if (!isset($rawAttendance[$matrixKey])) $rawAttendance[$matrixKey] = [];
+                        $rawAttendance[$matrixKey][] = $status;
+                    }
+                }
+            }
+        }
+
+        // 6. Giải quyết trạng thái trùng (ví dụ học 2 môn cùng ca)
+        $resolveStatus = function($statuses) {
+            if (in_array('absent', $statuses)) return 'absent';
+            if (in_array('late', $statuses)) return 'late';
+            if (in_array('excused', $statuses)) return 'excused';
+            if (in_array('present', $statuses)) return 'present';
+            return 'not_marked';
+        };
+
+        $attendanceMatrix = [];
+        foreach ($rawAttendance as $key => $statuses) {
+            $attendanceMatrix[$key] = $resolveStatus($statuses);
+        }
+
+        // Sắp xếp cột
+        $shiftOrder = ['morning' => 1, 'afternoon' => 2, 'evening' => 3];
+        $sortedColumns = collect($columnsMap)->values()->sort(function($a, $b) use ($shiftOrder) {
+            $dateDiff = strtotime($a['date']) - strtotime($b['date']);
+            if ($dateDiff !== 0) return $dateDiff;
+            return ($shiftOrder[$a['shift']] ?? 0) - ($shiftOrder[$b['shift']] ?? 0);
+        })->values()->toArray();
+
+        // Sắp xếp sinh viên theo tên
+        $sortedStudents = collect($allStudentsMap)->values()->sortBy('name')->values()->toArray();
+
+/*        Log::info('getSemesterTimeline collection complete', [
+            'total_students' => count($sortedStudents),
+            'total_columns' => count($sortedColumns)
+        ]); */
+
+        return [
+            'students' => $sortedStudents,
+            'columns' => $sortedColumns,
+            'attendance' => $attendanceMatrix,
+            'semester_name' => $semesterName
+        ];
+    }
+
+    /**
+     * Xóa cache liên quan đến điểm danh
+     */
+    public function clearAttendanceCache(?int $courseId = null, ?int $semesterId = null, ?int $studentId = null): void
+    {
+        // Xóa cache tổng hợp môn học
+        if ($courseId) {
+            Cache::forget("attendance:course_summary:{$courseId}");
+            Cache::forget("attendance:at_risk_students:course:{$courseId}");
+            
+            // Nếu có studentId, xóa stats của SV đó trong môn này
+            if ($studentId) {
+                Cache::forget("attendance:student_stats:{$studentId}:course:{$courseId}");
+            }
+            
+            // Xóa cache course-level trong CourseService
+            Cache::forget("courses:{$courseId}:students");
+            Cache::forget("courses:{$courseId}:statistics");
+            
+            // Lấy semester_id từ course để xóa timeline cache
+            $course = $this->courseRepository->findById($courseId);
+            if ($course && $course->semester_id) {
+                Cache::forget("attendance:semester_timeline:{$course->semester_id}");
+                // Xóa cả cache theo lecturer
+                Cache::forget("attendance:semester_timeline:{$course->semester_id}:lecturer:{$course->lecturer_id}");
+            }
+        }
+        
+        // Xóa cache theo semester trực tiếp
+        if ($semesterId) {
+            Cache::forget("attendance:semester_timeline:{$semesterId}");
+        }
     }
 }

@@ -19,10 +19,10 @@ class TaskSubmissionHandler implements NotificationEventHandler {
 
     public function handle(string $channel, array $data): void
     {
-        Log::info('TaskSubmittedHandle: Bắt đầu xử lý', [
+        /* Log::info('TaskSubmittedHandle: Bắt đầu xử lý', [
             'channel' => $channel,
             'data' => $data
-        ]);
+        ]); */
 
         if(!isset($data['receiver_id'])) {
             Log::warning('TaskSubmittedHandle: Thiếu user_id trong dữ liệu', ['data' => $data]);
@@ -33,18 +33,18 @@ class TaskSubmissionHandler implements NotificationEventHandler {
         $taskTitle = $data['taskTitle'] ?? 'Công việc mới';
         $receiverType = $data['receiver_type'] ?? 'lecturer';
 
-        Log::info('TaskSubmittedHandle: Xử lý gửi thông báo', [
+        /* Log::info('TaskSubmittedHandle: Xử lý gửi thông báo', [
             'user_id' => $receiverId,
             'taskTitle' => $taskTitle
-        ]);
+        ]); */
 
         try {
             $templateData = $this->prepareTemplateData($data);
 
-            Log::info('TaskSubmittedHandle: Dữ liệu template từ Kafka message', [
+            /* Log::info('TaskSubmittedHandle: Dữ liệu template từ Kafka message', [
                 'template_data' => $templateData,
                 'user_id' => $receiverId
-            ]);
+            ]); */
             $result = $this->notificationService->sendNotification(
                 'task_submission',
                 [
@@ -63,10 +63,10 @@ class TaskSubmissionHandler implements NotificationEventHandler {
             );
 
             if ($result['success']) {
-                Log::info('TaskSubmittedHandle: Gửi thông báo thành công', [
+                /* Log::info('TaskSubmittedHandle: Gửi thông báo thành công', [
                     'notification_id' => $result['notification_id'],
                     'user_id' => $receiverId
-                ]);
+                ]); */
             }
             else {
                 Log::error('RegisterStudentHandle: Gửi thông báo thất bại', [

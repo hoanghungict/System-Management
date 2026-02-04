@@ -12,6 +12,7 @@ use Modules\Auth\app\Models\Student;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Cache;
 use Maatwebsite\Excel\Facades\Excel;
 
 /**
@@ -41,7 +42,9 @@ class EnrollmentService
      */
     public function getCourseEnrollments(int $courseId): Collection
     {
-        return $this->enrollmentRepository->getByCourse($courseId);
+        return Cache::remember("enrollments:course:{$courseId}", 1800, function() use ($courseId) {
+            return $this->enrollmentRepository->getByCourse($courseId);
+        });
     }
 
     /**
@@ -80,11 +83,14 @@ class EnrollmentService
 
             DB::commit();
 
-            Log::info('Student enrolled', [
+            /* Log::info('Student enrolled', [
                 'course_id' => $courseId,
                 'student_id' => $studentId,
                 'is_late' => $isLateEnrollment,
-            ]);
+            ]); */
+
+            // Clear cache
+            $this->clearEnrollmentCache($courseId, $studentId);
 
             return $enrollment;
 
@@ -124,12 +130,12 @@ class EnrollmentService
             }
         }
 
-        Log::info('Bulk enrollment completed', [
+        /* Log::info('Bulk enrollment completed', [
             'course_id' => $courseId,
             'success_count' => count($results['success']),
             'failed_count' => count($results['failed']),
             'already_enrolled_count' => count($results['already_enrolled']),
-        ]);
+        ]); */
 
         return $results;
     }
@@ -183,11 +189,14 @@ class EnrollmentService
         $result = $this->enrollmentRepository->drop($courseId, $studentId, $reason);
 
         if ($result) {
-            Log::info('Student unenrolled', [
+            /* Log::info('Student unenrolled', [
                 'course_id' => $courseId,
                 'student_id' => $studentId,
                 'reason' => $reason,
-            ]);
+            ]); */
+
+            // Clear cache
+            $this->clearEnrollmentCache($courseId, $studentId);
         }
 
         return $result;
@@ -207,7 +216,9 @@ class EnrollmentService
      */
     public function getStudentCourses(int $studentId): Collection
     {
-        return $this->enrollmentRepository->getByStudent($studentId);
+        return Cache::remember("enrollments:student:{$studentId}", 1800, function() use ($studentId) {
+            return $this->enrollmentRepository->getByStudent($studentId);
+        });
     }
 
     /**
@@ -216,5 +227,20 @@ class EnrollmentService
     public function isStudentEnrolled(int $courseId, int $studentId): bool
     {
         return $this->enrollmentRepository->isEnrolled($courseId, $studentId);
+    }
+
+    /**
+     * Xóa cache liên quan đến đăng ký môn học
+     */
+    private function clearEnrollmentCache(int $courseId, int $studentId): void
+    {
+        Cache::forget("enrollments:course:{$courseId}");
+        Cache::forget("enrollments:student:{$studentId}");
+        
+        // Liên quan đến CourseSummary và AtRiskStudents của CourseService/AttendanceService
+        Cache::forget("attendance:course_summary:{$courseId}");
+        Cache::forget("attendance:at_risk_students:course:{$courseId}");
+        Cache::forget("courses:{$courseId}:students");
+        Cache::forget("courses:{$courseId}:statistics");
     }
 }

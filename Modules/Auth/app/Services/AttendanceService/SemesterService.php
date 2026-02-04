@@ -26,7 +26,9 @@ class SemesterService
      */
     public function getAllSemesters(int $perPage = 15): LengthAwarePaginator
     {
-        return $this->semesterRepository->paginate($perPage);
+        return Cache::remember("semesters:all:per_page:{$perPage}", 1800, function() use ($perPage) {
+            return $this->semesterRepository->paginate($perPage);
+        });
     }
 
     /**
@@ -34,7 +36,9 @@ class SemesterService
      */
     public function getSemesterById(int $id): ?Semester
     {
-        return $this->semesterRepository->findById($id);
+        return Cache::remember("semesters:{$id}", 1800, function() use ($id) {
+            return $this->semesterRepository->findById($id);
+        });
     }
 
     /**
@@ -44,10 +48,10 @@ class SemesterService
     {
         $semester = $this->semesterRepository->create($data);
 
-        Log::info('Semester created', [
+        /* Log::info('Semester created', [
             'semester_id' => $semester->id,
             'code' => $semester->code,
-        ]);
+        ]); */
 
         $this->clearCache();
 
@@ -62,7 +66,7 @@ class SemesterService
         $result = $this->semesterRepository->update($id, $data);
 
         if ($result) {
-            Log::info('Semester updated', ['semester_id' => $id]);
+            /* Log::info('Semester updated', ['semester_id' => $id]); */
             $this->clearCache();
         }
 
@@ -88,7 +92,7 @@ class SemesterService
         $result = $this->semesterRepository->delete($id);
 
         if ($result) {
-            Log::info('Semester deleted', ['semester_id' => $id]);
+            /* Log::info('Semester deleted', ['semester_id' => $id]); */
             $this->clearCache();
         }
 
@@ -103,7 +107,7 @@ class SemesterService
         $result = $this->semesterRepository->activate($id);
 
         if ($result) {
-            Log::info('Semester activated', ['semester_id' => $id]);
+            /* Log::info('Semester activated', ['semester_id' => $id]); */
             $this->clearCache();
         }
 
@@ -133,7 +137,9 @@ class SemesterService
      */
     public function getSemestersByAcademicYear(string $year): Collection
     {
-        return $this->semesterRepository->getByAcademicYear($year);
+        return Cache::remember("semesters:year:{$year}", 1800, function() use ($year) {
+            return $this->semesterRepository->getByAcademicYear($year);
+        });
     }
 
     /**
@@ -142,5 +148,11 @@ class SemesterService
     private function clearCache(): void
     {
         Cache::forget('active_semester');
+        
+        // Xóa cache danh sách với các perPage phổ biến
+        $perPages = [10, 15, 20, 25, 50];
+        foreach ($perPages as $perPage) {
+            Cache::forget("semesters:all:per_page:{$perPage}");
+        }
     }
 }

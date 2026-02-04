@@ -28,19 +28,19 @@ class QuizResultHandle implements NotificationEventHandler
         $userId = (int) $data['user_id'];
         $userType = $data['user_type'] ?? 'student';
 
-        Log::info('QuizResultHandle: Xử lý thông báo kết quả quiz', [
+        /* Log::info('QuizResultHandle: Xử lý thông báo kết quả quiz', [
             'user_id' => $userId,
             'user_type' => $userType,
             'title' => $data['title'] ?? 'Quiz'
-        ]);
+        ]); */
 
         try {
             $templateData = $this->prepareTemplateData($data);
 
-            Log::info('QuizResultHandle: Dữ liệu template từ Kafka message', [
+            /* Log::info('QuizResultHandle: Dữ liệu template từ Kafka message', [
                 'template_data' => $templateData,
                 'user_id' => $userId
-            ]);
+            ]); */
 
             $result = $this->notificationService->sendNotification(
                 'quiz_result', // template key

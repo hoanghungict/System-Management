@@ -38,7 +38,8 @@ class LecturerController extends Controller
     public function store(CreateLecturerRequest $request): JsonResponse
     {
         try {
-            $lecturer = $this->lecturerService->createLecturerWithAccount($request->validated());
+            $imageFile = $request->hasFile('hinh_anh') ? $request->file('hinh_anh') : null;
+            $lecturer = $this->lecturerService->createLecturerWithAccount($request->validated(), $imageFile);
             
             return response()->json([
                 'message' => 'Tạo giảng viên thành công',
@@ -93,7 +94,14 @@ class LecturerController extends Controller
                 ], 404);
             }
             
-            $updatedLecturer = $this->lecturerService->updateLecturer($lecturer, $request->validated());
+            $data = $request->validated();
+            
+            // Xử lý upload ảnh nếu có
+            if ($request->hasFile('hinh_anh')) {
+                $data['hinh_anh'] = $this->lecturerService->handleImageUpload($request->file('hinh_anh'));
+            }
+            
+            $updatedLecturer = $this->lecturerService->updateLecturer($lecturer, $data);
             
             return response()->json([
                 'message' => 'Cập nhật giảng viên thành công',

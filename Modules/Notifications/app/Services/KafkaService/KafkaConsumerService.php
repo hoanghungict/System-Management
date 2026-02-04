@@ -96,13 +96,13 @@ class KafkaConsumerService
                 return;
             }
             
-            Log::info('KafkaConsumerService: Đang subscribe vào topics', ['topics' => $topics]);
+            // Log::info('KafkaConsumerService: Đang subscribe vào topics', ['topics' => $topics]);
             $this->consumer->subscribe($topics);
             
             // Đợi metadata update
             sleep(2);
             
-            Log::info('KafkaConsumerService: Bắt đầu lắng nghe messages...');
+            // Log::info('KafkaConsumerService: Bắt đầu lắng nghe messages...');
             
             while ($this->isRunning) {
                 $message = $this->consumer->consume(120 * 1000); // 2 minutes timeout
@@ -113,35 +113,35 @@ class KafkaConsumerService
                 
                 switch ($message->err) {
                     case RD_KAFKA_RESP_ERR_NO_ERROR:
-                        Log::info('KafkaConsumerService: Nhận được message', [ 
+                        /* Log::info('KafkaConsumerService: Nhận được message', [ 
                             'topic' => $message->topic_name ?? 'unknown', 
                             'partition' => $message->partition ?? 'unknown', 
                             'offset' => $message->offset ?? 'unknown', 
                             'key' => $message->key ?? null 
-                        ]);
+                        ]); */
                         $this->processMessage($message);
 
                         //Commit offset sau khi xử lý thành công
                         $this->consumer->commit($message);
 
-                        Log::debug('KafkaConsumerService: Commit offset thành công', [
+                        /* Log::debug('KafkaConsumerService: Commit offset thành công', [
                             'topic' => $message->topic_name,
                             'partition' => $message->partition,
                             'offset' => $message->offset
-                        ]);
+                        ]); */
                         break;
                         
                     case RD_KAFKA_RESP_ERR__PARTITION_EOF:
                         // EOF partition, continue
-                        Log::debug('KafkaConsumerService: Đạt EOF partition', [
+                        /* Log::debug('KafkaConsumerService: Đạt EOF partition', [
                             'topic' => $message->topic_name ?? 'unknown',
                             'partition' => $message->partition ?? 'unknown'
-                        ]);
+                        ]); */
                         break;
                         
                     case RD_KAFKA_RESP_ERR__TIMED_OUT:
                         // timeout, continue
-                        Log::debug('KafkaConsumerService: Timeout khi consume message');
+                        // Log::debug('KafkaConsumerService: Timeout khi consume message');
                         break;
                         
                     case RD_KAFKA_RESP_ERR_UNKNOWN_TOPIC_OR_PART:
@@ -218,11 +218,11 @@ class KafkaConsumerService
                 'timestamp' => $message->timestamp ?? null,
             ];
             
-            Log::info('KafkaConsumerService: Bắt đầu xử lý message', [
+            /* Log::info('KafkaConsumerService: Bắt đầu xử lý message', [
                 'topic' => $topic,
                 'data_keys' => array_keys($data),
                 'meta' => $meta
-            ]);
+            ]); */
             
             $this->dispatchToHandler($topic, $data, $meta);
             
@@ -253,10 +253,10 @@ class KafkaConsumerService
                 return;
             }
             
-            Log::info('KafkaConsumerService: Tìm thấy handler cho topic', [
+            /* Log::info('KafkaConsumerService: Tìm thấy handler cho topic', [
                 'topic' => $topic, 
                 'handler' => $handlerClass
-            ]);
+            ]); */
             
             // Kiểm tra handler class tồn tại
             if (!class_exists($handlerClass)) {
@@ -278,17 +278,17 @@ class KafkaConsumerService
                 return;
             }
             
-            Log::info('KafkaConsumerService: Bắt đầu thực thi handler', [
+            /* Log::info('KafkaConsumerService: Bắt đầu thực thi handler', [
                 'topic' => $topic, 
                 'handler' => $handlerClass
-            ]);
+            ]); */
             
             $handler->handle($topic, $data, $meta);
             
-            Log::info('KafkaConsumerService: Thực thi handler thành công', [
+            /* Log::info('KafkaConsumerService: Thực thi handler thành công', [
                 'topic' => $topic, 
                 'handler' => $handlerClass
-            ]);
+            ]); */
             
         } catch (\Throwable $e) {
             Log::error('KafkaConsumerService: Lỗi khi thực thi handler', [
@@ -308,10 +308,10 @@ class KafkaConsumerService
     protected function createTopicsFromConfig(): void
     {
         try {
-            Log::info('KafkaConsumerService: Bắt đầu tạo topics từ config');
+            // Log::info('KafkaConsumerService: Bắt đầu tạo topics từ config');
             $topicManager = app(KafkaTopicManager::class);
             $topicManager->createTopicsFromConfig();
-            Log::info('KafkaConsumerService: Hoàn thành tạo topics từ config');
+            // Log::info('KafkaConsumerService: Hoàn thành tạo topics từ config');
         } catch (\Exception $e) {
             Log::error('KafkaConsumerService: Lỗi khi tạo topics từ config', [
                 'error' => $e->getMessage(),
@@ -327,7 +327,7 @@ class KafkaConsumerService
     public function stop(): void
     {
         $this->isRunning = false;
-        Log::info('KafkaConsumerService: Đã nhận lệnh dừng consumer');
+        // Log::info('KafkaConsumerService: Đã nhận lệnh dừng consumer');
     }
     
     /**
@@ -346,7 +346,7 @@ class KafkaConsumerService
         try {
             if ($this->consumer) {
                 $this->consumer->close();
-                Log::info('KafkaConsumerService: Đã đóng consumer');
+                // Log::info('KafkaConsumerService: Đã đóng consumer');
             }
         } catch (\Exception $e) {
             Log::error('KafkaConsumerService: Lỗi khi cleanup', [

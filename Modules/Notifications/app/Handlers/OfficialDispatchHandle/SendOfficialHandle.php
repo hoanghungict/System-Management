@@ -27,19 +27,19 @@ class SendOfficialHandle implements NotificationEventHandler
         $userType = $data['user_type'] ?? 'student';
         $documentTitle = $data['documentTitle'] ?? 'Thông báo chính thức';
 
-        Log::info('SendOfficialHandle: Xử lý thông báo chính thức', [
+        /* Log::info('SendOfficialHandle: Xử lý thông báo chính thức', [
             'user_id' => $userId,
             'user_type' => $userType,
             'documentTitle' => $documentTitle
-        ]);
+        ]); */
         
         try {
             $templateData = $this->prepareTemplateData($data);
 
-            Log::info('SendOfficialHandle: Dữ liệu template từ Kafka message', [
+            /* Log::info('SendOfficialHandle: Dữ liệu template từ Kafka message', [
                 'template_data' => $templateData,
                 'user_id' => $userId
-            ]);
+            ]); */
 
             $result = $this->notificationService->sendNotification(
                 'official_dispatch',
