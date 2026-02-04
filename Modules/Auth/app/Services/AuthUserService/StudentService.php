@@ -169,10 +169,10 @@ class StudentService
                     ]
                 );
                 
-                Log::info('Notification sent for new student account', [
+                /* Log::info('Notification sent for new student account', [
                     'student_id' => $student->id,
                     'username' => $username
-                ]);
+                ]); */
             } else {
                 Log::warning('Notification service not available');
             }

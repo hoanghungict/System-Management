@@ -81,14 +81,14 @@ class TaskGradedHandler implements NotificationEventHandler
                 ['priority' => $priority]
             );
 
-            Log::info('Task graded notification sent', [
+            /* Log::info('Task graded notification sent', [
                 'task_id' => $taskId,
                 'student_id' => $studentId,
                 'student_type' => $studentType,
                 'grade' => $grade,
                 'grade_percentage' => $gradePercentage,
                 'grader' => $graderName
-            ]);
+            ]); */
 
         } catch (\Exception $e) {
             Log::error('TaskGradedHandler: Failed to send notification', [

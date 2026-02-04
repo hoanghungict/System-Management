@@ -21,6 +21,9 @@ return new class extends Migration {
             $table->unsignedBigInteger('assignes_id')->nullable();
             $table->timestamp('created_at')->useCurrent();
             $table->timestamp('updated_at')->useCurrent();
+            $table->string('bang_cap' , 255)->nullable();
+            $table->date('ngay_bat_dau_lam_viec')->nullable();
+            $table->string('hinh_anh' , 255)->nullable();
             $table->foreign('department_id')
                   ->references('id')->on('department')
                   ->onDelete('set null');

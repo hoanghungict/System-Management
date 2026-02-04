@@ -13,6 +13,7 @@ use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Cache;
 use Carbon\Carbon;
 
 /**
@@ -50,7 +51,9 @@ class CourseService
      */
     public function getCourseById(int $id): ?Course
     {
-        return $this->courseRepository->findById($id);
+        return Cache::remember("courses:{$id}", 1800, function() use ($id) {
+            return $this->courseRepository->findById($id);
+        });
     }
 
     /**
@@ -58,7 +61,13 @@ class CourseService
      */
     public function getCoursesByLecturer(int $lecturerId, ?int $semesterId = null): Collection
     {
-        return $this->courseRepository->getByLecturer($lecturerId, $semesterId);
+        $cacheKey = $semesterId 
+            ? "courses:lecturer:{$lecturerId}:semester:{$semesterId}" 
+            : "courses:lecturer:{$lecturerId}";
+        
+        return Cache::remember($cacheKey, 1800, function() use ($lecturerId, $semesterId) {
+            return $this->courseRepository->getByLecturer($lecturerId, $semesterId);
+        });
     }
 
     /**
@@ -66,7 +75,9 @@ class CourseService
      */
     public function getActiveCoursesByLecturer(int $lecturerId): Collection
     {
-        return $this->courseRepository->getActiveCoursesByLecturer($lecturerId);
+        return Cache::remember("courses:active:lecturer:{$lecturerId}", 1800, function() use ($lecturerId) {
+            return $this->courseRepository->getActiveCoursesByLecturer($lecturerId);
+        });
     }
 
     /**
@@ -80,11 +91,11 @@ class CourseService
             // Tạo môn học
             $course = $this->courseRepository->create($data);
 
-            Log::info('Course created', [
+            /* Log::info('Course created', [
                 'course_id' => $course->id,
                 'code' => $course->code,
                 'name' => $course->name,
-            ]);
+            ]); */
 
             // Tự động tạo lịch điểm danh nếu được yêu cầu
             if ($generateSessions && !empty($data['schedule_days'])) {
@@ -92,6 +103,9 @@ class CourseService
             }
 
             DB::commit();
+
+            // Clear cache khi tạo môn học mới
+            $this->clearCourseCache($course->id, $course->lecturer_id, $course->semester_id);
 
             return $course->fresh(['semester', 'lecturer', 'sessions']);
 
@@ -110,10 +124,26 @@ class CourseService
      */
     public function updateCourse(int $id, array $data): bool
     {
+        $oldCourse = $this->courseRepository->findById($id);
         $result = $this->courseRepository->update($id, $data);
 
-        if ($result) {
-            Log::info('Course updated', ['course_id' => $id]);
+        if ($result && $oldCourse) {
+            /* Log::info('Course updated', ['course_id' => $id]); */
+            
+            // Xóa cache cho thông tin cũ
+            $this->clearCourseCache($id, $oldCourse->lecturer_id, $oldCourse->semester_id);
+            
+            // Nếu có thay đổi GV hoặc học kỳ, xóa thêm cache cho thông tin mới
+            if (
+                (isset($data['lecturer_id']) && $data['lecturer_id'] != $oldCourse->lecturer_id) ||
+                (isset($data['semester_id']) && $data['semester_id'] != $oldCourse->semester_id)
+            ) {
+                $this->clearCourseCache(
+                    $id, 
+                    $data['lecturer_id'] ?? $oldCourse->lecturer_id, 
+                    $data['semester_id'] ?? $oldCourse->semester_id
+                );
+            }
         }
 
         return $result;
@@ -130,10 +160,15 @@ class CourseService
             return false;
         }
 
+        $lecturerId = $course->lecturer_id;
+        $semesterId = $course->semester_id;
+
         $result = $this->courseRepository->delete($id);
 
         if ($result) {
-            Log::info('Course deleted', ['course_id' => $id]);
+            /* Log::info('Course deleted', ['course_id' => $id]); */
+            // Clear cache khi xóa
+            $this->clearCourseCache($id, $lecturerId, $semesterId);
         }
 
         return $result;
@@ -196,10 +231,10 @@ class CourseService
             'total_sessions' => count($sessions),
         ]);
 
-        Log::info('Sessions generated for course', [
+        /* Log::info('Sessions generated for course', [
             'course_id' => $course->id,
             'sessions_count' => count($sessions),
-        ]);
+        ]); */
 
         return count($sessions);
     }
@@ -231,7 +266,9 @@ class CourseService
      */
     public function getCourseStudents(int $courseId): Collection
     {
-        return $this->enrollmentRepository->getActiveStudentsByCourse($courseId);
+        return Cache::remember("courses:{$courseId}:students", 1800, function() use ($courseId) {
+            return $this->enrollmentRepository->getActiveStudentsByCourse($courseId);
+        });
     }
 
     /**
@@ -247,31 +284,55 @@ class CourseService
      */
     public function getCourseStatistics(int $courseId): array
     {
-        $course = $this->courseRepository->findById($courseId);
-        
-        if (!$course) {
-            throw new \Exception('Không tìm thấy môn học');
+        return Cache::remember("courses:{$courseId}:statistics", 900, function() use ($courseId) {
+            $course = $this->courseRepository->findById($courseId);
+            
+            if (!$course) {
+                throw new \Exception('Không tìm thấy môn học');
+            }
+
+            $sessions = $course->sessions;
+            $enrollments = $this->enrollmentRepository->getActiveStudentsByCourse($courseId);
+
+            return [
+                'course' => [
+                    'id' => $course->id,
+                    'code' => $course->code,
+                    'name' => $course->name,
+                    'max_absences' => $course->max_absences,
+                ],
+                'sessions' => [
+                    'total' => $sessions->count(),
+                    'completed' => $sessions->where('status', 'completed')->count(),
+                    'scheduled' => $sessions->where('status', 'scheduled')->count(),
+                    'cancelled' => $sessions->where('status', 'cancelled')->count(),
+                ],
+                'students' => [
+                    'total' => $enrollments->count(),
+                ],
+            ];
+        });
+    }
+
+    /**
+     * Xóa cache liên quan đến môn học
+     */
+    public function clearCourseCache(?int $courseId = null, ?int $lecturerId = null, ?int $semesterId = null): void
+    {
+        // Xóa cache chi tiết môn học
+        if ($courseId) {
+            Cache::forget("courses:{$courseId}");
+            Cache::forget("courses:{$courseId}:students");
+            Cache::forget("courses:{$courseId}:statistics");
         }
 
-        $sessions = $course->sessions;
-        $enrollments = $this->enrollmentRepository->getActiveStudentsByCourse($courseId);
-
-        return [
-            'course' => [
-                'id' => $course->id,
-                'code' => $course->code,
-                'name' => $course->name,
-                'max_absences' => $course->max_absences,
-            ],
-            'sessions' => [
-                'total' => $sessions->count(),
-                'completed' => $sessions->where('status', 'completed')->count(),
-                'scheduled' => $sessions->where('status', 'scheduled')->count(),
-                'cancelled' => $sessions->where('status', 'cancelled')->count(),
-            ],
-            'students' => [
-                'total' => $enrollments->count(),
-            ],
-        ];
+        // Xóa cache theo giảng viên
+        if ($lecturerId) {
+            Cache::forget("courses:lecturer:{$lecturerId}");
+            Cache::forget("courses:active:lecturer:{$lecturerId}");
+            if ($semesterId) {
+                Cache::forget("courses:lecturer:{$lecturerId}:semester:{$semesterId}");
+            }
+        }
     }
 }

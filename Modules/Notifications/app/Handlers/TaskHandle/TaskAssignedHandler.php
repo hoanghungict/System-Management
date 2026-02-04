@@ -27,20 +27,20 @@ class TaskAssignedHandler implements NotificationEventHandler
         $userType = $data['user_type'] ?? 'student';
         $taskName = $data['task_name'] ?? 'Công việc mới';
 
-        Log::info('TaskAssignedHandler: Xử lý giao việc', [
+        /* Log::info('TaskAssignedHandler: Xử lý giao việc', [
             'user_id' => $userId,
             'user_type' => $userType,
             'task_name' => $taskName
-        ]);
+        ]); */
         
         try {
             // Chuẩn bị data cho template từ Kafka message
             $templateData = $this->prepareTemplateData($data);
             
-            Log::info('TaskAssignedHandler: Dữ liệu template từ Kafka message', [
+            /* Log::info('TaskAssignedHandler: Dữ liệu template từ Kafka message', [
                 'template_data' => $templateData,
                 'user_id' => $userId
-            ]);
+            ]); */
 
             // Sử dụng NotificationService để gửi thông báo qua tất cả kênh
             $result = $this->notificationService->sendNotification(
@@ -61,11 +61,11 @@ class TaskAssignedHandler implements NotificationEventHandler
             );
 
             if ($result['success']) {
-                Log::info('TaskAssignedHandler: Gửi thông báo thành công', [
+                /* Log::info('TaskAssignedHandler: Gửi thông báo thành công', [
                     'notification_id' => $result['notification_id'],
                     'user_id' => $userId,
                     'task_name' => $taskName
-                ]);
+                ]); */
             } else {
                 Log::error('TaskAssignedHandler: Gửi thông báo thất bại', [
                     'error' => $result['error'],

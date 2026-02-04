@@ -24,7 +24,6 @@ class SendEmailNotificationJob implements ShouldQueue
         private string $content,
         private string $subject
     ) {
-        $this->onQueue('emails');
     }
 
     public function handle(EmailService $emailService): void

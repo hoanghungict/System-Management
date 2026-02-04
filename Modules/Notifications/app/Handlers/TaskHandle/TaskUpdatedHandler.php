@@ -66,12 +66,12 @@ class TaskUpdatedHandler implements NotificationEventHandler
                 ['priority' => $priority]
             );
 
-            Log::info('Task updated notification sent', [
+            /* Log::info('Task updated notification sent', [
                 'task_id' => $taskId,
                 'receiver_id' => $receiverId,
                 'receiver_type' => $receiverType,
                 'changes' => $changes
-            ]);
+            ]); */
 
         } catch (\Exception $e) {
             Log::error('TaskUpdatedHandler: Failed to send notification', [

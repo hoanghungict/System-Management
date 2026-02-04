@@ -32,7 +32,7 @@ class EnrollmentImportService
      */
     public function validateAllRows(string $filePath, int $courseId): array
     {
-        Log::info('Starting enrollment validation', ['file' => $filePath, 'course_id' => $courseId]);
+        // Log::info('Starting enrollment validation', ['file' => $filePath, 'course_id' => $courseId]);
         try {
             $resolvedPath = $this->getResolvedPath($filePath);
             if (!$resolvedPath) {
@@ -46,12 +46,12 @@ class EnrollmentImportService
                 Log::error('Validation failed: Course not found', ['course_id' => $courseId]);
                 return [['row' => 0, 'error' => 'Môn học không tồn tại']];
             }
-            Log::info('Validation: Course found', ['course_name' => $course->name]);
+            // Log::info('Validation: Course found', ['course_name' => $course->name]);
 
             $spreadsheet = IOFactory::load($resolvedPath);
             $worksheet = $spreadsheet->getActiveSheet();
             $highestRow = $worksheet->getHighestRow();
-            Log::info('Validation: Excel file loaded', ['highest_row' => $highestRow]);
+            // Log::info('Validation: Excel file loaded', ['highest_row' => $highestRow]);
 
 
             // Đọc header row
@@ -62,7 +62,7 @@ class EnrollmentImportService
             }
 
             $headerMap = $this->mapHeaderToIndex($headerRow);
-            Log::info('Validation: Header mapped', ['header_map' => $headerMap]);
+            // Log::info('Validation: Header mapped', ['header_map' => $headerMap]);
             
             if (!isset($headerMap['student_code'])) {
                 Log::error('Validation failed: Missing student_code column');
@@ -76,11 +76,11 @@ class EnrollmentImportService
             for ($row = 2; $row <= $highestRow; $row++) {
                 $rowData = $worksheet->rangeToArray("A{$row}:{$worksheet->getHighestColumn()}{$row}")[0];
                 $enrollmentData = $this->mapExcelRowToEnrollmentData($rowData, $headerMap);
-                Log::debug('Validating row', ['row' => $row, 'data' => $enrollmentData]);
+                // Log::debug('Validating row', ['row' => $row, 'data' => $enrollmentData]);
 
                 // Skip empty rows
                 if (empty($enrollmentData['student_code'])) {
-                    Log::info('Validation: Skipping empty row', ['row' => $row]);
+                    // Log::info('Validation: Skipping empty row', ['row' => $row]);
                     continue;
                 }
 
@@ -104,12 +104,12 @@ class EnrollmentImportService
                     $errors = array_merge($errors, $validationErrors);
                     Log::warning('Validation error found for row', ['row' => $row, 'errors' => $validationErrors]);
                 } else {
-                    Log::info('Validation successful for row', ['row' => $row]);
+                    // Log::info('Validation successful for row', ['row' => $row]);
                 }
             }
 
             if (empty($errors)) {
-                Log::info('Enrollment validation finished successfully with no errors.');
+                // Log::info('Enrollment validation finished successfully with no errors.');
             } else {
                 Log::warning('Enrollment validation finished with errors.', ['error_count' => count($errors)]);
             }
@@ -129,7 +129,7 @@ class EnrollmentImportService
      */
     public function importAllRows(string $filePath, int $courseId, ?ImportJob $importJob = null): array
     {
-        Log::info('Starting enrollment import', ['file' => $filePath, 'course_id' => $courseId]);
+        // Log::info('Starting enrollment import', ['file' => $filePath, 'course_id' => $courseId]);
         DB::beginTransaction();
         try {
             $resolvedPath = $this->getResolvedPath($filePath);
@@ -138,12 +138,12 @@ class EnrollmentImportService
             }
 
             $course = Course::findOrFail($courseId);
-            Log::info('Course found', ['course_name' => $course->name]);
+            // Log::info('Course found', ['course_name' => $course->name]);
 
             $spreadsheet = IOFactory::load($resolvedPath);
             $worksheet = $spreadsheet->getActiveSheet();
             $highestRow = $worksheet->getHighestRow();
-            Log::info('Excel file loaded', ['highest_row' => $highestRow]);
+            // Log::info('Excel file loaded', ['highest_row' => $highestRow]);
 
             // Đọc header
             $headerRow = [];
@@ -153,7 +153,7 @@ class EnrollmentImportService
             }
 
             $headerMap = $this->mapHeaderToIndex($headerRow);
-            Log::info('Header mapped', ['header_map' => $headerMap]);
+            // Log::info('Header mapped', ['header_map' => $headerMap]);
 
             $successCount = 0;
             $skipCount = 0;
@@ -167,12 +167,12 @@ class EnrollmentImportService
 
                 // Skip empty rows
                 if (empty($enrollmentData['student_code'])) {
-                    Log::info('Skipping empty row', ['row' => $row]);
+                    // Log::info('Skipping empty row', ['row' => $row]);
                     continue;
                 }
 
                 $processedRows++;
-                Log::debug('Processing row', ['row' => $row, 'data' => $enrollmentData]);
+                // Log::debug('Processing row', ['row' => $row, 'data' => $enrollmentData]);
 
                 try {
                     // Tìm sinh viên theo mã
@@ -201,7 +201,7 @@ class EnrollmentImportService
 
                     if ($existingEnrollment) {
                         $skipCount++;
-                        Log::info('Student already enrolled, skipping', ['row' => $row, 'student_code' => $enrollmentData['student_code']]);
+                        // Log::info('Student already enrolled, skipping', ['row' => $row, 'student_code' => $enrollmentData['student_code']]);
                         continue;
                     }
 
@@ -215,7 +215,7 @@ class EnrollmentImportService
                     ]);
 
                     $successCount++;
-                    Log::info('Enrollment created successfully', ['row' => $row, 'student_code' => $enrollmentData['student_code']]);
+                    // Log::info('Enrollment created successfully', ['row' => $row, 'student_code' => $enrollmentData['student_code']]);
 
                     // Update progress
                     if ($importJob) {
@@ -274,7 +274,7 @@ class EnrollmentImportService
                 'total_processed' => $processedRows,
             ];
             
-            Log::info('Enrollment import finished successfully', $summary);
+            // Log::info('Enrollment import finished successfully', $summary);
             
             return $summary;
         } catch (\Exception $e) {

@@ -34,12 +34,12 @@ class EnrollmentImportController extends Controller
      */
     public function upload(Request $request, int $courseId): JsonResponse
     {
-        Log::info('Upload debug', [
+        /* Log::info('Upload debug', [
             'has_file' => $request->hasFile('file'),
             'all_files' => array_keys($request->allFiles()),
             'content_type' => $request->header('Content-Type'),
             'course_id' => $courseId,
-        ]);
+        ]); */
         try {
             $request->validate([
                 'file' => 'required|file|mimes:xlsx,xls|max:10240', // Max 10MB
@@ -51,11 +51,11 @@ class EnrollmentImportController extends Controller
                 $filePath = $file->store('imports', 'local');
                 $absolutePath = Storage::disk('local')->path($filePath);
                 
-                Log::info('File stored', [
+                /* Log::info('File stored', [
                     'relative' => $filePath,
                     'absolute' => $absolutePath,
                     'exists'   => file_exists($absolutePath),
-                ]);
+                ]); */
             } catch (\Exception $e) {
                 Log::channel('daily')->error('Lecturer file upload failed', [
                     'error' => $e->getMessage()

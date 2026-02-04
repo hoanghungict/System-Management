@@ -17,6 +17,7 @@
         "psr-4": {
             "Modules\\Notifications\\": "",
             "Modules\\Notifications\\App": "app/",
+            "Modules\\Notifications\\app": "app/",
             "Modules\\Notifications\\Database\\Factories\\": "database/factories/",
             "Modules\\Notifications\\Database\\Seeders\\": "database/seeders/"
         }

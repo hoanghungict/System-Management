@@ -1,50 +1,58 @@
-# Sử dụng PHP 8.3 FPM làm base image
-FROM php:8.3-fpm
+# =======================
+# STAGE 1: Vendor
+# =======================
+FROM php:8.3-cli AS vendor
 
-# Cài các extension cần thiết
+# System deps + PHP extensions (GIỐNG runtime)
 RUN apt-get update && apt-get install -y \
-    libpng-dev \
-    libjpeg-dev \
-    libfreetype6-dev \
-    libonig-dev \
-    libxml2-dev \
-    librdkafka-dev \
-    libssl-dev \
-    zlib1g-dev \
-    libzstd-dev \
-    libzip-dev \
-    pkg-config \
-    build-essential \
-    zip \
-    unzip \
-    git \
-    curl \
-    libicu-dev \
-    && docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install \
-        pdo \
-        pdo_mysql \
-        gd \
-        mbstring \
-        exif \
-        pcntl \
-        bcmath \
-        opcache \
-        intl \
-        zip \
-    && yes "" | pecl install -f rdkafka \
-    && docker-php-ext-enable rdkafka
+    libpng-dev libjpeg-dev libfreetype6-dev \
+    libonig-dev libxml2-dev libzip-dev libicu-dev \
+    librdkafka-dev zip unzip git curl \
+ && docker-php-ext-configure gd --with-freetype --with-jpeg \
+ && docker-php-ext-install \
+    gd mbstring intl zip bcmath pcntl \
+ && pecl install rdkafka \
+ && docker-php-ext-enable rdkafka \
+ && rm -rf /var/lib/apt/lists/*
 
-# Cài Composer
+# Composer
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
-# Thiết lập thư mục làm việc
+WORKDIR /app
+COPY composer.json composer.lock ./
+
+RUN composer install \
+    --no-dev \
+    --prefer-dist \
+    --optimize-autoloader \
+    --classmap-authoritative \
+    --no-scripts
+# =======================
+# STAGE 2: Runtime
+# =======================
+FROM php:8.3-fpm
+
+RUN apt-get update && apt-get install -y \
+    libpng-dev libjpeg-dev libfreetype6-dev \
+    libonig-dev libxml2-dev libzip-dev libicu-dev \
+    librdkafka-dev zip unzip curl git \
+ && docker-php-ext-configure gd --with-freetype --with-jpeg \
+ && docker-php-ext-install \
+    pdo pdo_mysql gd mbstring bcmath intl zip opcache \
+ && pecl install rdkafka \
+ && docker-php-ext-enable rdkafka \
+ && rm -rf /var/lib/apt/lists/*
+
+# Composer
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+
 WORKDIR /var/www
-
-# Copy toàn bộ code vào container
 COPY . .
+COPY --from=vendor /app/vendor ./vendor
 
-# Phân quyền (cho Laravel storage, bootstrap/cache)
-RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
+RUN mkdir -p storage bootstrap/cache \
+ && chown -R www-data:www-data storage bootstrap/cache vendor
 
+USER www-data
 CMD ["php-fpm"]
+

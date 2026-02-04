@@ -1,156 +1,136 @@
 services:
-    app:
-        build:
-            context: .
-            dockerfile: Dockerfile
-        container_name: hpc_app
-        restart: unless-stopped
-        working_dir: /var/www
-        volumes:
-            - .:/var/www
-        networks:
-            - hpc_network
+  # =========================
+  # PHP-FPM (API)
+  # =========================
+  app:
+    image: hpc_app:latest
+    build:
+      context: .
+    container_name: hpc_app
+    restart: unless-stopped
+    working_dir: /var/www
+    env_file:
+      - .env
+    mem_limit: 768m
+    networks:
+      - hpc_network
 
-    webserver:
-        image: nginx:alpine
-        container_name: hpc_web
-        restart: unless-stopped
-        ports:
-            - "8080:80"
-        volumes:
-            - .:/var/www
-            - ./nginx.conf:/etc/nginx/conf.d/default.conf
-        depends_on:
-            - app
-        networks:
-            - hpc_network
+  # =========================
+  # NGINX
+  # =========================
+  webserver:
+    image: nginx:alpine
+    container_name: hpc_web
+    restart: unless-stopped
+    ports:
+      - "8082:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - app
+    mem_limit: 128m
+    networks:
+      - hpc_network
 
-    db:
-        image: mysql:8.0
-        container_name: hpc_db
-        restart: unless-stopped
-        environment:
-            MYSQL_ROOT_PASSWORD: root
-            MYSQL_DATABASE: system_services
-            MYSQL_USER: system_services
-            MYSQL_PASSWORD: hpc123
-        ports:
-            - "3307:3306"
-            - "3307:3306"
-        volumes:
-            - db_data:/var/lib/mysql
-        networks:
-            - hpc_network
+  # =========================
+  # MYSQL
+  # =========================
+  db:
+    image: mysql:8.0
+    container_name: hpc_db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: system_services
+      MYSQL_USER: system_services
+      MYSQL_PASSWORD: hpc123
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./my.cnf:/etc/mysql/conf.d/my.cnf:ro
+    mem_limit: 768m
+    networks:
+      - hpc_network
 
-    redis:
-        image: redis:alpine
-        container_name: hpc_redis
-        restart: unless-stopped
-        ports:
-            - "6380:6379"
-        networks:
-            - hpc_network
+  # =========================
+  # REDIS
+  # =========================
+  redis:
+    image: redis:alpine
+    container_name: hpc_redis
+    restart: unless-stopped
+    mem_limit: 128m
+    networks:
+      - hpc_network
 
-    reverb:
-        build:
-            context: .
-            dockerfile: Dockerfile
-        container_name: hpc_reverb
-        command: php artisan reverb:start
-        working_dir: /var/www
-        volumes:
-            - .:/var/www
-        depends_on:
-            - app
-            - redis
-        ports:
-            - "8081:8080"
-        networks:
-            - hpc_network
+  # =========================
+  # QUEUE WORKER
+  # =========================
+  queue:
+    image: hpc_app:latest
+    container_name: hpc_queue
+    restart: unless-stopped
+    command: php artisan queue:work --sleep=3 --tries=3 --timeout=90
+    env_file:
+      - .env
+    depends_on:
+      - redis
+    mem_limit: 256m
+    networks:
+      - hpc_network
 
-    zookeeper:
-        image: confluentinc/cp-zookeeper:latest
-        container_name: hpc_zookeeper
-        restart: unless-stopped
-        environment:
-            ZOOKEEPER_CLIENT_PORT: 2181
-            ZOOKEEPER_TICK_TIME: 2000
-        ports:
-            - "2181:2181"
-        networks:
-            - hpc_network
+  # =========================
+  # ZOOKEEPER
+  # =========================
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.3
+    container_name: hpc_zookeeper
+    restart: unless-stopped
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+    mem_limit: 256m
+    networks:
+      - hpc_network
 
-    kafka:
-        image: confluentinc/cp-kafka:6.2.10
-        container_name: hpc_kafka
-        restart: unless-stopped
-        depends_on:
-            - zookeeper
-        ports:
-            - "9092:9092"
-        environment:
-            KAFKA_BROKER_ID: 1
-            KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-            KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
-            KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
-            KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
-            KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-            KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
-            KAFKA_NUM_PARTITIONS: 3
-            KAFKA_DEFAULT_REPLICATION_FACTOR: 1
-        networks:
-            - hpc_network
+  # =========================
+  # KAFKA
+  # =========================
+  kafka:
+    image: confluentinc/cp-kafka:7.5.3
+    container_name: hpc_kafka
+    restart: unless-stopped
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_HEAP_OPTS: "-Xms256M -Xmx512M"
+    mem_limit: 768m
+    networks:
+      - hpc_network
 
-    queue:
-        build:
-            context: .
-            dockerfile: Dockerfile
-        container_name: hpc_queue
-        restart: unless-stopped
-        working_dir: /var/www
-        volumes:
-            - .:/var/www
-        command: php artisan queue:work --queue=emails --verbose --tries=3 --timeout=90
-        depends_on:
-            - app
-            - redis
-        networks:
-            - hpc_network
-
-    queue_default:
-        build:
-            context: .
-            dockerfile: Dockerfile
-        container_name: hpc_queue_default
-        restart: unless-stopped
-        working_dir: /var/www
-        volumes:
-            - .:/var/www
-        command: php artisan queue:work --verbose --tries=3 --timeout=90
-        depends_on:
-            - app
-            - redis
-        networks:
-            - hpc_network
-
-    kafka_consumer:
-        build:
-            context: .
-            dockerfile: Dockerfile
-        container_name: hpc_kafka_consumer
-        restart: unless-stopped
-        working_dir: /var/www
-        volumes:
-            - .:/var/www
-        command: php artisan kafka:consume
-        depends_on:
-            - app
-            - kafka
-        networks:
-            - hpc_network
+  # =========================
+  # KAFKA CONSUMER
+  # =========================
+  kafka_consumer:
+    image: hpc_app:latest
+    container_name: hpc_kafka_consumer
+    restart: unless-stopped
+    command: php artisan kafka:consume
+    env_file:
+      - .env
+    depends_on:
+      - kafka
+    mem_limit: 256m
+    networks:
+      - hpc_network
 
 networks:
-    hpc_network:
+  hpc_network:
 
 volumes:
-    db_data:
+  db_data:

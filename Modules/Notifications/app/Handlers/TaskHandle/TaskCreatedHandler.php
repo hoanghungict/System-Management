@@ -66,11 +66,11 @@ class TaskCreatedHandler implements NotificationEventHandler
                 ['priority' => $priority === 'high' ? 'high' : 'normal']
             );
 
-            Log::info('Task created notification sent', [
+            /* Log::info('Task created notification sent', [
                 'task_id' => $taskId,
                 'receiver_id' => $receiverId,
                 'receiver_type' => $receiverType
-            ]);
+            ]); */
 
         } catch (\Exception $e) {
             Log::error('TaskCreatedHandler: Failed to send notification', [

@@ -12,6 +12,10 @@ class JwtMiddleware
 {
     /**
      * Handle an incoming request.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
+     * @return \Symfony\Component\HttpFoundation\Response
      */
     public function handle(Request $request, Closure $next): Response
     {
@@ -47,12 +51,13 @@ class JwtMiddleware
             $request->attributes->set('jwt_user_id', $decoded->sub);
             $request->attributes->set('jwt_user_type', $decoded->user_type ?? null);
 
-            return $next($request);
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Token không hợp lệ',
                 'error' => $e->getMessage()
             ], 401);
         }
+
+        return $next($request);
     }
 }

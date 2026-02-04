@@ -7,6 +7,7 @@ use Modules\Auth\app\Http\Controllers\AttendanceController\AttendanceController;
 use Modules\Auth\app\Http\Controllers\AttendanceController\AdminAttendanceController;
 use Modules\Auth\app\Http\Controllers\AttendanceController\EnrollmentController;
 use Modules\Auth\app\Http\Controllers\AttendanceController\EnrollmentImportController;
+use Modules\Auth\app\Http\Controllers\AttendanceController\ExportController;
 
 /*
 |--------------------------------------------------------------------------
@@ -74,6 +75,16 @@ Route::prefix('v1/attendance')->group(function () {
         Route::put('/admin/attendances/{attendanceId}', [AdminAttendanceController::class, 'updateAttendance']);
         Route::put('/admin/sessions/{sessionId}', [AdminAttendanceController::class, 'updateSession']);
         Route::post('/admin/sessions/{sessionId}/reopen', [AdminAttendanceController::class, 'reopenSession']);
+    });
+
+    // =====================================================================
+    // SHARED ROUTES (Admin & Lecturer) - Các chức năng chung
+    // =====================================================================
+    Route::middleware(['jwt'])->group(function () {
+        // ----- EXPORT EXCEL -----
+        // Chuyển ra ngoài group admin để Lecturer cũng có thể export dữ liệu của mình
+        Route::get('/courses/{courseId}/export-excel', [ExportController::class, 'exportCourseAttendance']);
+        Route::get('/semester-timeline/export-excel', [ExportController::class, 'exportSemesterTimeline']);
     });
 
     // =====================================================================

@@ -42,7 +42,7 @@ class AttendanceController extends Controller
 
             // Log để debug
             $attendancesCount = $session->attendances ? $session->attendances->count() : 0;
-            Log::info('Getting session details', [
+            /* Log::info('Getting session details', [
                 'session_id' => $sessionId,
                 'course_id' => $session->course_id,
                 'status' => $session->status,
@@ -53,16 +53,16 @@ class AttendanceController extends Controller
                     'student_id' => $session->attendances->first()->student_id,
                     'status' => $session->attendances->first()->status,
                 ] : null,
-            ]);
+            ]); */
 
             // Đảm bảo attendances được serialize
             $sessionData = $session->toArray();
             
-            Log::info('Session data to return', [
+            /* Log::info('Session data to return', [
                 'session_id' => $sessionId,
                 'has_attendances_key' => isset($sessionData['attendances']),
                 'attendances_count_in_array' => isset($sessionData['attendances']) ? count($sessionData['attendances']) : 0,
-            ]);
+            ]); */
 
             return response()->json([
                 'success' => true,

@@ -101,11 +101,11 @@ class AdminAttendanceController extends Controller
             $session = \Modules\Auth\app\Models\Attendance\AttendanceSession::findOrFail($sessionId);
             $session->update($data);
 
-            Log::info('Admin updated session', [
+            /* Log::info('Admin updated session', [
                 'session_id' => $sessionId,
                 'admin_id' => $request->user()->id,
                 'data' => $data,
-            ]);
+            ]); */
 
             return response()->json([
                 'success' => true,
@@ -144,10 +144,10 @@ class AdminAttendanceController extends Controller
                 'completed_at' => null,
             ]);
 
-            Log::info('Admin reopened session', [
+            /* Log::info('Admin reopened session', [
                 'session_id' => $sessionId,
                 'admin_id' => $request->user()->id,
-            ]);
+            ]); */
 
             return response()->json([
                 'success' => true,

@@ -22,10 +22,10 @@ class TaskDeadlineReminderHandler implements NotificationEventHandler
     public function handle(string $channel, array $data): void
     {
         try {
-            Log::info('TaskDeadlineReminderHandler: Processing reminder', [
+            /* Log::info('TaskDeadlineReminderHandler: Processing reminder', [
                 'channel' => $channel,
                 'data' => $data
-            ]);
+            ]); */
 
             // Validate required data
             if (!isset($data['user_id'], $data['task_id'], $data['reminder_time'])) {
@@ -62,11 +62,11 @@ class TaskDeadlineReminderHandler implements NotificationEventHandler
             );
 
             if ($result['success']) {
-                Log::info('TaskDeadlineReminderHandler: Reminder sent successfully', [
+                /* Log::info('TaskDeadlineReminderHandler: Reminder sent successfully', [
                     'notification_id' => $result['notification_id'],
                     'user_id' => $userId,
                     'task_id' => $taskId
-                ]);
+                ]); */
             } else {
                 Log::error('TaskDeadlineReminderHandler: Failed to send reminder', [
                     'error' => $result['error'],

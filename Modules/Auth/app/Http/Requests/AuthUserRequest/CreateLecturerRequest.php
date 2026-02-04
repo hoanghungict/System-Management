@@ -28,7 +28,10 @@ class CreateLecturerRequest extends FormRequest
             'lecturer_code' => 'required|string|unique:lecturer,lecturer_code',
             'department_id' => 'required|exists:department,id',
             'birth_date' => 'nullable|date',
-            'experience_number' => 'nullable|integer|min:0|max:50'
+            'experience_number' => 'nullable|integer|min:0|max:50',
+            'bang_cap' => 'nullable|string|max:255',
+            'ngay_bat_dau_lam_viec' => 'nullable|date',
+            'hinh_anh' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048'
         ];
     }
 
