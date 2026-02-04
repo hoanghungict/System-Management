@@ -35,7 +35,7 @@ class AdminSeeder extends Seeder
             ->where('lecturer_code', 'GV001')
             ->orWhere('email', 'admin@system.com')
             ->first();
-            
+
         if (!$lecturer) {
             $lecturerId = DB::table('lecturer')->insertGetId([
                 'full_name' => 'Admin System',
@@ -82,7 +82,7 @@ class AdminSeeder extends Seeder
             ->where('student_code', 'SV001')
             ->orWhere('email', 'sinhvien@test.com')
             ->first();
-            
+
         if (!$student) {
             $studentId = DB::table('student')->insertGetId([
                 'full_name' => 'Sinh Viên Mẫu',
@@ -111,7 +111,7 @@ class AdminSeeder extends Seeder
         }
 
         // --- NEW: Create Semester and Database Course for Lecturer ---
-        
+
         // 1. Create Semester
         $semester = DB::table('semesters')->where('code', 'HK1-2425')->first();
         if (!$semester) {
@@ -156,5 +156,82 @@ class AdminSeeder extends Seeder
         $this->command->info('👤 Sinh viên: username=sv_sv001, password=123456');
         $this->command->info('🏫 Đơn vị: Khoa Công nghệ Thông tin');
         $this->command->info('📚 Lớp: CNTT K65');
+
+
+    // Them user nha vanh
+        $teachers = [
+            ['name' => 'Nguyễn Hoài Linh', 'code' => 'thay_linh', 'email' => 'thayling@system.com'],
+            ['name' => 'Hoàng Ngọc Hưng',   'code' => 'thay_hung', 'email' => 'thayhung@system.com'],
+            ['name' => 'Nguyễn Tuấn Anh',     'code' => 'thay_tuan_anh', 'email' => 'thaytuananh@system.com'],
+        ];
+
+        foreach ($teachers as $t) {
+            $lec = DB::table('lecturer')->where('lecturer_code', $t['code'])->first();
+            if (!$lec) {
+                $lecId = DB::table('lecturer')->insertGetId([
+                    'full_name'     => $t['name'],
+                    'gender'        => 'male',
+                    'address'       => 'Hà Nội',
+                    'email'         => $t['email'],
+                    'phone'         => '0900000000',
+                    'lecturer_code' => $t['code'],
+                    'department_id' => $unitId, // Khoa CNTT
+                ]);
+            } else {
+                $lecId = $lec->id;
+            }
+
+            $username = strtolower($t['code']);
+            $acc = DB::table('lecturer_account')->where('username', $username)->first();
+            if (!$acc) {
+                DB::table('lecturer_account')->insert([
+                    'lecturer_id' => $lecId,
+                    'username'    => $username,
+                    'password'    => Hash::make('123456'),
+                    'is_admin'    => 0,
+                ]);
+            }
+        }
+        $this->command->info('✅ Đã thêm 3 Giảng viên (thay_ling, thay_hung, thay_tuan_anh) / Pass: 123456');
+
+        $students = [
+            ['name' => 'Đỗ Văn Anh',    'code' => 'van_anh', 'email' => 'vananh@test.com'],
+            ['name' => 'Dương Đức Anh',     'code' => 'duc_anh', 'email' => 'ducanh@test.com'],
+            ['name' => 'Nguyễn Ngọc Lâm',      'code' => 'ngoc_lam', 'email' => 'ngoclam@test.com'],
+            ['name' => 'Vũ Xuân Nam',     'code' => 'xuan_nam', 'email' => 'xuannam@test.com'],
+            ['name' => 'Dư Văn Độ',   'code' => 'van_do', 'email' => 'vando@test.com'],
+            ['name' => 'Nguyễn Ngọc Hiếu',      'code' => 'ngoc_hieu', 'email' => 'ngochieu@test.com'],
+        ];
+
+        foreach ($students as $s) {
+            $stu = DB::table('student')->where('student_code', $s['code'])->first();
+            if (!$stu) {
+                $stuId = DB::table('student')->insertGetId([
+                    'full_name'    => $s['name'],
+                    'birth_date'   => '2005-01-01',
+                    'gender'       => 'male',
+                    'address'      => 'Hà Nội',
+                    'email'        => $s['email'],
+                    'phone'        => '0912345678',
+                    'student_code' => $s['code'],
+                    'class_id'     => $classId, // Assign to same class (CNTT K65)
+                    'created_at'   => now(),
+                    'updated_at'   => now()
+                ]);
+            } else {
+                $stuId = $stu->id;
+            }
+
+            $username = strtolower($s['code']);
+            $acc = DB::table('student_account')->where('username', $username)->first();
+            if (!$acc) {
+                DB::table('student_account')->insert([
+                    'student_id' => $stuId,
+                    'username'   => $username,
+                    'password'   => Hash::make('123456'),
+                ]);
+            }
+        }
+        $this->command->info('✅ Đã thêm 6 Sinh viên (van_anh, duc_anh, ngoc_lam, xuan_name, van_do, ngoc_hieu) / Pass: 123456');
     }
 }
