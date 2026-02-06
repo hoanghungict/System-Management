@@ -40,13 +40,13 @@ class CreateTaskWithPermissionsUseCase
             $task = $this->createTaskUseCase->execute($taskData);
             
             // Log success
-            Log::info('Task created successfully with permissions via UseCase', [
+            /* Log::info('Task created successfully with permissions via UseCase', [
                 'user_id' => $user->id,
                 'user_type' => $user->user_type ?? 'unknown',
                 'task_id' => $task->id,
                 'title' => $task->title,
                 'creator_id' => $task->creator_id
-            ]);
+            ]); */
             
             return $task;
         } catch (\Exception $e) {

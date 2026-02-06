@@ -240,7 +240,14 @@ class ClassController extends Controller
     public function getMyClasses(Request $request): JsonResponse
     {
         try {
-            $lecturerId = $request->attributes->get('jwt_user_id') ?? ($request->user() ? $request->user()->id : null);
+            $user = $request->user();
+            $lecturerId = $user ? ($user->lecturer_id ?? $user->id) : ($request->attributes->get('jwt_user_id'));
+            
+            // Debug to file
+            $debugInfo = "Time: " . date('H:i:s') . "\n";
+            $debugInfo .= "User ID: " . ($user ? $user->id : 'null') . "\n";
+            $debugInfo .= "Lecturer ID (Account): " . ($user ? $user->lecturer_id : 'null') . "\n";
+            $debugInfo .= "Resolved Lecturer ID: " . $lecturerId . "\n";
             
             if (!$lecturerId) {
                  return response()->json([
@@ -248,22 +255,15 @@ class ClassController extends Controller
                 ], 401);
             }
             
-            // Try to get from cache first
-            $cacheKey = "auth:classes:lecturer:{$lecturerId}";
-            $cachedClasses = Cache::get($cacheKey);
-            
-            if ($cachedClasses) {
-                 return response()->json([
-                    'message' => 'Danh sách lớp theo giảng viên (from cache)',
-                    'data' => ClassResource::collection($cachedClasses),
-                    'source' => 'cache'
-                ]);
-            }
+            // FORCE DISABLE CACHE
+            // $cacheKey = "auth:classes:lecturer:{$lecturerId}";
+            // $cachedClasses = Cache::get($cacheKey);
+            // if ($cachedClasses) { ... }
 
             $classes = $this->classService->getClassesByLecturer($lecturerId);
             
              // Cache for 1 hour (3600 seconds)
-            Cache::put($cacheKey, $classes, 3600);
+            // Cache::put($cacheKey, $classes, 3600);
             
             return response()->json([
                 'message' => 'Danh sách lớp theo giảng viên',

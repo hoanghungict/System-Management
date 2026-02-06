@@ -26,13 +26,28 @@ class StudentExamController extends Controller
 
     /**
      * Lấy danh sách đề thi có thể làm
+     * - Đề thi không có course_id (public) = hiển thị cho tất cả sinh viên
+     * - Đề thi có course_id = chỉ hiển thị cho sinh viên đã đăng ký môn đó
      */
     public function index(Request $request): JsonResponse
     {
         $studentId = $request->attributes->get('jwt_user_id') ?? ($request->user() ? $request->user()->id : null);
 
-        // Lấy các đề thi đang active
+        // Lấy danh sách course_id mà sinh viên đã đăng ký (status = active)
+        $enrolledCourseIds = DB::table('course_enrollments')
+            ->where('student_id', $studentId)
+            ->where('status', 'active')
+            ->pluck('course_id')
+            ->toArray();
+
+        // Lấy các đề thi đang active:
+        // 1. Đề thi không có course_id (public) - hiển thị cho tất cả
+        // 2. Đề thi có course_id thuộc môn đã đăng ký
         $exams = Exam::active()
+            ->where(function($query) use ($enrolledCourseIds) {
+                $query->whereNull('course_id') // Public exams
+                    ->orWhereIn('course_id', $enrolledCourseIds); // Enrolled course exams
+            })
             ->with(['course:id,name,code', 'lecturer:id,full_name'])
             ->withCount(['submissions as my_attempts' => function ($q) use ($studentId) {
                 $q->where('student_id', $studentId);
@@ -48,6 +63,7 @@ class StudentExamController extends Controller
 
     /**
      * Chi tiết đề thi (trước khi bắt đầu)
+     * Kiểm tra sinh viên đã đăng ký môn học
      */
     public function show(Request $request, int $id): JsonResponse
     {
@@ -59,6 +75,19 @@ class StudentExamController extends Controller
 
         if (!$exam) {
             return response()->json(['success' => false, 'message' => 'Đề thi không tồn tại hoặc chưa mở'], 404);
+        }
+
+        // Kiểm tra sinh viên có đăng ký môn học này không (chỉ khi exam có course_id)
+        if ($exam->course_id) {
+            $isEnrolled = DB::table('course_enrollments')
+                ->where('student_id', $studentId)
+                ->where('course_id', $exam->course_id)
+                ->where('status', 'active')
+                ->exists();
+
+            if (!$isEnrolled) {
+                return response()->json(['success' => false, 'message' => 'Bạn chưa đăng ký môn học này'], 403);
+            }
         }
 
         // Lấy các lần làm bài của sinh viên
@@ -88,6 +117,7 @@ class StudentExamController extends Controller
 
     /**
      * Bắt đầu làm bài thi
+     * Kiểm tra sinh viên đã đăng ký môn học
      */
     public function start(Request $request, int $id): JsonResponse
     {
@@ -97,6 +127,19 @@ class StudentExamController extends Controller
 
         if (!$exam) {
             return response()->json(['success' => false, 'message' => 'Đề thi không tồn tại hoặc chưa mở'], 404);
+        }
+
+        // Kiểm tra sinh viên có đăng ký môn học này không (chỉ khi exam có course_id)
+        if ($exam->course_id) {
+            $isEnrolled = DB::table('course_enrollments')
+                ->where('student_id', $studentId)
+                ->where('course_id', $exam->course_id)
+                ->where('status', 'active')
+                ->exists();
+
+            if (!$isEnrolled) {
+                return response()->json(['success' => false, 'message' => 'Bạn chưa đăng ký môn học này'], 403);
+            }
         }
 
         // Kiểm tra có đang làm dở không
@@ -141,6 +184,9 @@ class StudentExamController extends Controller
                     'started_at' => now(),
                     'status' => 'in_progress',
                 ]);
+
+                // Dispatch realtime event
+                \Modules\Task\app\Events\ExamSubmissionCreated::dispatch($submission);
 
                 return $this->returnSubmissionWithQuestions($submission, 'Bắt đầu làm bài');
             });
@@ -203,8 +249,32 @@ class StudentExamController extends Controller
             ->with('exam')
             ->first();
 
+        // Nếu không tìm thấy bài đang làm, kiểm tra xem đã nộp chưa
         if (!$submission) {
-            return response()->json(['success' => false, 'message' => 'Bài làm không tồn tại'], 404);
+            $submittedSubmission = ExamSubmission::where('id', $submissionId)
+                ->where('student_id', $studentId)
+                ->whereIn('status', ['submitted', 'graded'])
+                ->with('exam')
+                ->first();
+            
+            if ($submittedSubmission) {
+                 // Nếu đã nộp rồi, trả về kết quả luôn
+                 if ($submittedSubmission->exam->show_answers_after_submit) {
+                    return $this->getResult($request, $submissionId);
+                }
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Bài thi đã được nộp trước đó',
+                    'data' => [
+                        'total_score' => $submittedSubmission->total_score,
+                        'correct_count' => $submittedSubmission->correct_count,
+                        'wrong_count' => $submittedSubmission->wrong_count,
+                        'unanswered_count' => $submittedSubmission->unanswered_count,
+                    ]
+                ]);
+            }
+
+            return response()->json(['success' => false, 'message' => 'Bài làm không tồn tại hoặc đã kết thúc'], 404);
         }
 
         // Lưu câu trả lời cuối cùng nếu có

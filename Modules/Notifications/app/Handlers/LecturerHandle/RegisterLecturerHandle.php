@@ -19,10 +19,10 @@ class RegisterLecturerHandle implements NotificationEventHandler {
 
     public function handle(string $channel, array $data): void
     {
-        Log::info('RegisterLecturerHandle: Bắt đầu xử lý', [
+        /* Log::info('RegisterLecturerHandle: Bắt đầu xử lý', [
             'channel' => $channel,
             'data' => $data
-        ]);
+        ]); */
 
         if(!isset($data['user_id'])) {
             Log::warning('RegisterLecturerHandle: Thiếu user_id trong dữ liệu', ['data' => $data]);
@@ -33,18 +33,18 @@ class RegisterLecturerHandle implements NotificationEventHandler {
         $user_name = $data['user_name'] ?? 'Sinh viên mới';
         
 
-        Log::info('RegisterLecturerHandle: Xử lý đăng ký sinh viên', [
+        /* Log::info('RegisterLecturerHandle: Xử lý đăng ký sinh viên', [
             'user_id' => $userId,
             'user_name' => $user_name
-        ]);
+        ]); */
 
         try {
             $templateData = $this->prepareTemplateData($data);
 
-            Log::info('RegisterLecturerHandle: Dữ liệu template từ Kafka message', [
+            /* Log::info('RegisterLecturerHandle: Dữ liệu template từ Kafka message', [
                 'template_data' => $templateData,
                 'user_id' => $userId
-            ]);
+            ]); */
             $result = $this->notificationService->sendNotification(
                 'lecturer_account_created',
                 [
@@ -62,10 +62,10 @@ class RegisterLecturerHandle implements NotificationEventHandler {
             );
 
             if ($result['success']) {
-                Log::info('RegisterLecturerHandle: Gửi thông báo thành công', [
+                /* Log::info('RegisterLecturerHandle: Gửi thông báo thành công', [
                     'notification_id' => $result['notification_id'],
                     'user_id' => $userId
-                ]);
+                ]); */
             }
             else {
                 Log::error('RegisterLecturerHandle: Gửi thông báo thất bại', [

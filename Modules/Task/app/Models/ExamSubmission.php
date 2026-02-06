@@ -64,7 +64,17 @@ class ExamSubmission extends Model
         'is_time_limit_exceeded',
         'final_score',
         'auto_score',
+        'anti_cheat_violations_count',
+        'score', // ✅ Standardized score attribute
     ];
+
+    /**
+     * Standardized score accessor (alias for final_score)
+     */
+    public function getScoreAttribute(): float
+    {
+        return $this->final_score;
+    }
 
     // ========== Relationships ==========
 
@@ -167,6 +177,14 @@ class ExamSubmission extends Model
     public function getAutoScoreAttribute(): float
     {
         return (float) ($this->total_score ?? 0);
+    }
+
+    /**
+     * Get unique violations count
+     */
+    public function getAntiCheatViolationsCountAttribute(): int
+    {
+        return is_array($this->anti_cheat_violations) ? count($this->anti_cheat_violations) : 0;
     }
 
     // ========== Methods ==========

@@ -74,7 +74,7 @@ class FileRepository implements FileRepositoryInterface
         try {
             // TODO: Implement actual file deletion logic
             // For now, return true
-            Log::info("File deleted: {$fileId}");
+            // Log::info("File deleted: {$fileId}");
             return true;
         } catch (\Exception $e) {
             Log::error("Error deleting task file: " . $e->getMessage());

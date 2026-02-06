@@ -14,22 +14,22 @@ class KafkaRouterService
         $config = (array) config('kafka_handle', []);
         $map = (array) ($config['handlers'] ?? $config); // Đọc từ 'handlers' key hoặc toàn bộ config
 
-        Log::info('Router debug', [
+        /* Log::info('Router debug', [
             'topic' => $topic,
             'config' => $config,
             'map' => $map,
-        ]);
+        ]); */
 
         // Exact match
         if (isset($map[$topic])) {
-            Log::info('Tìm thấy handler cho topic', ['handler' => $map[$topic]]);
+            // Log::info('Tìm thấy handler cho topic', ['handler' => $map[$topic]]);
             return $map[$topic];
         }
 
         // Wildcard match like task.*
         foreach ($map as $pattern => $class) {
             if ($this->topicMatchesPattern($topic, (string) $pattern)) {
-                Log::info('Tìm thấy handler cho pattern', ['pattern' => $pattern, 'handler' => $class]);
+                // Log::info('Tìm thấy handler cho pattern', ['pattern' => $pattern, 'handler' => $class]);
                 return $class;
             }
         }

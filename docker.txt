@@ -167,8 +167,22 @@ docker-compose exec php-fpm ls -la
 
 ### Fix permissions
 ```bash
-docker-compose exec php-fpm chown -R www-data:www-data storage bootstrap/cache
-docker-compose exec php-fpm chmod -R 775 storage bootstrap/cache
+docker-compose exec app chown -R www-data:www-data storage bootstrap/cache
+docker-compose exec app chmod -R 775 storage bootstrap/cache
+```
+
+### ✅ TỰ ĐỘNG FIX PERMISSIONS (ĐÃ CẤU HÌNH)
+**Không cần chạy thủ công nữa!** Hệ thống đã được cấu hình tự động fix permissions mỗi khi container khởi động.
+
+**Cách hoạt động:**
+- `docker/entrypoint.sh` - Script tự động chạy mỗi khi container start
+- Tự động tạo các thư mục cần thiết trong storage/
+- Tự động set ownership và permissions cho www-data
+
+**Nếu vẫn gặp lỗi, rebuild image:**
+```bash
+docker-compose build --no-cache app
+docker-compose up -d
 ```
 
 ## 🔍 DEBUGGING & MONITORING

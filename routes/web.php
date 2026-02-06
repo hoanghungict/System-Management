@@ -56,13 +56,13 @@ Route::withoutMiddleware([
             $filePath = storage_path('app/public/' . $normalizedPath);
             
             // Debug: Always log first
-            \Log::info('Storage file access attempt', [
+            /* \Log::info('Storage file access attempt', [
                 'route_param' => $path,
                 'normalized' => $normalizedPath,
                 'full_path' => $filePath,
                 'exists' => file_exists($filePath),
                 'readable' => is_readable($filePath),
-            ]);
+            ]); */
             
             // Validate file exists
             if (!file_exists($filePath)) {
@@ -107,10 +107,10 @@ Route::withoutMiddleware([
             // Use Storage facade to serve file (more reliable with permissions)
             $relativePath = str_replace(storage_path('app/public/'), '', $filePath);
             
-            \Log::info('Attempting to serve file', [
+            /* \Log::info('Attempting to serve file', [
                 'file_path' => $filePath,
                 'relative_path' => $relativePath,
-            ]);
+            ]); */
             
             // Read file content directly and serve with proper CORS headers
             // This avoids any issues with StreamedResponse

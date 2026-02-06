@@ -159,6 +159,10 @@ Route::middleware(['jwt', 'student'])
             Route::post('exam-submissions/{submissionId}/submit', [\Modules\Task\app\Http\Controllers\Exam\StudentExamController::class, 'submit']);
             Route::get('exam-submissions/{submissionId}/result', [\Modules\Task\app\Http\Controllers\Exam\StudentExamController::class, 'getResult']);
             Route::post('exam-submissions/{submissionId}/violation', [\Modules\Task\app\Http\Controllers\Exam\StudentExamController::class, 'logViolation']);
+            
+            // ================= GRADEBOOK ROUTES =================
+            Route::get('grade-info', [\Modules\Task\app\Http\Controllers\Grade\StudentGradeController::class, 'getStudentInfo']);
+            Route::get('grades', [\Modules\Task\app\Http\Controllers\Grade\StudentGradeController::class, 'getStudentGrades']);
         });
         // ================================================================
     });

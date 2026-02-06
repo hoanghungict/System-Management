@@ -32,7 +32,7 @@ class KafkaProducerService
     {
         if ($this->producer === null) {
             // Kafka disabled in this environment
-            Log::channel('daily')->info('Kafka producer disabled; skipping sending event', ['topic' => $topic]);
+            // Log::channel('daily')->info('Kafka producer disabled; skipping sending event', ['topic' => $topic]);
             return;
         }
 

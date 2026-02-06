@@ -44,10 +44,10 @@ class SemesterService
     {
         $semester = $this->semesterRepository->create($data);
 
-        Log::info('Semester created', [
+        /* Log::info('Semester created', [
             'semester_id' => $semester->id,
             'code' => $semester->code,
-        ]);
+        ]); */
 
         $this->clearCache();
 
@@ -62,7 +62,7 @@ class SemesterService
         $result = $this->semesterRepository->update($id, $data);
 
         if ($result) {
-            Log::info('Semester updated', ['semester_id' => $id]);
+            // Log::info('Semester updated', ['semester_id' => $id]);
             $this->clearCache();
         }
 
@@ -88,7 +88,7 @@ class SemesterService
         $result = $this->semesterRepository->delete($id);
 
         if ($result) {
-            Log::info('Semester deleted', ['semester_id' => $id]);
+            // Log::info('Semester deleted', ['semester_id' => $id]);
             $this->clearCache();
         }
 
@@ -103,7 +103,7 @@ class SemesterService
         $result = $this->semesterRepository->activate($id);
 
         if ($result) {
-            Log::info('Semester activated', ['semester_id' => $id]);
+            // Log::info('Semester activated', ['semester_id' => $id]);
             $this->clearCache();
         }
 

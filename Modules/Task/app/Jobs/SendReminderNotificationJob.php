@@ -48,11 +48,11 @@ class SendReminderNotificationJob implements ShouldQueue
     public function handle(NotificationService $notificationService): void
     {
         try {
-            Log::info('SendReminderNotificationJob: Starting job', [
+            /* Log::info('SendReminderNotificationJob: Starting job', [
                 'reminder_id' => $this->reminderId,
                 'template' => $this->templateName,
                 'recipients_count' => count($this->recipients)
-            ]);
+            ]); */
 
             // Send notification
             $result = $notificationService->sendNotification(
@@ -63,10 +63,10 @@ class SendReminderNotificationJob implements ShouldQueue
             );
 
             if ($result['success']) {
-                Log::info('SendReminderNotificationJob: Notification sent successfully', [
+                /* Log::info('SendReminderNotificationJob: Notification sent successfully', [
                     'reminder_id' => $this->reminderId,
                     'notification_id' => $result['notification_id']
-                ]);
+                ]); */
             } else {
                 Log::error('SendReminderNotificationJob: Failed to send notification', [
                     'reminder_id' => $this->reminderId,

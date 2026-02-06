@@ -32,18 +32,18 @@ class LecturerCreateCourseHandle implements NotificationEventHandler
         $adminType = $data['admin_type'] ?? 'lecturer';
         $lecturerName = $data['lecturer_name'] ?? 'Giảng viên';
 
-        Log::info('LecturerCreateCourseHandle: Xử lý thông báo tạo khóa học', [
+        /* Log::info('LecturerCreateCourseHandle: Xử lý thông báo tạo khóa học', [
             'admin_id' => $adminId,
             'lecturer_name' => $lecturerName
-        ]);
+        ]); */
 
         try {
             $templateData = $this->prepareTemplateData($data);
 
-            Log::info('LecturerCreateCourseHandle: Dữ liệu template từ Kafka message', [
+            /* Log::info('LecturerCreateCourseHandle: Dữ liệu template từ Kafka message', [
                 'template_data' => $templateData,
                 'admin_id' => $adminId
-            ]);
+            ]); */
 
             $this->notificationService->sendNotification(
                 'course_create',

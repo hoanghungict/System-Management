@@ -18,11 +18,11 @@ class EmailEventListener
     public function handleEmailSent(EmailSentEvent $event): void
     {
         try {
-            Log::info('EmailEventListener: Email sent event handled', [
+            /* Log::info('EmailEventListener: Email sent event handled', [
                 'recipients_count' => count($event->emailDTO->recipients),
                 'subject' => $event->emailDTO->subject,
                 'template' => $event->emailDTO->template
-            ]);
+            ]); */
 
             // Track email metrics
             $this->trackEmailMetrics('sent', $event->emailDTO);
@@ -147,10 +147,10 @@ class EmailEventListener
         // Có thể gửi notification cho admin hoặc log vào hệ thống monitoring
         // Ví dụ: Slack notification, email to admin, etc.
         
-        Log::info('EmailEventListener: Email success notification', [
+        /* Log::info('EmailEventListener: Email success notification', [
             'recipients_count' => count($emailDTO->recipients),
             'subject' => $emailDTO->subject
-        ]);
+        ]); */
     }
 
     /**

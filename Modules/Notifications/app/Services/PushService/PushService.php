@@ -51,10 +51,10 @@ class PushService
     ): void {
         // TODO: Implement actual push notification
         // Có thể sử dụng Firebase, OneSignal, hoặc service khác
-        Log::info('Push notification sent', [
+        /* Log::info('Push notification sent', [
             'user_id' => $userId,
             'user_type' => $userType,
             'content' => $content
-        ]);
+        ]); */
     }
 }

@@ -35,6 +35,7 @@ class Assignment extends Model
         'question_pool_config',   // Cấu hình số câu theo độ khó
         'status',
         'slug',
+        'grade_column', // Added for Gradebook
     ];
 
     protected $casts = [

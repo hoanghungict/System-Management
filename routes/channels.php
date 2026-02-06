@@ -7,20 +7,20 @@ use Illuminate\Support\Facades\Log;
 // Authorize private notification channels with JWT
 Broadcast::channel('notifications.user.{userId}', function ($user, $userId) {
     // Debug: Log authorization attempt
-    Log::info('Channel authorization attempt', [
+    /* Log::info('Channel authorization attempt', [
         'user' => $user,
         'user_id' => $user->id ?? null,
         'target_userId' => $userId,
-    ]);
+    ]); */
     
     // Check if user is authenticated and matches the channel user ID
     if ($user && isset($user->id)) {
         $authorized = (int) $user->id === (int) $userId;
-        Log::info('Channel authorization result', [
+        /* Log::info('Channel authorization result', [
             'user_id' => $user->id,
             'target_userId' => $userId,
             'authorized' => $authorized
-        ]);
+        ]); */
         return $authorized;
     }
     

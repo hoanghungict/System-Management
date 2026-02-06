@@ -176,10 +176,10 @@ class LecturerService
                     ]
                 );
                 
-                Log::info('Notification sent for new lecturer account', [
+                /* Log::info('Notification sent for new lecturer account', [
                     'lecturer_id' => $lecturer->id,
                     'username' => $username
-                ]);
+                ]); */
             } else {
                 Log::warning('Notification service not available');
             }

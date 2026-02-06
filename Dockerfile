@@ -44,7 +44,13 @@ WORKDIR /var/www
 # Copy toàn bộ code vào container
 COPY . .
 
-# Phân quyền (cho Laravel storage, bootstrap/cache)
-RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
+# Copy entrypoint script
+COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
 
+# Phân quyền ban đầu (cho Laravel storage, bootstrap/cache)
+RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache 2>/dev/null || true
+
+# Entrypoint sẽ tự động fix permissions mỗi khi container start
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 CMD ["php-fpm"]

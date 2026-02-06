@@ -142,7 +142,7 @@ class TaskService implements TaskServiceInterface
                     $assignerName = 'Admin';
                 }
                 
-                Log::info('Task created', [
+                /* Log::info('Task created', [
                     'task_id' => $task->id,
                     'title' => $task->title,
                     'creator_id' => $task->creator_id,
@@ -150,7 +150,7 @@ class TaskService implements TaskServiceInterface
                     'assigner_name' => $assignerName,
                     'receivers_count' => count($receivers),
                     'created_by_user' => $this->getUserId($userContext) ?? 'system'
-                ]);
+                ]); */
                 
                 // ✅ Collect và invalidate affected caches (delegated to cacheService)
                 $affectedCacheKeys = $this->cacheService->collectAffectedCacheKeys($task);
@@ -268,13 +268,13 @@ class TaskService implements TaskServiceInterface
                     $affectedCacheKeys = array_merge($affectedCacheKeys, $this->cacheService->collectAffectedCacheKeys($task));
                 }
                 
-                Log::info('Task updated', [
+                /* Log::info('Task updated', [
                     'task_id' => $task->id,
                     'title' => $task->title,
                     'receivers_updated' => $receivers !== null,
                     'cache_keys_affected' => count($affectedCacheKeys),
                     'updated_by_user' => $this->getUserId($userContext) ?? 'system'
-                ]);
+                ]); */
                 
                 // ✅ Bulk cache invalidation (delegated to cacheService)
                 $this->cacheService->invalidateMultipleCaches($affectedCacheKeys);
@@ -343,12 +343,12 @@ class TaskService implements TaskServiceInterface
             
             $result = $this->taskRepository->delete($task);
             
-            Log::info('Task deleted', [
+            /* Log::info('Task deleted', [
                 'task_id' => $taskId,
                 'title' => $taskTitle,
                 'cache_keys_affected' => count($affectedCacheKeys),
                 'deleted_by_user' => $this->getUserId($userContext) ?? 'system'
-            ]);
+            ]); */
             
             // ✅ Bulk cache invalidation (delegated to cacheService)
             $this->cacheService->invalidateMultipleCaches($affectedCacheKeys);
@@ -479,11 +479,11 @@ class TaskService implements TaskServiceInterface
                 ->select('id')
                 ->get();
 
-            Log::info('Assigning task to class students', [
+            /* Log::info('Assigning task to class students', [
                 'task_id' => $task->id,
                 'class_id' => $classId,
                 'students_count' => $students->count()
-            ]);
+            ]); */
 
             // Tạo receivers cho từng sinh viên
             foreach ($students as $student) {
@@ -518,11 +518,11 @@ class TaskService implements TaskServiceInterface
                 ->select('student.id')
                 ->get();
 
-            Log::info('Assigning task to department students', [
+            /* Log::info('Assigning task to department students', [
                 'task_id' => $task->id,
                 'department_id' => $departmentId,
                 'students_count' => $students->count()
-            ]);
+            ]); */
 
             // Tạo receivers cho từng sinh viên
             foreach ($students as $student) {
@@ -554,10 +554,10 @@ class TaskService implements TaskServiceInterface
                 ->select('id')
                 ->get();
 
-            Log::info('Assigning task to all students', [
+            /* Log::info('Assigning task to all students', [
                 'task_id' => $task->id,
                 'students_count' => $students->count()
-            ]);
+            ]); */
 
             // Tạo receivers cho từng sinh viên
             foreach ($students as $student) {
@@ -588,10 +588,10 @@ class TaskService implements TaskServiceInterface
                 ->select('id')
                 ->get();
 
-            Log::info('Assigning task to all lecturers', [
+            /* Log::info('Assigning task to all lecturers', [
                 'task_id' => $task->id,
                 'lecturers_count' => $lecturers->count()
-            ]);
+            ]); */
 
             // Tạo receivers cho từng giảng viên
             foreach ($lecturers as $lecturer) {
@@ -628,13 +628,13 @@ class TaskService implements TaskServiceInterface
             // Thêm receivers mới
             $this->addReceiversToTask($task, $receivers);
             
-            Log::info('Task receivers updated', [
+            /* Log::info('Task receivers updated', [
                 'task_id' => $task->id,
                 'old_receivers_count' => $deletedCount,
                 'new_receivers_count' => count($receivers),
                 'old_receivers' => $oldReceivers,
                 'new_receivers' => $receivers
-            ]);
+            ]); */
         });
     }
 
@@ -1218,11 +1218,11 @@ class TaskService implements TaskServiceInterface
             $cacheService = app(\Modules\Task\app\Services\Interfaces\CacheServiceInterface::class);
             $result = $cacheService->forgetMultiple($cacheKeys);
             
-            Log::debug('Bulk cache invalidation', [
+            /* Log::debug('Bulk cache invalidation', [
                 'keys_count' => count($cacheKeys),
                 'keys' => $cacheKeys,
                 'success' => $result
-            ]);
+            ]); */
             
             return $result;
         } catch (\Exception $e) {
@@ -1277,12 +1277,12 @@ class TaskService implements TaskServiceInterface
     private function validateCreateTaskPermissions(object $userContext, array $data): void
     {
         // Debug user context
-        Log:info('Debug user context in validateCreateTaskPermissions', [
+        /* Log::info('Debug user context in validateCreateTaskPermissions', [
             'user_context' => $userContext,
             'user_context_id' => $this->getUserId($userContext) ?? 'NOT_SET',
             'user_context_type' => $userContext->user_type ?? 'NOT_SET',
             'user_context_class' => get_class($userContext)
-        ]);
+        ]); */
         
         // Validate user context
         $this->permissionService->validateUserContext($userContext);

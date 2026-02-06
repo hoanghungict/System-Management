@@ -76,7 +76,7 @@ class TaskRepository implements TaskRepositoryInterface
 
     /**
 chỉ      * Lấy tasks với bộ lọc - Tối ưu hóa với indexes
-     * 
+      
      * @param array $filters Mảng chứa các điều kiện lọc
      * @param int $perPage Số lượng task trên mỗi trang
      * @return LengthAwarePaginator Danh sách tasks đã lọc và phân trang
@@ -285,7 +285,7 @@ chỉ      * Lấy tasks với bộ lọc - Tối ưu hóa với indexes
      */
     public function getTasksForUser(int $userId, string $userType, int $perPage = 15): LengthAwarePaginator
     {
-        Log::info("getTasksForUser called with userId: $userId, userType: $userType");
+        // Log::info("getTasksForUser called with userId: $userId, userType: $userType");
 
         // ✅ Eager loading để tránh N+1 queries
         $query = Task::with([
@@ -329,7 +329,7 @@ chỉ      * Lấy tasks với bộ lọc - Tối ưu hóa với indexes
         }
 
         $result = $query->orderBy('created_at', 'desc')->paginate($perPage);
-        Log::info("getTasksForUser result: " . $result->count() . " tasks found");
+        // Log::info("getTasksForUser result: " . $result->count() . " tasks found");
 
         return $result;
     }
@@ -344,7 +344,7 @@ chỉ      * Lấy tasks với bộ lọc - Tối ưu hóa với indexes
      */
     public function getTasksCreatedByUser(int $userId, string $userType, int $perPage = 15): LengthAwarePaginator
     {
-        Log::info("getTasksCreatedByUser called with userId: $userId, userType: $userType");
+        // Log::info("getTasksCreatedByUser called with userId: $userId, userType: $userType");
 
         // Tối ưu eager loading với select cụ thể
         $result = Task::where('creator_type', $userType)
@@ -360,7 +360,7 @@ chỉ      * Lấy tasks với bộ lọc - Tối ưu hóa với indexes
             ->orderBy('created_at', 'desc')
             ->paginate($perPage);
 
-        Log::info("getTasksCreatedByUser result: " . $result->count() . " tasks found");
+        // Log::info("getTasksCreatedByUser result: " . $result->count() . " tasks found");
 
         return $result;
     }

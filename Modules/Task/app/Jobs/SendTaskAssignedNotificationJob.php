@@ -62,11 +62,11 @@ class SendTaskAssignedNotificationJob implements ShouldQueue
             // Send to Kafka
             $kafkaProducer->publish('task.assigned', $notificationData);
 
-            Log::info('Task assigned notification job dispatched', [
+            /* Log::info('Task assigned notification job dispatched', [
                 'task_id' => $task->id,
                 'receiver_id' => $this->event->receiverId,
                 'receiver_type' => $this->event->receiverType
-            ]);
+            ]); */
 
         } catch (\Exception $e) {
             Log::error('Failed to send task assigned notification job', [

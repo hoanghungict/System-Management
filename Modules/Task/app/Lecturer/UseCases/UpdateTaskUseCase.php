@@ -36,12 +36,12 @@ class UpdateTaskUseCase
             // Gửi email thông báo update
             $this->dispatchTaskUpdateEmail($task, $oldTask);
             
-            Log::info('Task updated successfully via UseCase', [
+            /* Log::info('Task updated successfully via UseCase', [
                 'task_id' => $task->id,
                 'title' => $task->title,
                 'updated_by' => $lecturerId,
                 'receivers_count' => $task->receivers->count()
-            ]);
+            ]); */
             
             return $task;
         } catch (\Exception $e) {
@@ -89,11 +89,11 @@ class UpdateTaskUseCase
             // Dispatch email job
             SendEmailJob::dispatch($emailDTO)->onQueue('emails');
             
-            Log::info('Task update notification email dispatched', [
+            /* Log::info('Task update notification email dispatched', [
                 'task_id' => $task->id,
                 'recipients_count' => count($recipientEmails),
                 'recipients' => $recipientEmails
-            ]);
+            ]); */
             
         } catch (\Exception $e) {
             Log::error('Failed to dispatch task update notification email', [

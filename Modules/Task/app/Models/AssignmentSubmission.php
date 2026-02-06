@@ -47,8 +47,18 @@ class AssignmentSubmission extends Model
 
     protected $appends = [
         'remaining_time',
+        'remaining_time',
         'final_score',
+        'score', // ✅ Standardized score
     ];
+
+    /**
+     * Standardized score accessor (alias for final_score)
+     */
+    public function getScoreAttribute(): float
+    {
+        return $this->final_score;
+    }
 
     // ========== Relationships ==========
 

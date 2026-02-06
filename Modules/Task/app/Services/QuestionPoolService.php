@@ -41,7 +41,7 @@ class QuestionPoolService
             $config = json_decode($config, true);
         }
 
-        Log::info("Question pool config for assignment {$assignment->id}:", (array)$config);
+        // Log::info("Question pool config for assignment {$assignment->id}:", (array)$config);
 
         $selectedQuestions = collect();
 
@@ -78,7 +78,7 @@ class QuestionPoolService
         // Refresh lại quan hệ
         $submission->load('submissionQuestions');
 
-        Log::info("Created {$selectedQuestions->count()} submission questions for submission {$submission->id}");
+        // Log::info("Created {$selectedQuestions->count()} submission questions for submission {$submission->id}");
 
         return $selectedQuestions;
     }

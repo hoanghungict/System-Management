@@ -78,12 +78,12 @@ class TaskSubmitController extends Controller
             $result = $this->submitTaskUseCase->execute($data, $userContext);
 
             // Log submission
-            Log::info('Task submitted', [
+            /* Log::info('Task submitted', [
                 'task_id' => $taskId,
                 'user_id' => $userId,
                 'user_type' => $userType,
                 'submission_type' => $data['submission_type'] ?? 'task_completion'
-            ]);
+            ]); */
 
             // Dispatch background job để xử lý post-submission tasks
             ProcessTaskJob::dispatch($taskId, $userId, $userType, 'submitted');
@@ -181,11 +181,11 @@ class TaskSubmitController extends Controller
 
             $result = $this->submitTaskUseCase->updateSubmission($data, $userId, $userType);
 
-            Log::info('Task submission updated', [
+            /* Log::info('Task submission updated', [
                 'task_id' => $taskId,
                 'user_id' => $userId,
                 'user_type' => $userType
-            ]);
+            ]); */
 
             return response()->json([
                 'success' => true,

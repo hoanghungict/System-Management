@@ -381,13 +381,13 @@ class PermissionService
                 $task->creator_type === $userContext->user_type) {
                 // Check if user can create tasks (admin or lecturer)
                 if ($this->canCreateTasks($userContext)) {
-                    Log::info('PermissionService: Edit allowed - User is creator', [
+                    /* Log::info('PermissionService: Edit allowed - User is creator', [
                         'user_id' => $userId,
                         'user_type' => $userContext->user_type,
                         'task_id' => $taskId,
                         'creator_id' => $creatorId,
                         'creator_type' => $task->creator_type
-                    ]);
+                    ]); */
                     return true;
                 } else {
                     Log::warning('PermissionService: Edit denied - User is creator but cannot create tasks', [
@@ -399,7 +399,7 @@ class PermissionService
                     ]);
                 }
             } else {
-                Log::debug('PermissionService: Creator check failed', [
+                /* Log::debug('PermissionService: Creator check failed', [
                     'user_id' => $userId,
                     'user_type' => $userContext->user_type,
                     'task_id' => $taskId,
@@ -409,19 +409,19 @@ class PermissionService
                         'id_match' => $creatorId === $userId,
                         'type_match' => $task->creator_type === $userContext->user_type
                     ]
-                ]);
+                ]); */
             }
 
             // ✅ Check 2: Lecturer có thể edit task mà họ là receiver
             if ($this->isLecturer($userContext)) {
                 $isReceiver = $this->isTaskReceiver($userContext, $task);
                 if ($isReceiver) {
-                    Log::info('PermissionService: Edit allowed - Lecturer is receiver', [
+                    /* Log::info('PermissionService: Edit allowed - Lecturer is receiver', [
                         'user_id' => $this->getUserId($userContext),
                         'task_id' => $taskId,
                         'creator_id' => $task->creator_id,
                         'creator_type' => $task->creator_type
-                    ]);
+                    ]); */
                     return true;
                 }
             }

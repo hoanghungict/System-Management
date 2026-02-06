@@ -73,10 +73,10 @@ class AttendanceService
 
             DB::commit();
 
-            Log::info('Session started', [
+            /* Log::info('Session started', [
                 'session_id' => $sessionId,
                 'lecturer_id' => $lecturerId,
-            ]);
+            ]); */
 
             return $session->fresh(['attendances.student']);
 
@@ -152,12 +152,12 @@ class AttendanceService
         $result = $this->attendanceRepository->updateBySessionAndStudent($sessionId, $studentId, $data);
 
         if ($result) {
-            Log::info('Attendance updated', [
+            /* Log::info('Attendance updated', [
                 'session_id' => $sessionId,
                 'student_id' => $studentId,
                 'status' => $status,
                 'marked_by' => $lecturerId,
-            ]);
+            ]); */
         }
 
         return $result;
@@ -209,11 +209,11 @@ class AttendanceService
 
             DB::commit();
 
-            Log::info('Bulk attendance updated', [
+            /* Log::info('Bulk attendance updated', [
                 'session_id' => $sessionId,
                 'updated_count' => $updated,
                 'marked_by' => $lecturerId,
-            ]);
+            ]); */
 
             return $updated;
 
@@ -240,11 +240,11 @@ class AttendanceService
 
         $count = $this->attendanceRepository->markAllPresent($sessionId, $lecturerId);
 
-        Log::info('All marked present', [
+        /* Log::info('All marked present', [
             'session_id' => $sessionId,
             'count' => $count,
             'marked_by' => $lecturerId,
-        ]);
+        ]); */
 
         return $count;
     }
@@ -274,10 +274,10 @@ class AttendanceService
         $result = $session->complete();
 
         if ($result) {
-            Log::info('Session completed', [
+            /* Log::info('Session completed', [
                 'session_id' => $sessionId,
                 'lecturer_id' => $lecturerId,
-            ]);
+            ]); */
         }
 
         return $result;
@@ -297,7 +297,7 @@ class AttendanceService
         $result = $session->cancel();
 
         if ($result) {
-            Log::info('Session cancelled', ['session_id' => $sessionId]);
+            // Log::info('Session cancelled', ['session_id' => $sessionId]);
         }
 
         return $result;
@@ -330,10 +330,10 @@ class AttendanceService
         $result = $this->sessionRepository->update($sessionId, $data);
 
         if ($result) {
-            Log::info('Session rescheduled', [
+            /* Log::info('Session rescheduled', [
                 'session_id' => $sessionId,
                 'new_date' => $newDate,
-            ]);
+            ]); */
         }
 
         return $result;
@@ -357,11 +357,11 @@ class AttendanceService
         $result = $this->attendanceRepository->update($attendanceId, $data);
 
         if ($result) {
-            Log::info('Admin updated attendance', [
+            /* Log::info('Admin updated attendance', [
                 'attendance_id' => $attendanceId,
                 'status' => $status,
                 'admin_id' => $adminId,
-            ]);
+            ]); */
         }
 
         return $result;

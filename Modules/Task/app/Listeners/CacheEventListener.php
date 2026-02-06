@@ -27,7 +27,7 @@ class CacheEventListener
      */
     public function handleCacheCreated(CacheCreatedEvent $event): void
     {
-        Log::info('Cache created', $event->getEventData());
+        // Log::info('Cache created', $event->getEventData());
         
         // ✅ Business logic: Track cache creation metrics
         $this->trackCacheCreation($event->key, $event->metadata);
@@ -44,7 +44,7 @@ class CacheEventListener
      */
     public function handleCacheDeleted(CacheDeletedEvent $event): void
     {
-        Log::info('Cache deleted', $event->getEventData());
+        // Log::info('Cache deleted', $event->getEventData());
         
         // ✅ Business logic: Track cache deletion metrics
         $this->trackCacheDeletion($event->key, $event->metadata);
@@ -61,7 +61,7 @@ class CacheEventListener
      */
     public function handleCacheHit(CacheHitEvent $event): void
     {
-        Log::debug('Cache hit', $event->getEventData());
+        // Log::debug('Cache hit', $event->getEventData());
         
         // ✅ Business logic: Track cache hit metrics
         $this->trackCacheHit($event->key, $event->metadata);
@@ -78,7 +78,7 @@ class CacheEventListener
      */
     public function handleCacheMissed(CacheMissedEvent $event): void
     {
-        Log::debug('Cache miss', $event->getEventData());
+        // Log::debug('Cache miss', $event->getEventData());
         
         // ✅ Business logic: Track cache miss metrics
         $this->trackCacheMiss($event->key, $event->metadata);
@@ -95,7 +95,7 @@ class CacheEventListener
      */
     public function handleCacheInvalidated(CacheInvalidatedEvent $event): void
     {
-        Log::info('Cache invalidated', $event->getEventData());
+        // Log::info('Cache invalidated', $event->getEventData());
         
         // ✅ Business logic: Track cache invalidation metrics
         $this->trackCacheInvalidation($event->key, $event->metadata);
@@ -302,7 +302,7 @@ class CacheEventListener
             'environment' => config('app.env')
         ];
         
-        Log::info('Cache monitoring notification', $monitoringData);
+        // Log::info('Cache monitoring notification', $monitoringData);
     }
 
     /**
@@ -321,7 +321,7 @@ class CacheEventListener
             'action' => 'refresh_dependent_data'
         ];
         
-        Log::info('Cache invalidation notification', $notificationData);
+        // Log::info('Cache invalidation notification', $notificationData);
     }
 
     /**

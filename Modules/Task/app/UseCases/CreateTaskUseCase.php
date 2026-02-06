@@ -54,12 +54,11 @@ class CreateTaskUseCase
             $this->dispatchTaskNotificationEmail($task);
 
             // Log success
-            Log::info('Task created successfully via UseCase', [
+            /* Log::info('Task created successfully via UseCase', [
                 'task_id' => $task->id,
-                'title' => $task->title,
                 'creator_id' => $task->creator_id,
                 'receivers_count' => $task->receivers->count()
-            ]);
+            ]); */
 
             return $task;
         } catch (\Exception $e) {
@@ -158,11 +157,11 @@ class CreateTaskUseCase
             // Dispatch email job
             SendEmailJob::dispatch($emailDTO)->onQueue('emails');
 
-            Log::info('Task notification email dispatched', [
+            /* Log::info('Task notification email dispatched', [
                 'task_id' => $task->id,
-                'recipients_count' => count($recipientEmails),
+                'receivers_count' => $task->receivers->count(),
                 'recipients' => $recipientEmails
-            ]);
+            ]); */
         } catch (\Exception $e) {
             Log::error('Failed to dispatch task notification email', [
                 'task_id' => $task->id,
