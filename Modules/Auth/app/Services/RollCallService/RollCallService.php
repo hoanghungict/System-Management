@@ -66,13 +66,12 @@ class RollCallService
             
             DB::commit();
 
-            /* Log::info('Roll call created successfully', [
-            /* Log::info('Roll call created successfully', [
-                'roll_call_id' => $rollCall->id,
-                'type' => $type,
-                'class_id' => $data['class_id'] ?? null
-            ]); */
-            ]); */
+            // /* Log::info('Roll call created successfully', [
+            // // /* Log::info('Roll call created successfully', [
+            //     'roll_call_id' => $rollCall->id,
+            //     'type' => $type,
+            //     'class_id' => $data['class_id'] ?? null
+            // ]); */
 
             return $this->rollCallRepository->findById($rollCall->id);
         } catch (\Exception $e) {
