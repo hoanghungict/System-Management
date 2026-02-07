@@ -11,7 +11,7 @@ RUN apt-get update && apt-get install -y \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install \
     gd mbstring intl zip bcmath pcntl \
-    && pecl install rdkafka \
+    && pecl install rdkafka-6.0.3 \
     && docker-php-ext-enable rdkafka \
     && rm -rf /var/lib/apt/lists/*
 
@@ -38,7 +38,7 @@ RUN apt-get update && apt-get install -y \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install \
     pdo pdo_mysql gd mbstring bcmath intl zip opcache pcntl \
-    && pecl install rdkafka \
+    && pecl install rdkafka-6.0.3 \
     && docker-php-ext-enable rdkafka \
     && rm -rf /var/lib/apt/lists/*
 
@@ -52,6 +52,7 @@ COPY --from=vendor /app/vendor ./vendor
 RUN mkdir -p \
     storage/app/public \
     storage/framework/cache/data \
+    storage/framework/cache/laravel-excel \
     storage/framework/sessions \
     storage/framework/views \
     storage/logs \
@@ -60,5 +61,9 @@ RUN mkdir -p \
     && chown -R www-data:www-data /var/www \
     && chmod -R 775 storage bootstrap/cache
 
-USER www-data
+# Copy entrypoint script
+COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 CMD ["php-fpm"]
