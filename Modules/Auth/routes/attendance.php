@@ -6,6 +6,7 @@ use Modules\Auth\app\Http\Controllers\AttendanceController\CourseController;
 use Modules\Auth\app\Http\Controllers\AttendanceController\AttendanceController;
 use Modules\Auth\app\Http\Controllers\AttendanceController\AdminAttendanceController;
 use Modules\Auth\app\Http\Controllers\AttendanceController\EnrollmentController;
+use Modules\Auth\app\Http\Controllers\AttendanceController\TimetableController;
 use Modules\Auth\app\Http\Controllers\AttendanceController\EnrollmentImportController;
 use Modules\Auth\app\Http\Controllers\AttendanceController\ExportController;
 
@@ -31,6 +32,13 @@ Route::prefix('v1/attendance')->group(function () {
         // Danh sách học kỳ (chỉ xem)
         Route::get('/semesters', [SemesterController::class, 'index']);
         Route::get('/semesters/{id}', [SemesterController::class, 'show']);
+        
+        // ----- THỜI KHÓA BIỂU -----
+        Route::prefix('timetable')->group(function () {
+            Route::get('/weekly', [TimetableController::class, 'weekly']);
+            Route::get('/daily', [TimetableController::class, 'daily']);
+            Route::get('/periods', [TimetableController::class, 'periods']);
+        });
     });
 
     // Download template (Public for easy access)

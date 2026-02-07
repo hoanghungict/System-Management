@@ -270,6 +270,7 @@ class AttendanceService
 
         if ($result) {
             /* Log::info('Attendance updated', [
+            /* Log::info('Attendance updated', [
                 'session_id' => $sessionId,
                 'student_id' => $studentId,
                 'status' => $status,
@@ -330,6 +331,7 @@ class AttendanceService
             DB::commit();
 
             /* Log::info('Bulk attendance updated', [
+            /* Log::info('Bulk attendance updated', [
                 'session_id' => $sessionId,
                 'updated_count' => $updated,
                 'marked_by' => $lecturerId,
@@ -369,6 +371,7 @@ class AttendanceService
         $count = $this->attendanceRepository->markAllPresent($sessionId, $lecturerId);
 
         /* Log::info('All marked present', [
+        /* Log::info('All marked present', [
             'session_id' => $sessionId,
             'count' => $count,
             'marked_by' => $lecturerId,
@@ -405,6 +408,7 @@ class AttendanceService
         $result = $session->complete();
 
         if ($result) {
+            /* Log::info('Session completed', [
             /* Log::info('Session completed', [
                 'session_id' => $sessionId,
                 'lecturer_id' => $lecturerId,
@@ -467,6 +471,7 @@ class AttendanceService
         $result = $this->sessionRepository->update($sessionId, $data);
 
         if ($result) {
+            /* Log::info('Session rescheduled', [
             /* Log::info('Session rescheduled', [
                 'session_id' => $sessionId,
                 'new_date' => $newDate,

@@ -34,6 +34,16 @@ class TaskSubmission extends Model
         'grade' => 'decimal:2',
     ];
 
+    protected $appends = ['score', 'is_overdue', 'submission_status'];
+
+    /**
+     * Standardized score accessor
+     */
+    public function getScoreAttribute(): ?float
+    {
+        return $this->grade ? (float) $this->grade : null;
+    }
+
     /**
      * Relationship với Task
      */

@@ -29,17 +29,21 @@ class NotifyOnDispatchStatusUpdateHandle implements NotificationEventHandler
         $userType = $data['user_type'] ?? 'student';
 
         /* Log::info('NotifyOnDispatchStatusUpdateHandle: Xử lý cập nhật trạng thái công văn', [
+        /* Log::info('NotifyOnDispatchStatusUpdateHandle: Xử lý cập nhật trạng thái công văn', [
             'user_id'   => $userId,
             'user_type' => $userType,
             'status'    => $data['status'] ?? null,
+        ]); */
         ]); */
 
         try {
             $templateData = $this->prepareTemplateData($data);
 
             /* Log::info('NotifyOnDispatchStatusUpdateHandle: Dữ liệu template từ Kafka message', [
+            /* Log::info('NotifyOnDispatchStatusUpdateHandle: Dữ liệu template từ Kafka message', [
                 'template_data' => $templateData,
                 'user_id'       => $userId
+            ]); */
             ]); */
 
             $result = $this->notificationService->sendNotification(

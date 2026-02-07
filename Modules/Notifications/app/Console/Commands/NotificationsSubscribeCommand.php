@@ -57,7 +57,7 @@ class NotificationsSubscribeCommand extends Command
         }
 
         if (!$handlerClass) {
-            Log::info('No handler matched for channel', ['channel' => $channel]);
+            // Log::info('No handler matched for channel', ['channel' => $channel]);
             return;
         }
 

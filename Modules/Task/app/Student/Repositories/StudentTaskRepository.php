@@ -214,21 +214,21 @@ class StudentTaskRepository
             }
             
             // Log để debug
-            \Log::info('Submitting task', [
+            /* \Log::info('Submitting task', [
                 'task_id' => $data['task_id'],
                 'student_id' => $data['student_id'],
                 'submission_files' => $data['submission_files'],
                 'submission_files_type' => gettype($data['submission_files'])
-            ]);
+            ]); */
             
             $submission = $this->taskSubmissionModel->create($data);
             
             // Log sau khi create để verify
-            \Log::info('Task submitted', [
+            /* \Log::info('Task submitted', [
                 'submission_id' => $submission->id,
                 'submission_files' => $submission->submission_files,
                 'submission_files_type' => gettype($submission->submission_files)
-            ]);
+            ]); */
             
             return $submission;
         } catch (\Exception $e) {
@@ -281,7 +281,7 @@ class StudentTaskRepository
                 $fileIds = $submission->submission_files ?? [];
                 
                 // Debug: Log để kiểm tra
-                \Log::info('Loading submission files', [
+                /* \Log::info('Loading submission files', [
                     'task_id' => $taskId,
                     'student_id' => $studentId,
                     'submission_id' => $submission->id,
@@ -289,7 +289,7 @@ class StudentTaskRepository
                     'submission_files_casted' => $fileIds,
                     'file_ids_type' => gettype($fileIds),
                     'file_ids_count' => is_array($fileIds) ? count($fileIds) : 0
-                ]);
+                ]); */
                 
                 // Nếu có file IDs, load files từ task_file table
                 if (!empty($fileIds) && is_array($fileIds)) {
@@ -303,11 +303,11 @@ class StudentTaskRepository
                             ->where('task_id', $taskId) // Đảm bảo files thuộc đúng task
                             ->get();
 
-                        \Log::info('Files found', [
+                        /* \Log::info('Files found', [
                             'file_ids_requested' => $fileIds,
                             'files_found_count' => $taskFiles->count(),
                             'files_found_ids' => $taskFiles->pluck('id')->toArray()
-                        ]);
+                        ]); */
 
                         $files = $taskFiles->map(function($file) {
                             return [
@@ -328,11 +328,11 @@ class StudentTaskRepository
                         ]);
                     }
                 } else {
-                    \Log::info('No file IDs in submission', [
+                    /* \Log::info('No file IDs in submission', [
                         'submission_files' => $fileIds,
                         'is_array' => is_array($fileIds),
                         'is_empty' => empty($fileIds)
-                    ]);
+                    ]); */
                 }
                 // Nếu không có file IDs, return empty array (không có files trong submission)
             } catch (\Exception $fileError) {
@@ -431,21 +431,21 @@ class StudentTaskRepository
                     }
                 }
                 
-                \Log::info('Updating submission', [
+                /* \Log::info('Updating submission', [
                     'task_id' => $taskId,
                     'student_id' => $studentId,
                     'submission_files' => $data['submission_files'] ?? null
-                ]);
+                ]); */
                 
                 $submission->update($data);
                 
                 // Refresh để lấy dữ liệu mới nhất
                 $submission->refresh();
                 
-                \Log::info('Submission updated', [
+                /* \Log::info('Submission updated', [
                     'submission_id' => $submission->id,
                     'submission_files' => $submission->submission_files
-                ]);
+                ]); */
                 
                 return $submission;
             }

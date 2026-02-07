@@ -61,12 +61,12 @@ class SendTaskUpdatedNotificationJob implements ShouldQueue
             // Send to Kafka
             $kafkaProducer->publish('task.updated', $notificationData);
 
-            Log::info('Task updated notification job dispatched', [
+            /* Log::info('Task updated notification job dispatched', [
                 'task_id' => $task->id,
                 'receiver_id' => $task->receiver_id,
                 'receiver_type' => $task->receiver_type,
                 'changes' => array_keys($changes)
-            ]);
+            ]); */
 
         } catch (\Exception $e) {
             Log::error('Failed to send task updated notification job', [

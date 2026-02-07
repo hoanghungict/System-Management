@@ -49,8 +49,10 @@ class SemesterService
         $semester = $this->semesterRepository->create($data);
 
         /* Log::info('Semester created', [
+        /* Log::info('Semester created', [
             'semester_id' => $semester->id,
             'code' => $semester->code,
+        ]); */
         ]); */
 
         $this->clearCache();

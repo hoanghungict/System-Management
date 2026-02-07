@@ -147,6 +147,53 @@ Route::prefix('v1')->group(function () {
         Route::post('/import/lecturers', [ImportDataExcelController::class, 'ImportLecturer']); // Upload file Excel giảng viên
         Route::get('/import/lecturers/progress/{id}', [ImportDataExcelController::class, 'getProgress']); // Lấy tiến trình import (dùng chung)
         Route::get('/import/lecturers/{id}', [ImportDataExcelController::class, 'show']); // Lấy chi tiết job + lỗi (dùng chung)
+
+        // --- Holiday Routes (Mới) ---
+        Route::get('/holidays', [\Modules\Auth\app\Http\Controllers\AttendanceController\HolidayController::class, 'index']);
+        Route::post('/holidays', [\Modules\Auth\app\Http\Controllers\AttendanceController\HolidayController::class, 'store']);
+        Route::put('/holidays/{id}', [\Modules\Auth\app\Http\Controllers\AttendanceController\HolidayController::class, 'update']);
+        Route::delete('/holidays/{id}', [\Modules\Auth\app\Http\Controllers\AttendanceController\HolidayController::class, 'destroy']);
+
+        // --- Admin Session Management Routes (Mới) ---
+        Route::get('/admin/sessions', [\Modules\Auth\app\Http\Controllers\AttendanceController\AdminAttendanceController::class, 'index']);
+        Route::post('/admin/sessions', [\Modules\Auth\app\Http\Controllers\AttendanceController\AdminAttendanceController::class, 'store']);
+        Route::put('/admin/sessions/{id}', [\Modules\Auth\app\Http\Controllers\AttendanceController\AdminAttendanceController::class, 'updateSession']);
+        Route::delete('/admin/sessions/{id}', [\Modules\Auth\app\Http\Controllers\AttendanceController\AdminAttendanceController::class, 'destroy']);
+        Route::post('/admin/sessions/import', [\Modules\Auth\app\Http\Controllers\AttendanceController\AdminAttendanceController::class, 'importSchedule']);
+        Route::patch('/admin/sessions/{id}/reopen', [\Modules\Auth\app\Http\Controllers\AttendanceController\AdminAttendanceController::class, 'reopenSession']);
+        Route::patch('/admin/attendance/{id}', [\Modules\Auth\app\Http\Controllers\AttendanceController\AdminAttendanceController::class, 'updateAttendance']);
+    });
+
+    // Timetable routes
+    Route::middleware(['jwt'])->group(function () {
+        Route::get('/timetable/weekly', [\Modules\Auth\app\Http\Controllers\AttendanceController\TimetableController::class, 'weekly']);
+        Route::get('/timetable/daily', [\Modules\Auth\app\Http\Controllers\AttendanceController\TimetableController::class, 'daily']);
+        Route::get('/timetable/periods', [\Modules\Auth\app\Http\Controllers\AttendanceController\TimetableController::class, 'periods']);
+    });
+
+    // Calendar Routes (Common for all roles)
+    Route::middleware(['jwt'])->group(function () {
+        Route::prefix('calendar')->group(function () {
+            Route::get('/events', [\Modules\Task\app\Http\Controllers\Calendar\CalendarController::class, 'getEventsByDate']); // ?date=Y-m-d
+            Route::get('/events/by-range', [\Modules\Task\app\Http\Controllers\Calendar\CalendarController::class, 'getEventsByRange']); // ?start=Y-m-d&end=Y-m-d
+            Route::get('/events/upcoming', [\Modules\Task\app\Http\Controllers\Calendar\CalendarController::class, 'getUpcomingEvents']);
+            Route::get('/events/overdue', [\Modules\Task\app\Http\Controllers\Calendar\CalendarController::class, 'getOverdueEvents']);
+            Route::get('/events/count-by-status', [\Modules\Task\app\Http\Controllers\Calendar\CalendarController::class, 'getEventsCountByStatus']);
+            
+            Route::get('/reminders', [\Modules\Task\app\Http\Controllers\Calendar\CalendarController::class, 'getReminders']);
+            Route::post('/reminders', [\Modules\Task\app\Http\Controllers\Calendar\CalendarController::class, 'setReminder']);
+            
+            // Admin only routes
+            Route::get('/events/all', [\Modules\Task\app\Http\Controllers\Calendar\CalendarController::class, 'getAllEvents']);
+            Route::get('/events/by-type', [\Modules\Task\app\Http\Controllers\Calendar\CalendarController::class, 'getEventsByType']);
+            Route::get('/events/recurring', [\Modules\Task\app\Http\Controllers\Calendar\CalendarController::class, 'getRecurringEvents']);
+            Route::post('/events', [\Modules\Task\app\Http\Controllers\Calendar\CalendarController::class, 'createEvent']);
+        });
+        
+        // Lecturer import
+        Route::post('/import/lecturers', [ImportDataExcelController::class, 'ImportLecturer']); // Upload file Excel giảng viên
+        Route::get('/import/lecturers/progress/{id}', [ImportDataExcelController::class, 'getProgress']); // Lấy tiến trình import (dùng chung)
+        Route::get('/import/lecturers/{id}', [ImportDataExcelController::class, 'show']); // Lấy chi tiết job + lỗi (dùng chung)
     });
 });
 

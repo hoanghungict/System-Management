@@ -17,10 +17,14 @@ use Modules\Task\app\Services\ExamCodeGeneratorService;
 class LecturerExamController extends Controller
 {
     protected ExamCodeGeneratorService $examCodeService;
+    protected \Modules\Task\app\Services\CalendarService $calendarService;
 
-    public function __construct(ExamCodeGeneratorService $examCodeService)
-    {
+    public function __construct(
+        ExamCodeGeneratorService $examCodeService,
+        \Modules\Task\app\Services\CalendarService $calendarService
+    ) {
         $this->examCodeService = $examCodeService;
+        $this->calendarService = $calendarService;
     }
 
     /**
@@ -86,6 +90,28 @@ class LecturerExamController extends Controller
         $data = $validator->validated();
         if (empty($data['difficulty_config'])) {
             $data['difficulty_config'] = Exam::calculateDifficultyConfig($data['total_questions']);
+        }
+
+        // Check Conflict
+        if (!empty($data['start_time']) && !empty($data['end_time'])) {
+            $sTime = \Carbon\Carbon::parse($data['start_time']);
+            $eTime = \Carbon\Carbon::parse($data['end_time']);
+            
+            $conflicts = $this->calendarService->checkConflict(
+                $sTime->toDateString(),
+                $sTime->toTimeString(),
+                $eTime->toTimeString(),
+                null, // No room for exam yet
+                $lecturerId
+            );
+
+            if (!empty($conflicts)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Phát hiện trùng lịch giảng dạy',
+                    'conflicts' => $conflicts
+                ], 409);
+            }
         }
 
         $exam = Exam::create([
@@ -169,6 +195,30 @@ class LecturerExamController extends Controller
                 'message' => 'Validation failed',
                 'errors' => $validator->errors()
             ], 422);
+        }
+
+        // Check Conflict if time is changed
+        if ($request->has('start_time') || $request->has('end_time')) {
+            $checkStart = $request->start_time ? \Carbon\Carbon::parse($request->start_time) : $exam->start_time;
+            $checkEnd = $request->end_time ? \Carbon\Carbon::parse($request->end_time) : $exam->end_time;
+            
+            if ($checkStart && $checkEnd) {
+                $conflicts = $this->calendarService->checkConflict(
+                    $checkStart->toDateString(),
+                    $checkStart->toTimeString(),
+                    $checkEnd->toTimeString(),
+                    null,
+                    $exam->lecturer_id // Keep original lecturer check
+                );
+
+                if (!empty($conflicts)) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Phát hiện trùng lịch giảng dạy',
+                        'conflicts' => $conflicts
+                    ], 409);
+                }
+            }
         }
 
         $exam->update($validator->validated());

@@ -46,6 +46,12 @@ class AntiCheatService
     {
         $submission->logAntiCheatViolation($type, $details);
         
+        // Refresh to get updated counts if necessary
+        $submission->refresh();
+
+        // Dispatch realtime event
+        \Modules\Task\app\Events\AntiCheatViolationDetected::dispatch($submission, $type, $details ?? []);
+        
         Log::warning("Anti-cheat violation detected", [
             'submission_id' => $submission->id,
             'student_id' => $submission->student_id,

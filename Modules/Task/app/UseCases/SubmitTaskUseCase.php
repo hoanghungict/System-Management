@@ -74,12 +74,12 @@ class SubmitTaskUseCase
                 $this->sendSubmissionNotifications($task, $userContext, $submission);
 
                 // Log submission
-                Log::info('Task submitted successfully', [
+                /* Log::info('Task submitted successfully', [
                     'task_id' => $task->id,
                     'user_id' => $userContext->id,
                     'user_type' => $userContext->type,
                     'submission_type' => $data['submission_type']
-                ]);
+                ]); */
 
                 return $this->formatSubmissionResponse($submission, $task, $userContext);
             } catch (\Exception $e) {
@@ -128,12 +128,12 @@ class SubmitTaskUseCase
             // Update submission (TODO: Implement proper method)
             $updatedSubmission = $existingSubmission; // Placeholder
 
-            Log::info('Task submission updated', [
+            /* Log::info('Task submission updated', [
                 'submission_id' => $updatedSubmission->id,
                 'task_id' => $data['task_id'],
                 'user_id' => $userId,
                 'user_type' => $userType
-            ]);
+            ]); */
 
             // Return basic response (TODO: Implement proper response formatting)
             return [
@@ -281,13 +281,13 @@ class SubmitTaskUseCase
         // For lecturers completing tasks, update task status (TODO: Implement proper method)
         if ($userContext->type === 'lecturer' && $submissionType === 'task_completion') {
             // $this->taskService->updateTaskStatus($task, 'completed');
-            Log::info('Task status should be updated to completed', ['task_id' => $task->id]);
+            // Log::info('Task status should be updated to completed', ['task_id' => $task->id]);
         }
 
         // For students submitting assignments, update submission status (TODO: Implement proper method)
         if ($userContext->type === 'student' && $submissionType === 'assignment_submission') {
             // $this->taskService->updateTaskSubmissionStatus($task, 'submitted');
-            Log::info('Task submission status should be updated to submitted', ['task_id' => $task->id]);
+            // Log::info('Task submission status should be updated to submitted', ['task_id' => $task->id]);
         }
     }
 
@@ -314,15 +314,15 @@ class SubmitTaskUseCase
 
             // Send Kafka notification (TODO: Implement proper Kafka service)
             // $this->kafkaProducer->send('task-submitted', $notificationData);
-            Log::info('Kafka notification should be sent', $notificationData);
+            // Log::info('Kafka notification should be sent', $notificationData);
 
             // Send email notification to task creator/assigner (TODO: Implement proper email service)
             // $this->taskService->sendSubmissionNotificationEmail($task, $submission, $userContext);
-            Log::info('Email notification should be sent', [
+            /* Log::info('Email notification should be sent', [
                 'task_id' => $task->id,
                 'submission_id' => $submission->id,
                 'recipient_type' => 'task_creator'
-            ]);
+            ]); */
         } catch (\Exception $e) {
             Log::error('Failed to send submission notifications', [
                 'task_id' => $task->id,

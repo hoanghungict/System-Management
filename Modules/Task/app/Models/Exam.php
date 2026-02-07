@@ -206,6 +206,20 @@ class Exam extends Model
     public function close(): bool
     {
         $this->status = 'closed';
-        return $this->save();
+        $saved = $this->save();
+
+        if ($saved) {
+            // Force submit all in-progress submissions
+            $this->submissions()
+                ->where('status', 'in_progress')
+                ->get()
+                ->each(function ($submission) {
+                    $submission->submit();
+                    // Optional: Dispatch event to notify student
+                    \Modules\Task\app\Events\ExamSubmissionCreated::dispatch($submission);
+                });
+        }
+
+        return $saved;
     }
 }

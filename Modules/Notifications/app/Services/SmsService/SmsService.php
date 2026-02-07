@@ -18,11 +18,11 @@ class SmsService
             // TODO: Implement actual SMS service
             // Có thể sử dụng Twilio, Nexmo, hoặc service khác
             
-            Log::info('SMS notification sent', [
+            /* Log::info('SMS notification sent', [
                 'user_id' => $userId,
                 'user_type' => $userType,
                 'content' => $content
-            ]);
+            ]); */
 
             return true;
         } catch (\Exception $e) {

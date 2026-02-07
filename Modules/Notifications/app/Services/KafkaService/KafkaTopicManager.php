@@ -26,20 +26,20 @@ class KafkaTopicManager
     {
         $topics = config('kafka.topics', []);
         
-        Log::info('KafkaTopicManager: Bắt đầu kiểm tra và tạo topics từ config', [
+        /* Log::info('KafkaTopicManager: Bắt đầu kiểm tra và tạo topics từ config', [
             'topics' => $topics
-        ]);
+        ]); */
 
         foreach ($topics as $key => $topicName) {
             if ($this->topicExists($topicName)) {
-                Log::info('KafkaTopicManager: Topic đã tồn tại', ['topic' => $topicName]);
+                // Log::info('KafkaTopicManager: Topic đã tồn tại', ['topic' => $topicName]);
             } else {
-                Log::info('KafkaTopicManager: Topic chưa tồn tại, đang tạo', ['topic' => $topicName]);
+                // Log::info('KafkaTopicManager: Topic chưa tồn tại, đang tạo', ['topic' => $topicName]);
                 $this->createTopicIfNotExists($topicName);
             }
         }
 
-        Log::info('KafkaTopicManager: Hoàn thành kiểm tra và tạo topics');
+        // Log::info('KafkaTopicManager: Hoàn thành kiểm tra và tạo topics');
     }
 
     /**
@@ -48,7 +48,7 @@ class KafkaTopicManager
     protected function createTopicIfNotExists(string $topicName): void
     {
         try {
-            Log::info('KafkaTopicManager: Tạo topic', ['topic' => $topicName]);
+            // Log::info('KafkaTopicManager: Tạo topic', ['topic' => $topicName]);
             
             // Gửi một message test để trigger tạo topic
             $topic = $this->producer->newTopic($topicName);
@@ -61,7 +61,7 @@ class KafkaTopicManager
             // Flush để đảm bảo message được gửi
             $this->producer->flush(1000);
             
-            Log::info('KafkaTopicManager: Topic đã được tạo', ['topic' => $topicName]);
+            // Log::info('KafkaTopicManager: Topic đã được tạo', ['topic' => $topicName]);
             
         } catch (\Exception $e) {
             Log::warning('KafkaTopicManager: Lỗi khi tạo topic', [
@@ -82,12 +82,12 @@ class KafkaTopicManager
             
             foreach ($topics as $topic) {
                 if ($topic->getTopic() === $topicName) {
-                    Log::debug('KafkaTopicManager: Topic tồn tại', ['topic' => $topicName]);
+                    // Log::debug('KafkaTopicManager: Topic tồn tại', ['topic' => $topicName]);
                     return true;
                 }
             }
             
-            Log::debug('KafkaTopicManager: Topic không tồn tại', ['topic' => $topicName]);return false;
+            /* Log::debug('KafkaTopicManager: Topic không tồn tại', ['topic' => $topicName]); */return false;
         } catch (\Exception $e) {
             Log::warning('KafkaTopicManager: Lỗi khi kiểm tra topic, giả định topic chưa tồn tại', [
                 'topic' => $topicName,
@@ -111,7 +111,7 @@ class KafkaTopicManager
                 $topicList[] = $topic->getTopic();
             }
             
-            Log::info('KafkaTopicManager: Danh sách topics', ['topics' => $topicList]);
+            // Log::info('KafkaTopicManager: Danh sách topics', ['topics' => $topicList]);
             return $topicList;
             
         } catch (\Exception $e) {
@@ -128,11 +128,11 @@ class KafkaTopicManager
     public function ensureTopicExists(string $topicName): bool
     {
         if ($this->topicExists($topicName)) {
-            Log::info('KafkaTopicManager: Topic đã tồn tại', ['topic' => $topicName]);
+            // Log::info('KafkaTopicManager: Topic đã tồn tại', ['topic' => $topicName]);
             return true;
         }
 
-        Log::info('KafkaTopicManager: Tạo topic mới', ['topic' => $topicName]);
+        // Log::info('KafkaTopicManager: Tạo topic mới', ['topic' => $topicName]);
         $this->createTopicIfNotExists($topicName);
         
         // Kiểm tra lại sau khi tạo

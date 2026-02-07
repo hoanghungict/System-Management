@@ -66,25 +66,8 @@ services:
       - hpc_network
 
   # =========================
-  # QUEUE WORKER
+  # REVERB (WebSocket)
   # =========================
-  queue:
-    image: hpc_app:latest
-    build:
-      context: .
-    container_name: hpc_queue
-    restart: unless-stopped
-    command: php artisan queue:work --sleep=3 --tries=3 --timeout=90
-    env_file:
-      - .env
-    depends_on:
-      - redis
-    mem_limit: 256m
-    networks:
-      - hpc_network
-    volumes:
-      - ./:/var/www
-
   reverb:
     image: hpc_app:latest
     build:
@@ -92,15 +75,20 @@ services:
     container_name: hpc_reverb
     restart: unless-stopped
     command: php artisan reverb:start
+    working_dir: /var/www
     env_file:
       - .env
+    volumes:
+      - ./:/var/www
     depends_on:
+      - app
       - redis
+    ports:
+      - "8081:8080"
     mem_limit: 128m
     networks:
       - hpc_network
-    volumes:
-      - ./:/var/www
+
   # =========================
   # ZOOKEEPER
   # =========================
@@ -110,6 +98,7 @@ services:
     restart: unless-stopped
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
     mem_limit: 256m
     networks:
       - hpc_network
@@ -130,11 +119,59 @@ services:
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
       KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_NUM_PARTITIONS: 3
       KAFKA_HEAP_OPTS: "-Xms256M -Xmx512M"
     mem_limit: 768m
     networks:
       - hpc_network
+
+  # =========================
+  # QUEUE WORKER (emails)
+  # =========================
+  queue:
+    image: hpc_app:latest
+    build:
+      context: .
+    container_name: hpc_queue
+    restart: unless-stopped
+    working_dir: /var/www
+    env_file:
+      - .env
+    volumes:
+      - ./:/var/www
+    command: php artisan queue:work --queue=emails --verbose --tries=3 --timeout=90
+    depends_on:
+      - app
+      - redis
+    mem_limit: 256m
+    networks:
+      - hpc_network
+
+  # =========================
+  # QUEUE WORKER (default)
+  # =========================
+  queue_default:
+    image: hpc_app:latest
+    build:
+      context: .
+    container_name: hpc_queue_default
+    restart: unless-stopped
+    working_dir: /var/www
+    env_file:
+      - .env
+    volumes:
+      - ./:/var/www
+    command: php artisan queue:work --verbose --tries=3 --timeout=90
+    depends_on:
+      - app
+      - redis
+    mem_limit: 256m
+    networks:
+      - hpc_network
+
   # =========================
   # KAFKA CONSUMER
   # =========================
@@ -144,20 +181,45 @@ services:
       context: .
     container_name: hpc_kafka_consumer
     restart: unless-stopped
-    command: php artisan kafka:consume
+    working_dir: /var/www
     env_file:
       - .env
+    volumes:
+      - ./:/var/www
+    command: php artisan kafka:consume
     depends_on:
+      - app
       - kafka
     mem_limit: 256m
     networks:
       - hpc_network
+
+  # =========================
+  # HPC DRIVE SERVICE
+  # =========================
+  hpc_drive:
+    build:
+      context: ../../hpc_drive
+      dockerfile: Dockerfile
+    container_name: hpc_drive_service
+    restart: unless-stopped
+    ports:
+      - "7777:7777"
     volumes:
-      - ./:/var/www
+      - ../../hpc_drive/src:/app/src
+      - drive_data:/app/data
+      - uploads_data:/app/src/hpc_drive/uploads
+    environment:
+      DATABASE_URL: "sqlite:////app/data/drive.db"
+      AUTH_SERVICE_ME_URL: "http://hpc_web:80/api/v1/me"
+    networks:
+      - hpc_network
 
 networks:
   hpc_network:
-
+    driver: bridge
 
 volumes:
   db_data:
+  drive_data:
+  uploads_data:

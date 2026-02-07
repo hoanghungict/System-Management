@@ -64,13 +64,13 @@ class TaskMiddleware
             $request->attributes->set('task_permissions', $this->getUserPermissions($userContext));
             
             // Log successful authorization
-            Log::debug('TaskMiddleware: Authorization successful', [
-                'user_id' => $userId,
-                'user_type' => $userType,
-                'action' => $action,
-                'resource' => $resource,
-                'route' => $request->route()?->getName()
-            ]);
+            // Log::debug('TaskMiddleware: Authorization successful', [
+            //     'user_id' => $userId,
+            //     'user_type' => $userType,
+            //     'action' => $action,
+            //     'resource' => $resource,
+            //     'route' => $request->route()?->getName()
+            // ]);
 
             return $next($request);
             

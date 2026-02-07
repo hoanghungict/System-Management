@@ -69,10 +69,10 @@ class ProcessTaskJob implements ShouldQueue
     {
         // Sử dụng services thực sự
         try {
-            Log::info('ProcessTaskJob started', [
+            /* Log::info('ProcessTaskJob started', [
                 'task_id' => $this->taskData['id'] ?? null,
                 'process_type' => $this->processType
-            ]);
+            ]); */
 
             switch ($this->processType) {
                 case 'file_processing':
@@ -112,10 +112,10 @@ class ProcessTaskJob implements ShouldQueue
                     break;
             }
 
-            Log::info('ProcessTaskJob completed successfully', [
+            /* Log::info('ProcessTaskJob completed successfully', [
                 'task_id' => $this->taskData['id'] ?? null,
                 'process_type' => $this->processType
-            ]);
+            ]); */
 
         } catch (\Exception $e) {
             Log::error('ProcessTaskJob failed', [
@@ -137,7 +137,7 @@ class ProcessTaskJob implements ShouldQueue
      */
     protected function processFiles(): void
     {
-        Log::info('Processing files for task', ['task_id' => $this->taskData['id'] ?? null]);
+        // Log::info('Processing files for task', ['task_id' => $this->taskData['id'] ?? null]);
 
         // File upload processing
         if (isset($this->taskData['files'])) {
@@ -178,7 +178,7 @@ class ProcessTaskJob implements ShouldQueue
      */
     protected function generateReports(): void
     {
-        Log::info('Generating reports for task', ['task_id' => $this->taskData['id'] ?? null]);
+        // Log::info('Generating reports for task', ['task_id' => $this->taskData['id'] ?? null]);
 
         // Daily reports
         $reportService->generateDailyTaskReport();
@@ -213,7 +213,7 @@ class ProcessTaskJob implements ShouldQueue
      */
     protected function cleanupData(): void
     {
-        Log::info('Cleaning up data for task', ['task_id' => $this->taskData['id'] ?? null]);
+        // Log::info('Cleaning up data for task', ['task_id' => $this->taskData['id'] ?? null]);
 
         // Xóa tasks cũ (quá 1 năm)
         $taskService->cleanupOldTasks();
@@ -248,7 +248,7 @@ class ProcessTaskJob implements ShouldQueue
      */
     protected function automateTasks(): void
     {
-        Log::info('Automating tasks', ['task_id' => $this->taskData['id'] ?? null]);
+        // Log::info('Automating tasks', ['task_id' => $this->taskData['id'] ?? null]);
 
         // Tự động cập nhật task status dựa trên thời gian
         $taskService->autoUpdateTaskStatus();
@@ -283,7 +283,7 @@ class ProcessTaskJob implements ShouldQueue
      */
     protected function processBatch(): void
     {
-        Log::info('Processing batch tasks', ['batch_size' => is_array($this->taskData) ? count($this->taskData) : 1]);
+        // Log::info('Processing batch tasks', ['batch_size' => is_array($this->taskData) ? count($this->taskData) : 1]);
 
         // Xử lý nhiều tasks cùng lúc
         if (is_array($this->taskData)) {
@@ -292,12 +292,12 @@ class ProcessTaskJob implements ShouldQueue
                 
                 // Cập nhật trạng thái task
                 if (is_numeric($taskId)) {
-                    Log::info('Updating task status', ['task_id' => $taskId]);
+                    // Log::info('Updating task status', ['task_id' => $taskId]);
                     try {
                         $task = $taskService->getTaskById($taskId);
                         if ($task) {
                             $taskService->updateTask($task, ['trang_thai' => 'dang_xu_ly']);
-                            Log::info('Task status updated successfully', ['task_id' => $taskId]);
+                            // Log::info('Task status updated successfully', ['task_id' => $taskId]);
                         }
                     } catch (\Exception $e) {
                         Log::error('Failed to update task status', ['task_id' => $taskId, 'error' => $e->getMessage()]);
@@ -305,18 +305,18 @@ class ProcessTaskJob implements ShouldQueue
                 }
                 
                 // Gửi thông báo
-                Log::info('Sending task notification', ['task_id' => $taskId]);
+                // Log::info('Sending task notification', ['task_id' => $taskId]);
         
                 
                 // Tạo báo cáo
-                Log::info('Generating task report', ['task_id' => $taskId]);
+                // Log::info('Generating task report', ['task_id' => $taskId]);
                 // TODO: Gọi ReportService để tạo báo cáo
             }
         } else {
-            Log::info('Processing single task in batch', ['task_data' => $this->taskData]);
+            // Log::info('Processing single task in batch', ['task_data' => $this->taskData]);
         }
 
-        Log::info('Batch processing completed successfully');
+        // Log::info('Batch processing completed successfully');
     }
 
     /**
@@ -327,17 +327,17 @@ class ProcessTaskJob implements ShouldQueue
      */
     protected function syncData(): void
     {
-        Log::info('Syncing data for task', ['task_id' => $this->taskData['id'] ?? null]);
+        // Log::info('Syncing data for task', ['task_id' => $this->taskData['id'] ?? null]);
 
         // Simulate data synchronization
-        Log::info('Database synchronization completed');
+        /* Log::info('Database synchronization completed');
         Log::info('External API sync completed');
         Log::info('Calendar sync completed');
         Log::info('User sync completed');
         Log::info('Permission sync completed');
         Log::info('Cache sync completed');
         Log::info('Backup sync completed');
-        Log::info('Archive sync completed');
+        Log::info('Archive sync completed'); */
     }
 
     /**
@@ -348,19 +348,19 @@ class ProcessTaskJob implements ShouldQueue
      */
     protected function warmCache(): void
     {
-        Log::info('Warming cache for task', ['task_id' => $this->taskData['id'] ?? null]);
+        // Log::info('Warming cache for task', ['task_id' => $this->taskData['id'] ?? null]);
 
         // Simulate cache warming
-        Log::info('Task data cached successfully');
+        /* Log::info('Task data cached successfully');
         Log::info('User data cached successfully');
         Log::info('Statistics cached successfully');
         Log::info('Reports cached successfully');
         Log::info('Permissions cached successfully');
         Log::info('Settings cached successfully');
-        Log::info('Configurations cached successfully');
+        Log::info('Configurations cached successfully'); */
 
         // Cache external data
-        Log::info('External data cached successfully');
+        // Log::info('External data cached successfully');
     }
 
     /**
@@ -371,7 +371,7 @@ class ProcessTaskJob implements ShouldQueue
      */
     protected function processDefault(): void
     {
-        Log::info('Processing default task operations', ['task_id' => $this->taskData['id'] ?? null]);
+        // Log::info('Processing default task operations', ['task_id' => $this->taskData['id'] ?? null]);
 
         // Thực hiện tất cả các xử lý cơ bản
         $this->processFiles();
@@ -380,7 +380,7 @@ class ProcessTaskJob implements ShouldQueue
         
         // Cập nhật task status
         if (isset($this->taskData['id'])) {
-            Log::info('Task status updated to processed', ['task_id' => $this->taskData['id']]);
+            // Log::info('Task status updated to processed', ['task_id' => $this->taskData['id']]);
         }
     }
 

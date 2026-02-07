@@ -12,6 +12,9 @@ namespace Modules\Task\app\Services;
 use Modules\Task\app\Repositories\Interfaces\TaskRepositoryInterface;
 use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
+use Modules\Auth\app\Models\Attendance\AttendanceSession;
+use Modules\Task\app\Models\Exam;
+use Modules\Task\app\Models\Assignment;
 
 /**
  * Calendar Service - Common calendar operations
@@ -62,29 +65,46 @@ class CalendarService
             });
             
             // Filter theo user nếu có
-            // Hiển thị: events của user + events system-wide (admin tạo hoặc standalone calendar events)
             if ($userId && $userType) {
                 $calendarQuery->where(function ($q) use ($userId, $userType) {
                     /** @var \Illuminate\Database\Eloquent\Builder $q */
-                    // Events do chính user này tạo
                     $q->where(function ($creatorQuery) use ($userId, $userType) {
                         /** @var \Illuminate\Database\Eloquent\Builder $creatorQuery */
                         $creatorQuery->where('creator_id', $userId)
                                     ->where('creator_type', $userType);
                     })
-                    // HOẶC events system-wide (do admin tạo)
                     ->orWhere('creator_type', 'admin')
-                    // HOẶC standalone calendar events (không liên kết với task = system-wide announcements)
                     ->orWhereNull('task_id');
                 });
             }
             
             $calendarEvents = $calendarQuery->orderBy('start_time', 'asc')->get();
+
+            // Lấy Attendance Sessions (Lịch học)
+            $attendanceSessions = [];
+            if ($userId && $userType) {
+                $attendanceSessions = $this->getAttendanceSessionsForUser($userId, $userType, $startDate, $endDate);
+            }
             
             // Map và merge events
             $taskEvents = $this->mapTasksToEvents($tasks);
             $calendarEventsArray = $this->mapCalendarToEvents($calendarEvents);
-            $events = $this->mergeAndSortEvents($taskEvents, $calendarEventsArray);
+            $attendanceEvents = $this->mapSessionsToEvents($attendanceSessions);
+
+            $attendanceEvents = $this->mapSessionsToEvents($attendanceSessions);
+
+            // [NEW] Get Holidays
+            $holidays = $this->getHolidaysForRange($startDate, $endDate);
+            $holidayEvents = $this->mapHolidaysToEvents($holidays);
+
+            // [NEW] Get Exams and Assignments
+            $exams = $this->getExamsForRange($startDate, $endDate, $userId, $userType);
+            $assignments = $this->getAssignmentsForRange($startDate, $endDate, $userId, $userType);
+            
+            $examEvents = $this->mapExamsToEvents($exams);
+            $assignmentEvents = $this->mapAssignmentsToEvents($assignments);
+
+            $events = $this->mergeAndSortEvents($taskEvents, $calendarEventsArray, $attendanceEvents, $holidayEvents, $examEvents, $assignmentEvents);
             
             return [
                 'date' => $date,
@@ -159,29 +179,46 @@ class CalendarService
             });
             
             // Filter theo user nếu có
-            // Hiển thị: events của user + events system-wide (admin tạo hoặc standalone calendar events)
             if ($userId && $userType) {
                 $calendarQuery->where(function ($q) use ($userId, $userType) {
                     /** @var \Illuminate\Database\Eloquent\Builder $q */
-                    // Events do chính user này tạo
                     $q->where(function ($creatorQuery) use ($userId, $userType) {
                         /** @var \Illuminate\Database\Eloquent\Builder $creatorQuery */
                         $creatorQuery->where('creator_id', $userId)
                                     ->where('creator_type', $userType);
                     })
-                    // HOẶC events system-wide (do admin tạo)
                     ->orWhere('creator_type', 'admin')
-                    // HOẶC standalone calendar events (không liên kết với task = system-wide announcements)
                     ->orWhereNull('task_id');
                 });
             }
             
             $calendarEvents = $calendarQuery->orderBy('start_time', 'asc')->get();
+
+            // Lấy Attendance Sessions (Lịch học)
+            $attendanceSessions = [];
+            if ($userId && $userType) {
+                $attendanceSessions = $this->getAttendanceSessionsForUser($userId, $userType, $startDate, $endDate);
+            }
             
             // Map và merge events
             $taskEvents = $this->mapTasksToEvents($tasks);
             $calendarEventsArray = $this->mapCalendarToEvents($calendarEvents);
-            $events = $this->mergeAndSortEvents($taskEvents, $calendarEventsArray);
+            $attendanceEvents = $this->mapSessionsToEvents($attendanceSessions);
+
+            $attendanceEvents = $this->mapSessionsToEvents($attendanceSessions);
+
+            // [NEW] Get Holidays
+            $holidays = $this->getHolidaysForRange($startDate, $endDate);
+            $holidayEvents = $this->mapHolidaysToEvents($holidays);
+
+            // [NEW] Get Exams and Assignments
+            $exams = $this->getExamsForRange($startDate, $endDate, $userId, $userType);
+            $assignments = $this->getAssignmentsForRange($startDate, $endDate, $userId, $userType);
+            
+            $examEvents = $this->mapExamsToEvents($exams);
+            $assignmentEvents = $this->mapAssignmentsToEvents($assignments);
+
+            $events = $this->mergeAndSortEvents($taskEvents, $calendarEventsArray, $attendanceEvents, $holidayEvents, $examEvents, $assignmentEvents);
             
             return [
                 'start_date' => $startDate,
@@ -243,29 +280,46 @@ class CalendarService
                 ->where('start_time', '<=', $endDate);
             
             // Filter theo user nếu có
-            // Hiển thị: events của user + events system-wide (admin tạo hoặc standalone calendar events)
             if ($userId && $userType) {
                 $calendarQuery->where(function ($q) use ($userId, $userType) {
                     /** @var \Illuminate\Database\Eloquent\Builder $q */
-                    // Events do chính user này tạo
                     $q->where(function ($creatorQuery) use ($userId, $userType) {
                         /** @var \Illuminate\Database\Eloquent\Builder $creatorQuery */
                         $creatorQuery->where('creator_id', $userId)
                                     ->where('creator_type', $userType);
                     })
-                    // HOẶC events system-wide (do admin tạo)
                     ->orWhere('creator_type', 'admin')
-                    // HOẶC standalone calendar events (không liên kết với task = system-wide announcements)
                     ->orWhereNull('task_id');
                 });
             }
             
             $calendarEvents = $calendarQuery->orderBy('start_time', 'asc')->limit($limit)->get();
+
+            // Lấy Attendance Sessions (Lịch học)
+            $attendanceSessions = [];
+            if ($userId && $userType) {
+                $attendanceSessions = $this->getAttendanceSessionsForUser($userId, $userType, $startDate, $endDate, $limit);
+            }
             
             // Map và merge events
             $taskEvents = $this->mapTasksToEvents($tasks);
             $calendarEventsArray = $this->mapCalendarToEvents($calendarEvents);
-            $events = $this->mergeAndSortEvents($taskEvents, $calendarEventsArray);
+            $attendanceEvents = $this->mapSessionsToEvents($attendanceSessions);
+
+            $attendanceEvents = $this->mapSessionsToEvents($attendanceSessions);
+
+            // [NEW] Get Holidays
+            $holidays = $this->getHolidaysForRange($startDate, $endDate);
+            $holidayEvents = $this->mapHolidaysToEvents($holidays);
+
+            // [NEW] Get Exams and Assignments
+            $exams = $this->getExamsForRange($startDate, $endDate, $userId, $userType, $limit);
+            $assignments = $this->getAssignmentsForRange($startDate, $endDate, $userId, $userType, $limit);
+            
+            $examEvents = $this->mapExamsToEvents($exams);
+            $assignmentEvents = $this->mapAssignmentsToEvents($assignments);
+
+            $events = $this->mergeAndSortEvents($taskEvents, $calendarEventsArray, $attendanceEvents, $holidayEvents, $examEvents, $assignmentEvents);
             
             // Limit kết quả
             $events = array_slice($events, 0, $limit);
@@ -492,7 +546,7 @@ class CalendarService
             // Map và merge events
             $taskEvents = $this->mapTasksToEvents($tasks);
             $calendarEventsArray = $this->mapCalendarToEvents($calendarEvents);
-            $allEvents = $this->mergeAndSortEvents($taskEvents, $calendarEventsArray);
+            $allEvents = $this->mergeAndSortEvents($taskEvents, $calendarEventsArray, []);
 
             // Pagination thủ công
             /** @var int $page */
@@ -594,35 +648,138 @@ class CalendarService
         }
     }
 
-    /**
-     * Tạo calendar event mới
-     * 
-     * @param array $data Event data
-     * @return array Created event
-     */
-    public function createEvent(array $data): array
-    {
-        try {
-            $event = \Modules\Task\app\Models\Calendar::create([
-                'title' => $data['title'],
-                'description' => $data['description'] ?? null,
-                'start_time' => $data['start_time'],
-                'end_time' => $data['end_time'],
-                'event_type' => $data['event_type'] ?? 'event',
-                'task_id' => $data['task_id'] ?? null,
-                'creator_id' => $data['creator_id'],
-                'creator_type' => $data['creator_type'],
-            ]);
 
-            return $this->mapCalendarToEvents([$event])[0];
-        } catch (\Exception $e) {
-            Log::error('CalendarService: Error creating event', [
-                'data' => $data,
-                'error' => $e->getMessage()
-            ]);
+
+    /**
+     * Kiểm tra trùng lịch (Conflict Check)
+     * 
+     * @param string $date Y-m-d
+     * @param string $startTime H:i:s
+     * @param string $endTime H:i:s
+     * @param string|null $room Room name
+     * @param int|null $lecturerId Lecturer ID
+     * @param int|null $excludeSessionId ID to exclude (for update)
+     * @return array List of conflicts (empty if none)
+     */
+    public function checkConflict(string $date, string $startTime, string $endTime, ?string $room, ?int $lecturerId, ?int $excludeSessionId = null): array
+    {
+        $conflicts = [];
+        $start = Carbon::parse("$date $startTime");
+        $end = Carbon::parse("$date $endTime");
+
+        // Query base: Sessions that overlap with time range
+        // (StartA < EndB) AND (EndA > StartB)
+        // DB stores start_time and end_time as Time (H:i:s) and session_date as Date. 
+        // Simple overlap check on same date.
+        
+        $baseQuery = AttendanceSession::where('session_date', $data['session_date'] ?? $date) // Assuming same date check for now
+            ->where('status', '!=', 'cancelled');
             
-            throw $e;
+        if ($excludeSessionId) {
+            $baseQuery->where('id', '!=', $excludeSessionId);
         }
+
+        // Check Room Conflict
+        if ($room) {
+            $roomConflicts = (clone $baseQuery)->where('room', $room)
+                ->where(function ($q) use ($startTime, $endTime) {
+                    $q->where('start_time', '<', $endTime)
+                      ->where('end_time', '>', $startTime);
+                })->get();
+                
+            foreach ($roomConflicts as $c) {
+                $conflicts[] = "Trùng phòng {$room} với lớp {$c->course_id} ({$c->start_time}-{$c->end_time})";
+            }
+        }
+
+        // Check Lecturer Conflict
+        if ($lecturerId) {
+            // Check AttendanceSessions
+            $lecturerConflicts = (clone $baseQuery)->whereHas('course', function($q) use ($lecturerId) {
+                $q->where('lecturer_id', $lecturerId);
+            })
+            ->where(function ($q) use ($startTime, $endTime) {
+                $q->where('start_time', '<', $endTime)
+                  ->where('end_time', '>', $startTime);
+            })->get();
+
+            foreach ($lecturerConflicts as $c) {
+                $conflicts[] = "Giảng viên đang dạy lớp {$c->course_id} ({$c->start_time}-{$c->end_time})";
+            }
+        }
+
+        return $conflicts;
+    }
+
+    /**
+     * Helper: Fetch Holidays
+     */
+    private function getHolidaysForRange(string $startDate, string $endDate)
+    {
+        $start = Carbon::parse($startDate);
+        $end = Carbon::parse($endDate);
+        
+        // 1. Fixed Holidays
+        $fixed = \Modules\Auth\app\Models\Attendance\Holiday::whereBetween('date', [$start->toDateString(), $end->toDateString()])
+            ->where('is_recurring', false)
+            ->get();
+            
+        // 2. Recurring Holidays
+        $recurring = \Modules\Auth\app\Models\Attendance\Holiday::where('is_recurring', true)->get();
+        $expandedRecurring = collect();
+        
+        $years = range($start->year, $end->year);
+        
+        foreach ($recurring as $rec) {
+            $recDate = Carbon::parse($rec->date);
+            foreach ($years as $year) {
+                $currentYearDate = Carbon::create($year, $recDate->month, $recDate->day);
+                if ($currentYearDate->between($start, $end)) {
+                    $clone = clone $rec;
+                    $clone->date = $currentYearDate->toDateString(); // Override date for display
+                    $expandedRecurring->push($clone);
+                }
+            }
+        }
+        
+        return $fixed->merge($expandedRecurring);
+    }
+    
+    /**
+     * Helper: Map Holidays to Events
+     */
+    private function mapHolidaysToEvents($holidays): array
+    {
+        return $holidays->map(function ($h) {
+            return [
+                'id' => 'holiday-' . $h->id . '-' . $h->date, // Unique ID for calendar
+                'title' => "🏖️ " . $h->name,
+                'start' => $h->date,
+                'end' => $h->date,
+                'start_time' => $h->date . ' 00:00:00',
+                'end_time' => $h->date . ' 23:59:59',
+                'event_type' => 'holiday',
+                'status' => 'holiday',
+                'priority' => 'high',
+                'description' => $h->description,
+                'allDay' => true,
+                'classNames' => ['fc-event-holiday'] // Frontend class
+            ];
+        })->toArray();
+    }
+    
+    /**
+     * Helper: Merge and Sort (Updated)
+     */
+    private function mergeAndSortEvents(array ...$eventArrays): array
+    {
+        $allEvents = array_merge(...$eventArrays);
+        
+        usort($allEvents, function ($a, $b) {
+            return strcmp($a['start_time'] ?? '', $b['start_time'] ?? '');
+        });
+        
+        return $allEvents;
     }
 
     /**
@@ -665,6 +822,137 @@ class CalendarService
             $query->limit($limit);
         }
         
+        return $query->get();
+    }
+
+    /**
+     * Helper: Lấy Exams cho user
+     */
+    private function getExamsForRange($startDate, $endDate, $userId = null, $userType = null, $limit = null)
+    {
+        $query = Exam::query()
+            ->whereBetween('start_time', [Carbon::parse($startDate), Carbon::parse($endDate)]);
+            
+        if ($userId && $userType) {
+            if ($userType === 'student') {
+                $query->whereHas('course.enrollments', function ($q) use ($userId) {
+                    $q->where('student_id', $userId)->where('status', 'active');
+                })->where('status', 'published');
+            } elseif ($userType === 'lecturer') {
+                $query->where('lecturer_id', $userId);
+            }
+        }
+        
+        $query->orderBy('start_time');
+        if ($limit) $query->limit($limit);
+        
+        return $query->get();
+    }
+
+    /**
+     * Helper: Lấy Assignments cho user
+     */
+    private function getAssignmentsForRange($startDate, $endDate, $userId = null, $userType = null, $limit = null)
+    {
+        $query = Assignment::query()
+            ->whereBetween('deadline', [Carbon::parse($startDate), Carbon::parse($endDate)]);
+            
+        if ($userId && $userType) {
+            if ($userType === 'student') {
+                $query->whereHas('course.enrollments', function ($q) use ($userId) {
+                    $q->where('student_id', $userId)->where('status', 'active');
+                })->where('status', 'published');
+            } elseif ($userType === 'lecturer') {
+                $query->where('lecturer_id', $userId);
+            }
+        }
+        
+        $query->orderBy('deadline');
+        if ($limit) $query->limit($limit);
+        
+        return $query->get();
+    }
+
+    private function mapExamsToEvents($exams): array
+    {
+        return $exams->map(function ($e) {
+            return [
+                'id' => 'exam-' . $e->id,
+                'title' => '📝 ' . $e->title,
+                'start' => $e->start_time?->toDateTimeString(),
+                'end' => $e->end_time?->toDateTimeString(),
+                'start_time' => $e->start_time?->toDateTimeString(),
+                'end_time' => $e->end_time?->toDateTimeString(),
+                'event_type' => 'exam',
+                'task_id' => $e->id, // Use exam ID
+                'status' => $e->status,
+                'priority' => 'critical',
+                'class_id' => $e->course_id,
+                'description' => "Môn: {$e->course?->code}\nThời gian: {$e->time_limit} phút",
+                'classNames' => ['fc-event-exam'],
+                'extendedProps' => ['course' => $e->course?->code]
+            ];
+        })->toArray();
+    }
+
+    private function mapAssignmentsToEvents($assignments): array
+    {
+        return $assignments->map(function ($a) {
+            return [
+                'id' => 'assignment-' . $a->id,
+                'title' => '📋 ' . $a->title,
+                'start' => $a->deadline?->toDateTimeString(),
+                'end' => $a->deadline?->toDateTimeString(),
+                'start_time' => $a->deadline?->toDateTimeString(),
+                'end_time' => $a->deadline?->toDateTimeString(),
+                'event_type' => 'assignment',
+                'task_id' => $a->id,
+                'status' => $a->status,
+                'priority' => 'high',
+                'class_id' => $a->course_id,
+                'description' => "Môn: {$a->course?->code}\nHạn nộp: {$a->deadline?->format('H:i d/m')}",
+                'classNames' => ['fc-event-assignment']
+            ];
+        })->toArray();
+    }
+
+    /**
+     * Helper: Lấy Attendance Sessions cho user
+     */
+    private function getAttendanceSessionsForUser(
+        int $userId,
+        string $userType,
+        string $startDate,
+        string $endDate,
+        ?int $limit = null
+    ) {
+        $query = AttendanceSession::query()
+            ->with(['course'])
+            ->whereBetween('session_date', [
+                Carbon::parse($startDate)->toDateString(),
+                Carbon::parse($endDate)->toDateString()
+            ]);
+
+        if ($userType === 'student') {
+            // Student: Get sessions of enrolled courses
+            $query->whereHas('course.enrollments', function ($q) use ($userId) {
+                $q->where('student_id', $userId)
+                  ->where('status', 'active');
+            });
+        } elseif ($userType === 'lecturer') {
+            // Lecturer: Get sessions of courses taught by lecturer
+            $query->whereHas('course', function ($q) use ($userId) {
+                $q->where('lecturer_id', $userId);
+            });
+        }
+        
+        $query->orderBy('session_date', 'asc')
+              ->orderBy('start_time', 'asc');
+
+        if ($limit) {
+            $query->limit($limit);
+        }
+
         return $query->get();
     }
 
@@ -758,24 +1046,51 @@ class CalendarService
     }
 
     /**
-     * Helper: Merge và sort events từ tasks và calendar
-     * 
-     * @param array $taskEvents Events từ tasks
-     * @param array $calendarEvents Events từ calendar
-     * @return array Merged and sorted events
+     * Helper: Map sessions thành events
      */
-    private function mergeAndSortEvents(array $taskEvents, array $calendarEvents): array
+    private function mapSessionsToEvents($sessions): array
     {
-        /** @noinspection PhpUndefinedVariableInspection */
-        $allEvents = array_merge($taskEvents, $calendarEvents);
-        
-        // Sort theo start_time
-        usort($allEvents, function ($a, $b) {
-            $timeA = strtotime($a['start'] ?? $a['start_time'] ?? '1970-01-01 00:00:00');
-            $timeB = strtotime($b['start'] ?? $b['start_time'] ?? '1970-01-01 00:00:00');
-            return $timeA <=> $timeB;
-        });
-        
-        return $allEvents;
+        if (!is_iterable($sessions)) {
+            return [];
+        }
+
+        return collect($sessions)->map(function ($session) {
+            $date = $session->session_date->format('Y-m-d');
+            $startTime = $date . ' ' . $session->start_time;
+            $endTime = $date . ' ' . $session->end_time;
+            
+            return [
+                'id' => 'session_' . $session->id,
+                'title' => ($session->course->code ?? 'COURSE') . ' - ' . ($session->course->name ?? 'Lesson'),
+                'description' => "Phòng: {$session->room}\nChủ đề: {$session->topic}",
+                'start' => $startTime,
+                'end' => $endTime,
+                'start_time' => $startTime,
+                'end_time' => $endTime,
+                'event_type' => 'schedule', // New event type
+                'task_id' => null,
+                'status' => $session->status,
+                'priority' => 'high',
+                'class_id' => $session->course_id,
+                'creator' => [
+                    'id' => 0,
+                    'type' => 'system',
+                    'name' => 'System'
+                ],
+                'receivers' => [],
+                'files_count' => 0,
+                'submissions_count' => 0,
+                'created_at' => $session->created_at?->toDateTimeString(),
+                'updated_at' => $session->updated_at?->toDateTimeString(),
+                // Extra data for frontend if needed
+                'extendedProps' => [
+                    'room' => $session->room,
+                    'session_number' => $session->session_number,
+                    'is_attendance' => true
+                ]
+            ];
+        })->toArray();
     }
+
+
 }

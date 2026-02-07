@@ -67,9 +67,11 @@ class RollCallService
             DB::commit();
 
             /* Log::info('Roll call created successfully', [
+            /* Log::info('Roll call created successfully', [
                 'roll_call_id' => $rollCall->id,
                 'type' => $type,
                 'class_id' => $data['class_id'] ?? null
+            ]); */
             ]); */
 
             return $this->rollCallRepository->findById($rollCall->id);
@@ -102,9 +104,11 @@ class RollCallService
         }
 
         /* Log::info('Class-based roll call created', [
+        /* Log::info('Class-based roll call created', [
             'roll_call_id' => $rollCall->id,
             'class_id' => $data['class_id'],
             'students_count' => $students->count()
+        ]); */
         ]); */
     }
 
@@ -133,9 +137,11 @@ class RollCallService
         }
 
         /* Log::info('Manual roll call created', [
+        /* Log::info('Manual roll call created', [
             'roll_call_id' => $rollCall->id,
             'participants_count' => count($participants),
             'expected_participants' => $data['expected_participants'] ?? count($participants)
+        ]); */
         ]); */
     }
 
@@ -171,9 +177,11 @@ class RollCallService
             Cache::forget("roll_call_details:{$rollCallId}");
 
             /* Log::info('Participants added to manual roll call', [
+            /* Log::info('Participants added to manual roll call', [
                 'roll_call_id' => $rollCallId,
                 'new_participants' => count($newStudentIds),
                 'total_participants' => count($existingStudentIds) + count($newStudentIds)
+            ]); */
             ]); */
 
             return true;
@@ -208,8 +216,10 @@ class RollCallService
                 Cache::forget("roll_call_details:{$rollCallId}");
 
                 /* Log::info('Participant removed from manual roll call', [
+                /* Log::info('Participant removed from manual roll call', [
                     'roll_call_id' => $rollCallId,
                     'student_id' => $studentId
+                ]); */
                 ]); */
             }
 
@@ -339,9 +349,11 @@ class RollCallService
                 Cache::forget("roll_call_details:{$rollCallId}");
 
                 /* Log::info('Student roll call status updated', [
+                /* Log::info('Student roll call status updated', [
                     'roll_call_id' => $rollCallId,
                     'student_id' => $studentId,
                     'status' => $status
+                ]); */
                 ]); */
             }
 
@@ -569,8 +581,10 @@ class RollCallService
                         Cache::forget(str_replace($prefix, '', $key));
                     }
                     /* Log::info('Cleared getAllRollCalls cache via Redis', [
+                    /* Log::info('Cleared getAllRollCalls cache via Redis', [
                         'keys_count' => count($keys),
                         'pattern' => $pattern
+                    ]); */
                     ]); */
                 }
             }
@@ -604,8 +618,10 @@ class RollCallService
         }
         
         /* Log::info('Roll call cache cleared comprehensively', [
+        /* Log::info('Roll call cache cleared comprehensively', [
             'class_id' => $classId,
             'method' => 'Redis + fallback patterns'
+        ]); */
         ]); */
     }
 }
