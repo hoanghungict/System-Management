@@ -9,6 +9,7 @@
 /.fleet
 /.idea
 /.nova
+.config/
 /.phpunit.cache
 /.vscode
 /.zed
