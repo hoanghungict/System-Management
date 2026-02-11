@@ -4,6 +4,12 @@ use App\Http\Middleware\JwtMiddleware;
 use App\Http\Middleware\AdminOnlyMiddleware;
 use App\Http\Middleware\LecturerOnlyMiddleware;
 use App\Http\Middleware\StudentOnlyMiddleware;
+
+// Define signals for Reverb if not present (fixes bug in some environments)
+if (!defined('SIGINT')) define('SIGINT', 2);
+if (!defined('SIGTERM')) define('SIGTERM', 15);
+if (!defined('SIGTSTP')) define('SIGTSTP', 20);
+
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;

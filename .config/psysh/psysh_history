@@ -1,0 +1,1 @@
+broadcast(new \Modules\Notifications\app\Events\UserNotificationPushed(1, 'student', 'Chúc mừng! Kết nối Real-time đã hoạt động.', ['type' => 'system', 'url' => '/authorized/tasks']));

@@ -74,8 +74,7 @@ services:
       context: .
     container_name: hpc_reverb
     restart: unless-stopped
-    command: php artisan reverb:start
-    working_dir: /var/www
+    command: php artisan reverb:start --host=0.0.0.0 --port=8080 --debug
     env_file:
       - .env
     volumes:
@@ -128,8 +127,8 @@ services:
     networks:
       - hpc_network
 
-  # =========================
-  # QUEUE WORKER (emails)
+ # =========================
+  # QUEUE WORKER
   # =========================
   queue:
     image: hpc_app:latest
@@ -137,41 +136,14 @@ services:
       context: .
     container_name: hpc_queue
     restart: unless-stopped
-    working_dir: /var/www
+    command: php artisan queue:work --sleep=3 --tries=3 --timeout=90
     env_file:
       - .env
-    volumes:
-      - ./:/var/www
-    command: php artisan queue:work --queue=emails --verbose --tries=3 --timeout=90
     depends_on:
-      - app
       - redis
     mem_limit: 256m
     networks:
       - hpc_network
-
-  # =========================
-  # QUEUE WORKER (default)
-  # =========================
-  queue_default:
-    image: hpc_app:latest
-    build:
-      context: .
-    container_name: hpc_queue_default
-    restart: unless-stopped
-    working_dir: /var/www
-    env_file:
-      - .env
-    volumes:
-      - ./:/var/www
-    command: php artisan queue:work --verbose --tries=3 --timeout=90
-    depends_on:
-      - app
-      - redis
-    mem_limit: 256m
-    networks:
-      - hpc_network
-
   # =========================
   # KAFKA CONSUMER
   # =========================
