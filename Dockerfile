@@ -61,6 +61,10 @@ RUN mkdir -p \
     && chown -R www-data:www-data /var/www \
     && chmod -R 775 storage bootstrap/cache
 
+# Fix PHP-FPM listening on IPv6 by default
+RUN echo "[www]" > /usr/local/etc/php-fpm.d/zzz-docker-ipv4.conf \
+    && echo "listen = 0.0.0.0:9000" >> /usr/local/etc/php-fpm.d/zzz-docker-ipv4.conf
+
 # Copy entrypoint script
 COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
