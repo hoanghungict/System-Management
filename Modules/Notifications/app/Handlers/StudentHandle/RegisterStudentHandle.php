@@ -6,12 +6,12 @@ use Exception;
 use Modules\Notifications\app\Handlers\Contracts\NotificationEventHandler;
 use Modules\Notifications\app\Services\NotificationService\NotificationService;
 use Illuminate\Support\Facades\Log;
-use Modules\Notifications\app\Handlers\HandleUtil\ensureString;
+use Modules\Notifications\app\Handlers\HandleUtil\EnsureString;
 
 class RegisterStudentHandle implements NotificationEventHandler {
     protected $notificationService;
     protected $ensureString;
-    public function __construct(NotificationService $notificationService, ensureString $ensureString)
+    public function __construct(NotificationService $notificationService, EnsureString $ensureString)
     {
         $this->notificationService = $notificationService;
         $this->ensureString = $ensureString;

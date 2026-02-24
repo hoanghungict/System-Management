@@ -58,7 +58,7 @@ class EnrollmentService
             throw new \Exception('Không tìm thấy môn học');
         }
 
-        // Kiểm tra đã đăng ký chưa
+        // Kiểm tra đã đăng ký (active) chưa
         if ($this->enrollmentRepository->isEnrolled($courseId, $studentId)) {
             throw new \Exception('Sinh viên đã đăng ký môn học này');
         }
@@ -69,26 +69,34 @@ class EnrollmentService
         DB::beginTransaction();
 
         try {
-            // Tạo enrollment
-            $enrollment = $this->enrollmentRepository->create([
-                'course_id' => $courseId,
-                'student_id' => $studentId,
-                'enrolled_at' => $enrolledAt,
-                'status' => CourseEnrollment::STATUS_ACTIVE,
-                'note' => $isLateEnrollment ? ($note ?? 'Đăng ký muộn') : $note,
-            ]);
+            // Kiểm tra xem có enrollment đã bị dropped không → reactivate
+            $droppedEnrollment = $this->enrollmentRepository->findDroppedEnrollment($courseId, $studentId);
 
-            // Tạo attendance records cho các buổi học
-            $this->createAttendanceRecordsForEnrollment($enrollment, $adminId, $isLateEnrollment);
+            if ($droppedEnrollment) {
+                // Reactivate enrollment đã bị dropped
+                $droppedEnrollment->update([
+                    'status' => CourseEnrollment::STATUS_ACTIVE,
+                    'enrolled_at' => $enrolledAt,
+                    'note' => $note ?? 'Đăng ký lại',
+                    'dropped_at' => null,
+                    'drop_reason' => null,
+                ]);
+                $enrollment = $droppedEnrollment->fresh();
+            } else {
+                // Tạo enrollment mới
+                $enrollment = $this->enrollmentRepository->create([
+                    'course_id' => $courseId,
+                    'student_id' => $studentId,
+                    'enrolled_at' => $enrolledAt,
+                    'status' => CourseEnrollment::STATUS_ACTIVE,
+                    'note' => $isLateEnrollment ? ($note ?? 'Đăng ký muộn') : $note,
+                ]);
+
+                // Tạo attendance records cho các buổi học (chỉ cho enrollment mới)
+                $this->createAttendanceRecordsForEnrollment($enrollment, $adminId, $isLateEnrollment);
+            }
 
             DB::commit();
-
-            /* Log::info('Student enrolled', [
-            /* Log::info('Student enrolled', [
-                'course_id' => $courseId,
-                'student_id' => $studentId,
-                'is_late' => $isLateEnrollment,
-            ]); */
 
             // Clear cache
             $this->clearEnrollmentCache($courseId, $studentId);
@@ -132,12 +140,10 @@ class EnrollmentService
         }
 
         /* Log::info('Bulk enrollment completed', [
-        /* Log::info('Bulk enrollment completed', [
             'course_id' => $courseId,
             'success_count' => count($results['success']),
             'failed_count' => count($results['failed']),
             'already_enrolled_count' => count($results['already_enrolled']),
-        ]); */
         ]); */
 
         return $results;
@@ -192,7 +198,6 @@ class EnrollmentService
         $result = $this->enrollmentRepository->drop($courseId, $studentId, $reason);
 
         if ($result) {
-            /* Log::info('Student unenrolled', [
             /* Log::info('Student unenrolled', [
                 'course_id' => $courseId,
                 'student_id' => $studentId,
