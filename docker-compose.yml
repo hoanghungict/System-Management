@@ -68,28 +68,39 @@ services:
       - hpc_network
 
   # =========================
-  # REVERB (WebSocket)
+  # QUEUE WORKER
   # =========================
+  queue:
+    image: hpc_app:latest
+    container_name: hpc_queue
+    restart: unless-stopped
+    working_dir: /var/www
+    command: php artisan queue:work --sleep=3 --tries=3 --timeout=90
+    env_file:
+      - .env
+    volumes:
+      - ./:/var/www
+    depends_on:
+      - redis
+    mem_limit: 256m
+    networks:
+      - hpc_network
+
   reverb:
     image: hpc_app:latest
-    build:
-      context: .
     container_name: hpc_reverb
     restart: unless-stopped
+    working_dir: /var/www
     command: php artisan reverb:start --host=0.0.0.0 --port=8080 --debug
     env_file:
       - .env
     volumes:
       - ./:/var/www
     depends_on:
-      - app
       - redis
-    ports:
-      - "8081:8080"
     mem_limit: 128m
     networks:
       - hpc_network
-
   # =========================
   # ZOOKEEPER
   # =========================
@@ -99,7 +110,6 @@ services:
     restart: unless-stopped
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
-      ZOOKEEPER_TICK_TIME: 2000
     mem_limit: 256m
     networks:
       - hpc_network
@@ -120,55 +130,31 @@ services:
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
       KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
-      KAFKA_NUM_PARTITIONS: 3
       KAFKA_HEAP_OPTS: "-Xms256M -Xmx512M"
     mem_limit: 768m
     networks:
       - hpc_network
 
- # =========================
-  # QUEUE WORKER
-  # =========================
-  queue:
-    image: hpc_app:latest
-    build:
-      context: .
-    container_name: hpc_queue
-    restart: unless-stopped
-    command: php artisan queue:work --sleep=3 --tries=3 --timeout=90
-    env_file:
-      - .env
-    depends_on:
-      - redis
-    mem_limit: 256m
-    networks:
-      - hpc_network
   # =========================
   # KAFKA CONSUMER
   # =========================
   kafka_consumer:
     image: hpc_app:latest
-    build:
-      context: .
     container_name: hpc_kafka_consumer
     restart: unless-stopped
     working_dir: /var/www
+    command: php artisan kafka:consume
     env_file:
       - .env
     volumes:
       - ./:/var/www
-    command: php artisan kafka:consume
     depends_on:
-      - app
       - kafka
     mem_limit: 256m
     networks:
       - hpc_network
-
-  # =========================
+    # =========================
   # HPC DRIVE SERVICE
   # =========================
   # hpc_drive:
@@ -191,9 +177,6 @@ services:
 
 networks:
   hpc_network:
-    driver: bridge
 
 volumes:
   db_data:
-  drive_data:
-  uploads_data:
