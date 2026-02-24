@@ -22,7 +22,7 @@ class CourseEnrollmentRepository
      */
     public function getByCourse(int $courseId): Collection
     {
-        return $this->model->with(['student'])
+        return $this->model->with(['student.account'])
             ->where('course_id', $courseId)
             ->orderBy('enrolled_at')
             ->get();
@@ -33,7 +33,7 @@ class CourseEnrollmentRepository
      */
     public function getActiveStudentsByCourse(int $courseId): Collection
     {
-        return $this->model->with(['student'])
+        return $this->model->with(['student.account'])
             ->where('course_id', $courseId)
             ->where('status', CourseEnrollment::STATUS_ACTIVE)
             ->get();
@@ -104,13 +104,25 @@ class CourseEnrollmentRepository
     }
 
     /**
-     * Kiểm tra sinh viên đã đăng ký môn chưa
+     * Kiểm tra sinh viên đã đăng ký môn chưa (chỉ tính active, không tính dropped)
      */
     public function isEnrolled(int $courseId, int $studentId): bool
     {
         return $this->model->where('course_id', $courseId)
             ->where('student_id', $studentId)
+            ->where('status', '!=', CourseEnrollment::STATUS_DROPPED)
             ->exists();
+    }
+
+    /**
+     * Tìm enrollment đã bị dropped (để reactivate)
+     */
+    public function findDroppedEnrollment(int $courseId, int $studentId): ?CourseEnrollment
+    {
+        return $this->model->where('course_id', $courseId)
+            ->where('student_id', $studentId)
+            ->where('status', CourseEnrollment::STATUS_DROPPED)
+            ->first();
     }
 
     /**

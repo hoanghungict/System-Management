@@ -42,6 +42,8 @@ services:
     image: mysql:8.0
     container_name: hpc_db
     restart: unless-stopped
+    ports:
+      - "3307:3306"
     environment:
       MYSQL_ROOT_PASSWORD: root
       MYSQL_DATABASE: system_services
