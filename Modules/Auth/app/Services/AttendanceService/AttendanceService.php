@@ -74,7 +74,7 @@ class AttendanceService
     /**
      * Bắt đầu điểm danh buổi học
      */
-    public function startSession(int $sessionId, int $lecturerId): AttendanceSession
+    public function startSession(int $sessionId, int $lecturerId, bool $isAdmin = false): AttendanceSession
     {
         $session = $this->sessionRepository->findById($sessionId);
 
@@ -86,8 +86,8 @@ class AttendanceService
             throw new \Exception('Buổi học không ở trạng thái có thể bắt đầu điểm danh');
         }
 
-        // Kiểm tra quyền: chỉ GV của môn mới được điểm danh
-        if ($session->course->lecturer_id !== $lecturerId) {
+        // Kiểm tra quyền: Admin được bypass, GV phải là người phụ trách
+        if (!$isAdmin && $session->course->lecturer_id !== $lecturerId) {
             throw new \Exception('Bạn không có quyền điểm danh buổi học này');
         }
 

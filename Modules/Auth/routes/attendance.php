@@ -118,6 +118,9 @@ Route::prefix('v1/attendance')->group(function () {
         Route::post('/sessions/{sessionId}/cancel', [AttendanceController::class, 'cancelSession']);
         Route::put('/sessions/{sessionId}/reschedule', [AttendanceController::class, 'rescheduleSession']);
         
+        // ----- ADMIN: MỞ LẠI BUỔI ĐÃ HOÀN THÀNH (chỉ admin truy cập được qua middleware) -----
+        Route::post('/sessions/{sessionId}/reopen', [AdminAttendanceController::class, 'reopenSession']);
+        
         // ----- THỐNG KÊ -----
         Route::get('/courses/{courseId}/students/{studentId}/stats', [AttendanceController::class, 'getStudentStats']);
         Route::get('/courses/{courseId}/at-risk-students', [AttendanceController::class, 'getAtRiskStudents']);

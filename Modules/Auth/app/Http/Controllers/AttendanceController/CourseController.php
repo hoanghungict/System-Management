@@ -196,8 +196,15 @@ class CourseController extends Controller
     public function getSessions(Request $request, int $id): JsonResponse
     {
         try {
-            $perPage = $request->get('per_page', 15);
-            $sessions = $this->courseService->getCourseSessions($id, $perPage);
+            $perPage = $request->get('per_page', 'all');
+            
+            if ($perPage === 'all') {
+                // Trả về tất cả sessions (cho dropdown select)
+                $sessions = $this->courseService->getAllCourseSessions($id);
+            } else {
+                // Trả về paginated
+                $sessions = $this->courseService->getCourseSessions($id, (int) $perPage);
+            }
 
             return response()->json([
                 'success' => true,

@@ -292,10 +292,34 @@ class AdminAttendanceController extends Controller
 
     /**
      * ADMIN: Mở lại buổi điểm danh đã completed
+     * Chỉ Admin mới được phép gọi API này
      */
     public function reopenSession(Request $request, int $sessionId): JsonResponse
     {
         try {
+            // Kiểm tra quyền Admin - chỉ Admin mới được mở lại buổi đã hoàn thành
+            $jwtPayload = $request->attributes->get('jwt_payload');
+            $isAdmin = $jwtPayload && isset($jwtPayload->is_admin) && $jwtPayload->is_admin === true;
+            
+            if (!$isAdmin) {
+                $userType = $request->attributes->get('jwt_user_type');
+                $userId = $request->attributes->get('jwt_user_id');
+                if ($userType === 'lecturer') {
+                    $lecturerAccount = \Illuminate\Support\Facades\DB::table('lecturer_account')
+                        ->where('lecturer_id', $userId)
+                        ->where('is_admin', 1)
+                        ->first();
+                    $isAdmin = !!$lecturerAccount;
+                }
+            }
+
+            if (!$isAdmin) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Chỉ Admin mới có quyền mở lại buổi điểm danh đã hoàn thành',
+                ], 403);
+            }
+
             $session = \Modules\Auth\app\Models\Attendance\AttendanceSession::findOrFail($sessionId);
             
             if ($session->status !== 'completed') {
@@ -312,7 +336,7 @@ class AdminAttendanceController extends Controller
 
             Log::info('Admin reopened session', [
                 'session_id' => $sessionId,
-                'admin_id' => $request->user()->id,
+                'admin_id' => $request->attributes->get('jwt_user_id'),
             ]);
 
             return response()->json([

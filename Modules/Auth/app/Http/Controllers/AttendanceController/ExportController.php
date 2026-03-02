@@ -30,11 +30,19 @@ class ExportController extends Controller
             $jwtPayload = $request->attributes->get('jwt_payload');
             $userType = $request->attributes->get('jwt_user_type');
 
-            $isAdmin = false;
-            if ($jwtPayload && !empty($jwtPayload->is_admin)) {
-                $isAdmin = true;
-            } elseif (in_array(strtolower($userType), ['admin', 'quan tri', 'quantri'])) {
-                $isAdmin = true;
+            // Kiểm tra Admin - giống AttendanceController
+            $isAdmin = $jwtPayload && isset($jwtPayload->is_admin) && $jwtPayload->is_admin === true;
+            
+            if (!$isAdmin) {
+                if (in_array(strtolower($userType ?? ''), ['admin', 'quan tri', 'quantri'])) {
+                    $isAdmin = true;
+                } elseif ($userType === 'lecturer' && $lecturerId) {
+                    $lecturerAccount = \Illuminate\Support\Facades\DB::table('lecturer_account')
+                        ->where('lecturer_id', $lecturerId)
+                        ->where('is_admin', 1)
+                        ->first();
+                    $isAdmin = !!$lecturerAccount;
+                }
             }
 
             Log::info('Start export course attendance', [
@@ -86,11 +94,18 @@ class ExportController extends Controller
             ]);
 
             // Admin có thể là lecturer với is_admin = true HOẶC user_type là admin
-            $isAdmin = false;
-            if ($jwtPayload && !empty($jwtPayload->is_admin)) {
-                $isAdmin = true;
-            } elseif (in_array(strtolower($userType ?? ''), ['admin', 'quan tri', 'quantri'])) {
-                $isAdmin = true;
+            $isAdmin = $jwtPayload && isset($jwtPayload->is_admin) && $jwtPayload->is_admin === true;
+            
+            if (!$isAdmin) {
+                if (in_array(strtolower($userType ?? ''), ['admin', 'quan tri', 'quantri'])) {
+                    $isAdmin = true;
+                } elseif ($userType === 'lecturer' && $lecturerId) {
+                    $lecturerAccount = \Illuminate\Support\Facades\DB::table('lecturer_account')
+                        ->where('lecturer_id', $lecturerId)
+                        ->where('is_admin', 1)
+                        ->first();
+                    $isAdmin = !!$lecturerAccount;
+                }
             }
             
             // Nếu là admin -> lấy tất cả (filterLecturerId = null)

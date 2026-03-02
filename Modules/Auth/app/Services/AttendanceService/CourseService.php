@@ -254,7 +254,17 @@ class CourseService
     }
 
     /**
-     * Lấy danh sách buổi học của môn
+     * Lấy tất cả buổi học của môn (không phân trang - cho dropdown)
+     */
+    public function getAllCourseSessions(int $courseId): Collection
+    {
+        return AttendanceSession::where('course_id', $courseId)
+            ->orderBy('session_number', 'asc')
+            ->get();
+    }
+
+    /**
+     * Lấy danh sách buổi học của môn (phân trang)
      */
     public function getCourseSessions(int $courseId, int $perPage = 15): LengthAwarePaginator
     {
