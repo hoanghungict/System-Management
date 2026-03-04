@@ -14,11 +14,11 @@
         'http://127.0.0.1:3001',
         'http://localhost:5173',
         'http://127.0.0.1:5173',
-        '103.126.161.228:3001',
-        'https://103.126.161.228/',
 
         'http://103.126.161.228:3001',
         'http://103.126.161.228:3000',
+        'http://hethongdientu.khoacongnghethongtinhpc.io.vn',
+        'https://hethongdientu.khoacongnghethongtinhpc.io.vn',
     ],
 
     'allowed_origins_patterns' => [],
