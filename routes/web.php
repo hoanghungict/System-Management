@@ -224,6 +224,39 @@ Route::get('/api-testing/lecturer', function () {
     return response()->file(public_path('../api-lecturer.html'));
 });
 
+// Activity Diagrams - Biểu đồ hoạt động
+Route::get('/activity-diagrams', function () {
+    return view('activity-diagrams');
+});
+
+// Sequence Diagrams - Sơ đồ tuần tự
+Route::get('/sequence-diagrams', function () {
+    return view('sequence-diagrams');
+});
+
+// ERD Diagram
+Route::get('/erd', function () {
+    return view('erd-diagram');
+});
+
+// State Diagrams - Sơ đồ trạng thái
+Route::get('/state-diagrams', function () {
+    return view('state-diagrams');
+});
+
+// Class Diagrams - Biểu đồ lớp
+Route::get('/class-diagrams', function () {
+    return view('class-diagrams');
+});
+
+Route::get('/component-diagrams', function () {
+    return view('component-diagrams');
+});
+
+Route::get('/deployment-diagrams', function () {
+    return view('deployment-diagrams');
+});
+
 // Broadcasting auth routes (required for Reverb WebSocket authentication)
 Broadcast::routes(['middleware' => ['web', 'jwt']]);
 
