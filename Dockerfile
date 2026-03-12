@@ -11,7 +11,8 @@ RUN apt-get update && apt-get install -y \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install \
     gd mbstring intl zip bcmath pcntl \
-    && pecl install rdkafka-6.0.3 \
+    && pecl install https://pecl.php.net/get/rdkafka-6.0.3.tgz \
+    # && pecl install rdkafka-6.0.3 \
     && docker-php-ext-enable rdkafka \
     && rm -rf /var/lib/apt/lists/*
 
@@ -38,7 +39,8 @@ RUN apt-get update && apt-get install -y \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install \
     pdo pdo_mysql gd mbstring bcmath intl zip opcache pcntl \
-    && pecl install rdkafka-6.0.3 \
+    # && pecl install rdkafka-6.0.3 \
+    && pecl install https://pecl.php.net/get/rdkafka-6.0.3.tgz \
     && docker-php-ext-enable rdkafka \
     && rm -rf /var/lib/apt/lists/*
 
