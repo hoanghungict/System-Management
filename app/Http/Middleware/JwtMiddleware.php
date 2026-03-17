@@ -50,6 +50,7 @@ class JwtMiddleware
             $request->attributes->set('jwt_payload', $decoded);
             $request->attributes->set('jwt_user_id', $decoded->sub);
             $request->attributes->set('jwt_user_type', $decoded->user_type ?? null);
+            $request->attributes->set('jwt_is_admin', $decoded->is_admin ?? false);
 
         } catch (\Exception $e) {
             return response()->json([
