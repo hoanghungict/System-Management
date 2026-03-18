@@ -18,11 +18,14 @@ class LecturerOnlyMiddleware
     public function handle(Request $request, Closure $next): Response
     {
         $userType = $request->attributes->get('jwt_user_type');
-        $jwtPayload = $request->attributes->get('jwt_payload');
+        $isAdmin = $request->attributes->get('jwt_is_admin', false);
 
-        // Cho phép nếu là lecturer
-        if ($userType === 'lecturer') {
-            return $next($request);
+        // Admin cũng có quyền truy cập chức năng của giảng viên
+        if ($userType !== 'lecturer' && !$isAdmin) {
+            return response()->json([
+                'message' => 'Chỉ giảng viên mới có thể truy cập chức năng này',
+                'error' => 'Lecturer access required'
+            ], 403);
         }
 
         // Cho phép nếu là Admin (kiểm tra is_admin từ JWT payload)

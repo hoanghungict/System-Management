@@ -66,8 +66,27 @@ Route::middleware(['jwt', 'lecturer'])
         Route::get('lecturer-tasks/{task}/submissions', [LecturerTaskController::class, 'getTaskSubmissions'])->name('lecturer-tasks.get-submissions');
         Route::post('lecturer-tasks/{task}/submissions/{submission}/grade', [LecturerTaskController::class, 'gradeSubmission'])->name('lecturer-tasks.grade-submission');
         
-        // Lecturer calendar routes
-        Route::apiResource('lecturer-calendar', CalendarController::class);
+        // Lecturer calendar routes - explicit routes khớp với frontend API calls
+        Route::prefix('lecturer-calendar')->group(function () {
+            // CRUD Events
+            Route::post('events', [CalendarController::class, 'createEvent']);
+            Route::put('events/{id}', [CalendarController::class, 'updateEvent'])->whereNumber('id');
+            Route::delete('events/{id}', [CalendarController::class, 'deleteEvent'])->whereNumber('id');
+
+            // Read Events
+            Route::get('events', [CalendarController::class, 'getAllEvents']);
+            Route::get('events/by-date', [CalendarController::class, 'getEventsByDate']);
+            Route::get('events/by-range', [CalendarController::class, 'getEventsByRange']);
+            Route::get('events/upcoming', [CalendarController::class, 'getUpcomingEvents']);
+            Route::get('events/overdue', [CalendarController::class, 'getOverdueEvents']);
+            Route::get('events/count-by-status', [CalendarController::class, 'getEventsCountByStatus']);
+            Route::get('events/recurring', [CalendarController::class, 'getRecurringEvents']);
+            Route::get('events/by-type', [CalendarController::class, 'getEventsByType']);
+
+            // Reminders
+            Route::get('reminders', [CalendarController::class, 'getReminders']);
+            Route::post('reminders', [CalendarController::class, 'setReminder']);
+        });
 
         // ================= NEW ASSIGNMENT SYSTEM ROUTES =================
         Route::prefix('lecturer')->group(function () {
@@ -102,6 +121,10 @@ Route::middleware(['jwt', 'lecturer'])
             Route::post('question-banks/{id}/chapters', [\Modules\Task\app\Http\Controllers\QuestionBankController::class, 'addChapter']);
             Route::put('question-banks/{id}/chapters/{chapterId}', [\Modules\Task\app\Http\Controllers\QuestionBankController::class, 'updateChapter']);
             Route::delete('question-banks/{id}/chapters/{chapterId}', [\Modules\Task\app\Http\Controllers\QuestionBankController::class, 'deleteChapter']);
+
+            // Question Bank - CRUD individual questions
+            Route::put('question-banks/questions/{questionId}', [\Modules\Task\app\Http\Controllers\QuestionBankController::class, 'updateQuestion']);
+            Route::delete('question-banks/questions/{questionId}', [\Modules\Task\app\Http\Controllers\QuestionBankController::class, 'deleteQuestion']);
 
             // ================= EXAM ROUTES =================
             Route::apiResource('exams', \Modules\Task\app\Http\Controllers\Exam\LecturerExamController::class);
