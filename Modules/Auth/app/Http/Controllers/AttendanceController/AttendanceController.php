@@ -119,8 +119,23 @@ class AttendanceController extends Controller
                     'message' => 'Unauthorized - Vui lòng đăng nhập lại',
                 ], 401);
             }
+
+            // Kiểm tra xem user có phải Admin không
+            $jwtPayload = $request->attributes->get('jwt_payload');
+            $isAdmin = $jwtPayload && isset($jwtPayload->is_admin) && $jwtPayload->is_admin === true;
             
-            $session = $this->attendanceService->startSession($sessionId, $lecturerId);
+            if (!$isAdmin) {
+                $userType = $request->attributes->get('jwt_user_type');
+                if ($userType === 'lecturer') {
+                    $lecturerAccount = \Illuminate\Support\Facades\DB::table('lecturer_account')
+                        ->where('lecturer_id', $lecturerId)
+                        ->where('is_admin', 1)
+                        ->first();
+                    $isAdmin = !!$lecturerAccount;
+                }
+            }
+            
+            $session = $this->attendanceService->startSession($sessionId, $lecturerId, $isAdmin);
 
             return response()->json([
                 'success' => true,

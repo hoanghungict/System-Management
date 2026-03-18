@@ -194,25 +194,43 @@ class EnrollmentImportService
                         continue;
                     }
 
-                    // Kiểm tra đã đăng ký chưa
-                    $existingEnrollment = CourseEnrollment::where('course_id', $courseId)
+                    // Kiểm tra đã đăng ký chưa (chỉ tính active, không tính dropped)
+                    $activeEnrollment = CourseEnrollment::where('course_id', $courseId)
                         ->where('student_id', $student->id)
+                        ->where('status', '!=', CourseEnrollment::STATUS_DROPPED)
                         ->first();
 
-                    if ($existingEnrollment) {
+                    if ($activeEnrollment) {
                         $skipCount++;
-                        // Log::info('Student already enrolled, skipping', ['row' => $row, 'student_code' => $enrollmentData['student_code']]);
+                        // Log::info('Student already active enrolled, skipping', ['row' => $row]);
                         continue;
                     }
 
-                    // Tạo enrollment
-                    CourseEnrollment::create([
-                        'course_id' => $courseId,
-                        'student_id' => $student->id,
-                        'enrolled_at' => now(),
-                        'status' => 'active',
-                        'note' => 'Imported from Excel',
-                    ]);
+                    // Kiểm tra có enrollment bị dropped không → reactivate
+                    $droppedEnrollment = CourseEnrollment::where('course_id', $courseId)
+                        ->where('student_id', $student->id)
+                        ->where('status', CourseEnrollment::STATUS_DROPPED)
+                        ->first();
+
+                    if ($droppedEnrollment) {
+                        // Reactivate enrollment đã bị dropped
+                        $droppedEnrollment->update([
+                            'status' => CourseEnrollment::STATUS_ACTIVE,
+                            'enrolled_at' => now(),
+                            'note' => 'Đăng ký lại qua Excel',
+                            'dropped_at' => null,
+                            'drop_reason' => null,
+                        ]);
+                    } else {
+                        // Tạo enrollment mới
+                        CourseEnrollment::create([
+                            'course_id' => $courseId,
+                            'student_id' => $student->id,
+                            'enrolled_at' => now(),
+                            'status' => CourseEnrollment::STATUS_ACTIVE,
+                            'note' => 'Imported from Excel',
+                        ]);
+                    }
 
                     $successCount++;
                     // Log::info('Enrollment created successfully', ['row' => $row, 'student_code' => $enrollmentData['student_code']]);
@@ -433,12 +451,13 @@ class EnrollmentImportService
             return $errors;
         }
 
-        // Kiểm tra đã đăng ký chưa
-        $existingEnrollment = CourseEnrollment::where('course_id', $courseId)
+        // Kiểm tra đã đăng ký chưa (chỉ báo lỗi nếu đang active, dropped thì cho phép re-enroll)
+        $activeEnrollment = CourseEnrollment::where('course_id', $courseId)
             ->where('student_id', $student->id)
+            ->where('status', '!=', CourseEnrollment::STATUS_DROPPED)
             ->exists();
 
-        if ($existingEnrollment) {
+        if ($activeEnrollment) {
             $errors[] = [
                 'row' => $rowNumber,
                 'student_code' => $data['student_code'],

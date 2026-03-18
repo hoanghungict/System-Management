@@ -4,7 +4,7 @@ namespace Modules\Notifications\app\Handlers\OfficialDispatchHandle;
 
 use Illuminate\Support\Facades\Log;
 use Modules\Notifications\app\Handlers\Contracts\NotificationEventHandler;
-use Modules\Notifications\app\Handlers\HandleUtil\ensureString;
+use Modules\Notifications\app\Handlers\HandleUtil\EnsureString;
 use Modules\Notifications\app\Services\NotificationService\NotificationService;
 
 class NotifyOnDispatchStatusUpdateHandle implements NotificationEventHandler

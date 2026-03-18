@@ -224,11 +224,87 @@ Route::get('/api-testing/lecturer', function () {
     return response()->file(public_path('../api-lecturer.html'));
 });
 
+// Activity Diagrams - Biểu đồ hoạt động
+Route::get('/activity-diagrams', function () {
+    return view('activity-diagrams');
+});
+
+// Sequence Diagrams - Sơ đồ tuần tự
+Route::get('/sequence-diagrams', function () {
+    return view('sequence-diagrams');
+});
+
+// ERD Diagram
+Route::get('/erd', function () {
+    return view('erd-diagram');
+});
+
+// State Diagrams - Sơ đồ trạng thái
+Route::get('/state-diagrams', function () {
+    return view('state-diagrams');
+});
+
+// Class Diagrams - Biểu đồ lớp
+Route::get('/class-diagrams', function () {
+    return view('class-diagrams');
+});
+
+Route::get('/component-diagrams', function () {
+    return view('component-diagrams');
+});
+
+Route::get('/deployment-diagrams', function () {
+    return view('deployment-diagrams');
+});
+
 // Broadcasting auth routes (required for Reverb WebSocket authentication)
+// Note: Broadcast::routes registers /broadcasting/auth for internal use
 Broadcast::routes(['middleware' => ['web', 'jwt']]);
 
-// Alternative API route for frontend - with JWT middleware
-Route::post('/api/broadcasting/auth', function (Illuminate\Http\Request $request) {
+// CORS helper for broadcasting auth (frontend at localhost:3001 → backend at localhost:8082)
+$broadcastingCorsHeaders = function ($response) {
+    // Broadcast::auth() may return an array instead of a Response object
+    if (is_array($response)) {
+        $response = response()->json($response);
+    } elseif (is_string($response)) {
+        $response = response($response, 200, ['Content-Type' => 'application/json']);
+    }
+    
+    $allowedOrigins = [
+        'http://localhost:3000',
+        'http://localhost:3001',
+        'http://127.0.0.1:3000',
+        'http://127.0.0.1:3001',
+        'http://103.126.161.228:3001',
+        'http://103.126.161.228:3000',
+    ];
+    
+    $origin = request()->header('Origin');
+    $allowedOrigin = in_array($origin, $allowedOrigins) ? $origin : null;
+    
+    if ($allowedOrigin) {
+        $response->headers->set('Access-Control-Allow-Origin', $allowedOrigin);
+        $response->headers->set('Access-Control-Allow-Methods', 'POST, OPTIONS');
+        $response->headers->set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, X-Socket-ID');
+        $response->headers->set('Access-Control-Allow-Credentials', 'true');
+        $response->headers->set('Access-Control-Max-Age', '3600');
+    }
+    
+    return $response;
+};
+
+// Handle OPTIONS preflight for /api/broadcasting/auth
+Route::options('/api/broadcasting/auth', function () use ($broadcastingCorsHeaders) {
+    return $broadcastingCorsHeaders(response('', 200));
+})->withoutMiddleware([
+    \Illuminate\Cookie\Middleware\EncryptCookies::class,
+    \Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse::class,
+    \Illuminate\Session\Middleware\StartSession::class,
+    \Illuminate\View\Middleware\ShareErrorsFromSession::class,
+]);
+
+// Broadcasting auth route for frontend - with JWT middleware + CORS
+Route::post('/api/broadcasting/auth', function (Illuminate\Http\Request $request) use ($broadcastingCorsHeaders) {
     // Set a fake user for broadcasting auth
     // PusherBroadcaster needs an authenticated user
     $userId = $request->attributes->get('jwt_user_id');
@@ -256,5 +332,13 @@ Route::post('/api/broadcasting/auth', function (Illuminate\Http\Request $request
         });
     }
     
-    return Broadcast::auth($request);
-})->middleware('jwt');
+    $response = Broadcast::auth($request);
+    
+    // Add CORS headers to the response
+    return $broadcastingCorsHeaders($response);
+})->middleware('jwt')->withoutMiddleware([
+    \Illuminate\Cookie\Middleware\EncryptCookies::class,
+    \Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse::class,
+    \Illuminate\Session\Middleware\StartSession::class,
+    \Illuminate\View\Middleware\ShareErrorsFromSession::class,
+]);

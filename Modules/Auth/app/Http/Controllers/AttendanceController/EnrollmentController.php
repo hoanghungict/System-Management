@@ -86,7 +86,7 @@ class EnrollmentController extends Controller
     public function enrollStudentsBulk(BulkEnrollStudentsRequest $request, int $courseId): JsonResponse
     {
         try {
-            $adminId = $request->user()->id;
+            $adminId = $request->attributes->get('jwt_user_id');
             $studentIds = $request->validated()['student_ids'];
             
             $results = $this->enrollmentService->enrollStudentsBulk($courseId, $studentIds, $adminId);
@@ -121,7 +121,7 @@ class EnrollmentController extends Controller
     public function addLateEnrollment(EnrollStudentRequest $request, int $courseId): JsonResponse
     {
         try {
-            $adminId = $request->user()->id;
+            $adminId = $request->attributes->get('jwt_user_id');
             $data = $request->validated();
             
             $enrollment = $this->enrollmentService->addLateEnrollment(
