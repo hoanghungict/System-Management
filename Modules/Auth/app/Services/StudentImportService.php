@@ -71,6 +71,11 @@ class StudentImportService
                 // Map Excel columns to array using header
                 $studentData = $this->mapExcelRowToStudentData($row, $headerMap);
                 
+                // Bỏ qua dòng trống (kiểm tra sau khi map data)
+                if ($this->isEmptyStudentData($studentData)) {
+                    continue;
+                }
+                
                 // Validate
                 $validator = $this->validateStudentData($studentData, $rowNumber);
                 
@@ -136,6 +141,11 @@ class StudentImportService
                 
                 // Map Excel row to student data using header
                 $studentData = $this->mapExcelRowToStudentData($row, $headerMap);
+                
+                // Bỏ qua dòng trống (kiểm tra sau khi map data)
+                if ($this->isEmptyStudentData($studentData)) {
+                    continue;
+                }
                 
                 // Create student in transaction
                 DB::transaction(function () use ($studentData, $importJob, &$successCount) {
@@ -403,12 +413,34 @@ class StudentImportService
                 return 0;
             }
 
-            // Subtract header row
-            return count($rows[0]) - 1;
+            // Subtract header row, and skip empty rows
+            $headerRow = $rows[0][0] ?? [];
+            $headerMap = $this->mapHeaderToIndex($headerRow);
+            $dataRows = array_slice($rows[0], 1);
+            $nonEmptyCount = 0;
+            foreach ($dataRows as $row) {
+                $studentData = $this->mapExcelRowToStudentData($row, $headerMap);
+                if (!$this->isEmptyStudentData($studentData)) {
+                    $nonEmptyCount++;
+                }
+            }
+            return $nonEmptyCount;
         } catch (\Exception $e) {
             Log::channel('daily')->error('Error counting rows', ['error' => $e->getMessage(), 'file_path' => $filePath]);
             throw $e; // Let job catch and mark as failed with message
         }
+    }
+
+    /**
+     * Kiểm tra student data có rỗng không (tất cả trường bắt buộc đều trống)
+     */
+    protected function isEmptyStudentData(array $data): bool
+    {
+        $fullName = trim((string) ($data['full_name'] ?? ''));
+        $email = trim((string) ($data['email'] ?? ''));
+        $studentCode = trim((string) ($data['student_code'] ?? ''));
+        
+        return $fullName === '' && $email === '' && $studentCode === '';
     }
 }
 

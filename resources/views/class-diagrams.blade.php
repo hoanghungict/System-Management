@@ -20,7 +20,7 @@ body{background:#f5f5f5;font-family:'Segoe UI',Arial,sans-serif;overflow:hidden;
 <body>
 <div class="toolbar">
     <h2>Biểu đồ lớp tổng quát — Auth & Notification Module</h2>
-    <span class="legend">◆ Composition &nbsp; ◇ Aggregation &nbsp; — Association &nbsp; ⇢ Dependency</span>
+    <span class="legend">◆── Composition &nbsp; ◇── Aggregation &nbsp; ── Association &nbsp; ╌╌▷ Dependency</span>
     <button onclick="zoomIn()">🔍+</button>
     <span class="zi" id="zl">100%</span>
     <button onclick="zoomOut()">🔍−</button>
@@ -106,13 +106,13 @@ function render(){
  const svg=document.getElementById('dg');let mx=0,my=0;
  CLS.forEach(c=>{mx=Math.max(mx,c.x+BW+30);my=Math.max(my,c.y+gh(c)+30);});
  svg.setAttribute('width',mx);svg.setAttribute('height',my);svg.setAttribute('viewBox',`0 0 ${mx} ${my}`);
- let h=`<defs><marker id="aE" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0,10 3.5,0 7" fill="#444"/></marker><marker id="aD" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0,10 3.5,0 7" fill="#888"/></marker><marker id="dF" markerWidth="14" markerHeight="10" refX="1" refY="5" orient="auto"><polygon points="7 0,14 5,7 10,0 5" fill="#444"/></marker><marker id="dO" markerWidth="14" markerHeight="10" refX="1" refY="5" orient="auto"><polygon points="7 0,14 5,7 10,0 5" fill="#fff" stroke="#444" stroke-width="1.5"/></marker></defs>`;
+  let h=`<defs><marker id="aD" markerWidth="12" markerHeight="8" refX="11" refY="4" orient="auto"><polygon points="0 0,12 4,0 8" fill="none" stroke="#888" stroke-width="1.5"/></marker><marker id="dF" markerWidth="14" markerHeight="10" refX="1" refY="5" orient="auto"><polygon points="7 0,14 5,7 10,0 5" fill="#444"/></marker><marker id="dO" markerWidth="14" markerHeight="10" refX="1" refY="5" orient="auto"><polygon points="7 0,14 5,7 10,0 5" fill="#fff" stroke="#444" stroke-width="1.5"/></marker></defs>`;
  RELS.forEach(r=>{const fc=getC(r.f),tc=getC(r.t);if(!fc||!tc)return;
-  if(r.self){const rx=fc.x+BW,ry=fc.y+15;h+=`<path d="M${rx},${ry} C${rx+50},${ry-10} ${rx+50},${ry+50} ${rx},${ry+40}" fill="none" stroke="#444" stroke-width="1.8" marker-start="url(#dO)" marker-end="url(#aE)"/>`;h+=`<text x="${rx+55}" y="${ry+20}" font-size="11" fill="#555" font-style="italic">${r.label||''}</text>`;h+=`<text x="${rx+4}" y="${ry-5}" font-size="10" fill="#333" font-weight="bold">${r.fc||''}</text>`;h+=`<text x="${rx+4}" y="${ry+52}" font-size="10" fill="#333" font-weight="bold">${r.tc||''}</text>`;return;}
+   if(r.self){const rx=fc.x+BW,ry=fc.y+15;h+=`<path d="M${rx},${ry} C${rx+50},${ry-10} ${rx+50},${ry+50} ${rx},${ry+40}" fill="none" stroke="#444" stroke-width="1.8" marker-start="url(#dO)"/>`;h+=`<text x="${rx+55}" y="${ry+20}" font-size="11" fill="#555" font-style="italic">${r.label||''}</text>`;h+=`<text x="${rx+4}" y="${ry-5}" font-size="10" fill="#333" font-weight="bold">${r.fc||''}</text>`;h+=`<text x="${rx+4}" y="${ry+52}" font-size="10" fill="#333" font-weight="bold">${r.tc||''}</text>`;return;}
   const[x1,y1]=anchor(fc,r.fs||'r',r.fp||.5),[x2,y2]=anchor(tc,r.ts||'l',r.tp||.5);
-  let ms='',me='marker-end="url(#aE)"',da='',cl='#444';
-  if(r.type==='comp')ms='marker-start="url(#dF)"';if(r.type==='agg')ms='marker-start="url(#dO)"';
-  if(r.type==='dep'){da='stroke-dasharray="7,4"';cl='#888';me='marker-end="url(#aD)"';}
+   let ms='',me='',da='',cl='#444';
+   if(r.type==='comp')ms='marker-start="url(#dF)"';if(r.type==='agg')ms='marker-start="url(#dO)"';
+   if(r.type==='dep'){da='stroke-dasharray="7,4"';cl='#888';me='marker-end="url(#aD)"';}
   if(r.wp){let d=`M${x1},${y1}`;r.wp.forEach(p=>d+=` L${p[0]},${p[1]}`);d+=` L${x2},${y2}`;h+=`<path d="${d}" fill="none" stroke="${cl}" stroke-width="1.8" ${da} ${ms} ${me}/>`;}
   else{const dx=x2-x1,dy=y2-y1,hz=(r.fs==='l'||r.fs==='r')&&(r.ts==='l'||r.ts==='r'),vt=(r.fs==='t'||r.fs==='b')&&(r.ts==='t'||r.ts==='b');
    if(hz){const cx=dx/2;h+=`<path d="M${x1},${y1} C${x1+cx},${y1} ${x2-cx},${y2} ${x2},${y2}" fill="none" stroke="${cl}" stroke-width="1.8" ${da} ${ms} ${me}/>`;}

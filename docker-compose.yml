@@ -138,9 +138,12 @@ services:
       context: .
     container_name: hpc_queue
     restart: unless-stopped
+    working_dir: /var/www
     command: php artisan queue:work --sleep=3 --tries=3 --timeout=90
     env_file:
       - .env
+    volumes:
+      - ./:/var/www
     depends_on:
       - redis
     mem_limit: 256m
