@@ -139,13 +139,6 @@ class EnrollmentService
             }
         }
 
-        /* Log::info('Bulk enrollment completed', [
-            'course_id' => $courseId,
-            'success_count' => count($results['success']),
-            'failed_count' => count($results['failed']),
-            'already_enrolled_count' => count($results['already_enrolled']),
-        ]); */
-
         return $results;
     }
 
@@ -198,12 +191,6 @@ class EnrollmentService
         $result = $this->enrollmentRepository->drop($courseId, $studentId, $reason);
 
         if ($result) {
-            /* Log::info('Student unenrolled', [
-                'course_id' => $courseId,
-                'student_id' => $studentId,
-                'reason' => $reason,
-            ]); */
-
             // Clear cache
             $this->clearEnrollmentCache($courseId, $studentId);
         }

@@ -273,4 +273,50 @@ class CalendarController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Cập nhật calendar event (Admin/Lecturer)
+     */
+    public function updateEvent(Request $request, int $id): JsonResponse
+    {
+        try {
+            $userId = $request->attributes->get('jwt_user_id');
+            $data = $request->all();
+            
+            $event = $this->calendarService->updateEvent($id, $data, $userId);
+            
+            return response()->json([
+                'success' => true,
+                'data' => $event,
+                'message' => 'Event updated successfully'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error updating event: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Xóa calendar event (Admin/Lecturer)
+     */
+    public function deleteEvent(Request $request, int $id): JsonResponse
+    {
+        try {
+            $userId = $request->attributes->get('jwt_user_id');
+            
+            $this->calendarService->deleteEvent($id, $userId);
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Event deleted successfully'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error deleting event: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 }

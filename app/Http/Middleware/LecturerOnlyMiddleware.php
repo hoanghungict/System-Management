@@ -11,22 +11,29 @@ class LecturerOnlyMiddleware
 {
     /**
      * Handle an incoming request.
-     * 
+     *
      * Cho phép cả Giảng viên VÀ Admin truy cập.
      * Admin có thể thực hiện điểm danh cho bất kỳ môn nào.
      */
     public function handle(Request $request, Closure $next): Response
     {
         $userType = $request->attributes->get('jwt_user_type');
-        $jwtPayload = $request->attributes->get('jwt_payload');
+        $isAdmin = $request->attributes->get('jwt_is_admin', false);
 
-        // Cho phép nếu là lecturer
-        if ($userType === 'lecturer') {
-            return $next($request);
+        // Admin cũng có quyền truy cập chức năng của giảng viên
+        if ($userType !== 'lecturer' && !$isAdmin) {
+            return response()->json([
+                'message' => 'Chỉ giảng viên mới có thể truy cập chức năng này',
+                'error' => 'Lecturer access required'
+            ], 403);
         }
 
         // Cho phép nếu là Admin (kiểm tra is_admin từ JWT payload)
-        if ($jwtPayload && isset($jwtPayload->is_admin) && $jwtPayload->is_admin === true) {
+        // if ($jwtPayload && isset($jwtPayload->is_admin) && $jwtPayload->is_admin === true) {
+        //     return $next($request);
+        // } // khong co jwtPayload nao o day ca :(
+
+        if ($isAdmin) {
             return $next($request);
         }
 
@@ -37,10 +44,12 @@ class LecturerOnlyMiddleware
                 ->where('lecturer_id', $userId)
                 ->where('is_admin', 1)
                 ->first();
-            
+
             if ($lecturerAccount) {
                 return $next($request);
             }
+
+            return $next($request);
         }
 
         return response()->json([

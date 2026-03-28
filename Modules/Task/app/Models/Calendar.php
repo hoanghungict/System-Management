@@ -31,10 +31,12 @@ class Calendar extends Model
         'event_type',
         'task_id',
         'creator_id',
-        'creator_type'
+        'creator_type',
+        'participant_id',
+        'participant_type',
     ];
 
-    public $timestamps = false;
+    public $timestamps = true;
     
     protected $casts = [
         'start_time' => 'datetime',

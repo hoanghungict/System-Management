@@ -102,13 +102,7 @@ class RollCallService
             ]);
         }
 
-        /* Log::info('Class-based roll call created', [
-        /* Log::info('Class-based roll call created', [
-            'roll_call_id' => $rollCall->id,
-            'class_id' => $data['class_id'],
-            'students_count' => $students->count()
-        ]); */
-        ]); */
+        
     }
 
     /**
@@ -135,13 +129,6 @@ class RollCallService
             ]);
         }
 
-        /* Log::info('Manual roll call created', [
-        /* Log::info('Manual roll call created', [
-            'roll_call_id' => $rollCall->id,
-            'participants_count' => count($participants),
-            'expected_participants' => $data['expected_participants'] ?? count($participants)
-        ]); */
-        ]); */
     }
 
     /**
@@ -175,13 +162,13 @@ class RollCallService
             $this->clearRollCallCache($rollCall->class_id);
             Cache::forget("roll_call_details:{$rollCallId}");
 
-            /* Log::info('Participants added to manual roll call', [
-            /* Log::info('Participants added to manual roll call', [
-                'roll_call_id' => $rollCallId,
-                'new_participants' => count($newStudentIds),
-                'total_participants' => count($existingStudentIds) + count($newStudentIds)
-            ]); */
-            ]); */
+            // /* Log::info('Participants added to manual roll call', [
+            // /* Log::info('Participants added to manual roll call', [
+            //     'roll_call_id' => $rollCallId,
+            //     'new_participants' => count($newStudentIds),
+            //     'total_participants' => count($existingStudentIds) + count($newStudentIds)
+            // ]); */
+            // ]); */
 
             return true;
 
@@ -213,13 +200,6 @@ class RollCallService
                 // Clear cache
                 $this->clearRollCallCache($rollCall->class_id);
                 Cache::forget("roll_call_details:{$rollCallId}");
-
-                /* Log::info('Participant removed from manual roll call', [
-                /* Log::info('Participant removed from manual roll call', [
-                    'roll_call_id' => $rollCallId,
-                    'student_id' => $studentId
-                ]); */
-                ]); */
             }
 
             return $deleted;
@@ -347,13 +327,7 @@ class RollCallService
                 }
                 Cache::forget("roll_call_details:{$rollCallId}");
 
-                /* Log::info('Student roll call status updated', [
-                /* Log::info('Student roll call status updated', [
-                    'roll_call_id' => $rollCallId,
-                    'student_id' => $studentId,
-                    'status' => $status
-                ]); */
-                ]); */
+               
             }
 
             return $success;
@@ -579,12 +553,6 @@ class RollCallService
                         // Laravel Redis keys đã có prefix, xóa trực tiếp
                         Cache::forget(str_replace($prefix, '', $key));
                     }
-                    /* Log::info('Cleared getAllRollCalls cache via Redis', [
-                    /* Log::info('Cleared getAllRollCalls cache via Redis', [
-                        'keys_count' => count($keys),
-                        'pattern' => $pattern
-                    ]); */
-                    ]); */
                 }
             }
         } catch (\Exception $e) {
@@ -616,11 +584,6 @@ class RollCallService
             }
         }
         
-        /* Log::info('Roll call cache cleared comprehensively', [
-        /* Log::info('Roll call cache cleared comprehensively', [
-            'class_id' => $classId,
-            'method' => 'Redis + fallback patterns'
-        ]); */
-        ]); */
+   
     }
 }

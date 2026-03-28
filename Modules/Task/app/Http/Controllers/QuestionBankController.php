@@ -126,6 +126,7 @@ class QuestionBankController extends Controller
         $validator = Validator::make($request->all(), [
             'name' => 'sometimes|string|max:255',
             'description' => 'nullable|string',
+            'course_id' => 'nullable|exists:courses,id',
             'subject_code' => 'nullable|string|max:50',
             'status' => 'sometimes|in:active,inactive',
         ]);
@@ -338,6 +339,73 @@ class QuestionBankController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Xóa chương thành công'
+        ]);
+    }
+
+    /**
+     * Cập nhật câu hỏi trong ngân hàng
+     */
+    public function updateQuestion(Request $request, int $questionId): JsonResponse
+    {
+        $question = Question::with('questionBank')->find($questionId);
+
+        if (!$question || !$question->questionBank) {
+            return response()->json(['success' => false, 'message' => 'Không tìm thấy câu hỏi'], 404);
+        }
+
+        $userId = $request->attributes->get('jwt_user_id') ?? ($request->user() ? $request->user()->id : null);
+        if ($question->questionBank->lecturer_id !== $userId) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'content'        => 'sometimes|string',
+            'options'        => 'nullable|array',
+            'correct_answer' => 'nullable|string',
+            'difficulty'     => 'sometimes|in:easy,medium,hard',
+            'chapter_id'     => 'nullable|exists:chapters,id',
+            'explanation'    => 'nullable|string',
+            'points'         => 'sometimes|numeric|min:0',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors'  => $validator->errors()
+            ], 422);
+        }
+
+        $question->update($validator->validated());
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Cập nhật câu hỏi thành công',
+            'data'    => $question->fresh(['chapter'])
+        ]);
+    }
+
+    /**
+     * Xóa câu hỏi trong ngân hàng
+     */
+    public function deleteQuestion(Request $request, int $questionId): JsonResponse
+    {
+        $question = Question::with('questionBank')->find($questionId);
+
+        if (!$question || !$question->questionBank) {
+            return response()->json(['success' => false, 'message' => 'Không tìm thấy câu hỏi'], 404);
+        }
+
+        $userId = $request->attributes->get('jwt_user_id') ?? ($request->user() ? $request->user()->id : null);
+        if ($question->questionBank->lecturer_id !== $userId) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+        }
+
+        $question->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Xóa câu hỏi thành công'
         ]);
     }
 

@@ -1092,5 +1092,69 @@ class CalendarService
         })->toArray();
     }
 
+    /**
+     * Tạo calendar event mới
+     *
+     * @param array $data Event data
+     * @return array Created event
+     */
+    public function createEvent(array $data): array
+    {
+        try {
+            $event = \Modules\Task\app\Models\Calendar::create([
+                'title'        => $data['title'],
+                'description'  => $data['description'] ?? null,
+                'start_time'   => $data['start_time'],
+                'end_time'     => $data['end_time'],
+                'event_type'   => $data['event_type'] ?? 'event',
+                'creator_id'   => $data['creator_id'] ?? null,
+                'creator_type' => $data['creator_type'] ?? 'lecturer',
+            ]);
+
+            return $this->mapCalendarToEvents(collect([$event]))[0] ?? $event->toArray();
+        } catch (\Exception $e) {
+            Log::error('CalendarService: Error creating event', [
+                'data'  => $data,
+                'error' => $e->getMessage(),
+            ]);
+            throw $e;
+        }
+    }
+
+    /**
+     * Cập nhật calendar event
+     *
+     * @param int $id Event ID
+     * @param array $data New data
+     * @param int|null $userId Requesting user ID
+     * @return array Updated event
+     */
+    public function updateEvent(int $id, array $data, ?int $userId = null): array
+    {
+        $event = \Modules\Task\app\Models\Calendar::findOrFail($id);
+
+        $event->update(array_filter([
+            'title'       => $data['title'] ?? null,
+            'description' => $data['description'] ?? null,
+            'start_time'  => $data['start_time'] ?? null,
+            'end_time'    => $data['end_time'] ?? null,
+            'event_type'  => $data['event_type'] ?? null,
+        ], fn($v) => $v !== null));
+
+        return $this->mapCalendarToEvents(collect([$event->fresh()]))[0] ?? $event->toArray();
+    }
+
+    /**
+     * Xóa calendar event
+     *
+     * @param int $id Event ID
+     * @param int|null $userId Requesting user ID
+     * @return bool
+     */
+    public function deleteEvent(int $id, ?int $userId = null): bool
+    {
+        $event = \Modules\Task\app\Models\Calendar::findOrFail($id);
+        return (bool) $event->delete();
+    }
 
 }
